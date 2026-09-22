@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    styles.xml (themes.xml)
+
+    Application theme and reusable styles for SipSense.
+
+    Theme Hierarchy:
+    - Theme.SipSense (inherits from Theme.MaterialComponents.Light.NoActionBar)
+      └── Removes the default ActionBar for custom UI
+      └── Sets SipSense brand colors for Material Components
+      └── Configures status bar to dark teal
+
+    @project SipSense - Smart Bottle Ecosystem
+-->
+<resources>
+
+    <!-- Base namespace style to prevent AAPT implicit inheritance errors -->
+    <style name="SipSense" parent="" />
+
+    <!-- ════════════════════════════════════════════════════════════════
+         APPLICATION THEME
+         Base theme applied to all activities via AndroidManifest.xml.
+         Uses MaterialComponents for proper TextInputLayout support.
+         ════════════════════════════════════════════════════════════════ -->
+    <style name="Theme.SipSense" parent="Theme.MaterialComponents.Light.NoActionBar">
+        <!-- Brand color mappings for Material Components -->
+        <item name="colorPrimary">@color/teal_primary</item>
+        <item name="colorPrimaryDark">@color/status_bar</item>
+        <item name="colorAccent">@color/blue_accent</item>
+
+        <!-- Status bar color (dark teal to match gradient background) -->
+        <item name="android:statusBarColor">@color/status_bar</item>
+
+        <!-- Navigation bar color -->
+        <item name="android:navigationBarColor">@color/teal_dark</item>
+
+        <!-- Default text colors -->
+        <item name="android:textColorPrimary">@color/text_primary</item>
+        <item name="android:textColorSecondary">@color/text_secondary</item>
+        <item name="android:textColorHint">@color/text_hint</item>
+        
+        <!-- Apply custom EditText style globally -->
+        <item name="editTextStyle">@style/SipSense.TextInputEditText</item>
+    </style>
+
+    <!-- ════════════════════════════════════════════════════════════════
+         FIELD LABEL STYLE
+         Used for uppercase labels above each input field
+         (e.g., "EMAIL ADDRESS", "PASSWORD", "FULL NAME").
+         ════════════════════════════════════════════════════════════════ -->
+    <style name="SipSense.FieldLabel">
+        <item name="android:textColor">@color/text_primary</item>
+        <item name="android:textSize">13sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:letterSpacing">0.05</item>
+    </style>
+
+    <!-- ════════════════════════════════════════════════════════════════
+         INPUT FIELD STYLE
+         Applied to TextInputLayout containers for consistent appearance.
+         Uses filled box style with rounded corners and no underline.
+         ════════════════════════════════════════════════════════════════ -->
+    <style name="SipSense.TextInputLayout" parent="Widget.MaterialComponents.TextInputLayout.FilledBox">
+        <item name="boxBackgroundColor">@color/input_background</item>
+        <item name="boxCornerRadiusTopStart">12dp</item>
+        <item name="boxCornerRadiusTopEnd">12dp</item>
+        <item name="boxCornerRadiusBottomStart">12dp</item>
+        <item name="boxCornerRadiusBottomEnd">12dp</item>
+        <item name="boxStrokeWidth">0dp</item>
+        <item name="boxStrokeWidthFocused">1dp</item>
+        <item name="boxStrokeColor">@color/teal_primary</item>
+        <item name="hintEnabled">false</item>
+    </style>
+
+    <!-- ════════════════════════════════════════════════════════════════
+         EDIT TEXT STYLE
+         Centers the text vertically since the floating hint is disabled.
+         ════════════════════════════════════════════════════════════════ -->
+    <style name="SipSense.TextInputEditText" parent="Widget.MaterialComponents.TextInputEditText.FilledBox">
+        <item name="android:paddingTop">16dp</item>
+        <item name="android:paddingBottom">16dp</item>
+    </style>
+
+</resources>

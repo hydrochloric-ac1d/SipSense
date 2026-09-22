@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    strings.xml
+
+    Centralized string resources for the SipSense application.
+    All user-facing text is defined here to support:
+    - Consistent wording across screens
+    - Easy localization (i18n) for future language support
+    - Single source of truth for UI text
+
+    Strings are organized by screen (Login, Registration) and category
+    (labels, hints, buttons, errors, prompts).
+
+    @project SipSense - Smart Bottle Ecosystem
+-->
+<resources>
+
+    <!-- ════════════════════════════════════════════════════════════════
+         APPLICATION BRANDING
+         ════════════════════════════════════════════════════════════════ -->
+    <string name="app_name">SipSense</string>
+    <string name="tagline">Track. Hydrate. Feel Great.</string>
+    <string name="iot_sync">IoT Sync</string>
+
+    <!-- ════════════════════════════════════════════════════════════════
+         TAB NAVIGATION
+         Labels for the Login / Sign Up tab toggle used on both screens.
+         ════════════════════════════════════════════════════════════════ -->
+    <string name="tab_login">Log In</string>
+    <string name="tab_signup">Sign Up</string>
+
+    <!-- ════════════════════════════════════════════════════════════════
+         LOGIN SCREEN
+         ════════════════════════════════════════════════════════════════ -->
+    <!-- Field labels (displayed above input fields) -->
+    <string name="label_email">EMAIL ADDRESS</string>
+    <string name="label_password">PASSWORD</string>
+
+    <!-- Input field placeholder hints -->
+    <string name="hint_email">name@example.com</string>
+    <string name="hint_password">Enter your password</string>
+
+    <!-- Checkbox and link text -->
+    <string name="remember_me">Remember me</string>
+    <string name="forgot_password">Forgot Password?</string>
+
+    <!-- Primary action button -->
+    <string name="btn_login">Log In  →</string>
+
+    <!-- Navigation prompt to registration -->
+    <string name="prompt_no_account">Don\'t have an account?</string>
+    <string name="link_sign_up">Sign up now</string>
+
+    <!-- ════════════════════════════════════════════════════════════════
+         REGISTRATION SCREEN
+         ════════════════════════════════════════════════════════════════ -->
+    <!-- Field labels -->
+    <string name="label_full_name">FULL NAME</string>
+    <string name="label_confirm_password">CONFIRM PASSWORD</string>
+    <string name="label_hydration">DAILY HYDRATION TARGET (ML)</string>
+
+    <!-- Input field placeholder hints -->
+    <string name="hint_full_name">John Doe</string>
+    <string name="hint_password_register">At least 8 characters</string>
+    <string name="hint_confirm_password">Re-enter password</string>
+    <string name="hint_hydration">2500</string>
+
+    <!-- Unit label for hydration target -->
+    <string name="unit_ml">mL</string>
+
+    <!-- Password strength indicator -->
+    <string name="password_strength">Password Strength:</string>
+    <string name="strength_placeholder">\u0020\u0020--</string>
+    <string name="strength_weak">Weak</string>
+    <string name="strength_fair">Fair</string>
+    <string name="strength_good">Good</string>
+    <string name="strength_strong">Strong</string>
+
+    <!-- Password criteria checklist items (○ = unmet, ● = met) -->
+    <string name="criteria_length">8+ characters</string>
+    <string name="criteria_case">Upper &amp; Lowercase</string>
+    <string name="criteria_number">1+ number</string>
+    <string name="criteria_symbol">1+ symbol (!@#$)</string>
+
+    <!-- Terms of service checkbox components -->
+    <string name="terms_agreement">I agree to the Terms of Service and Privacy Policy.</string>
+    <string name="terms_of_service">Terms of Service</string>
+    <string name="privacy_policy">Privacy Policy</string>
+
+    <!-- Primary action button -->
+    <string name="btn_create_account">Create SipSense Account</string>
+
+    <!-- Navigation prompt to login -->
+    <string name="prompt_has_account">Already have an account?</string>
+    <string name="link_log_in">Log In</string>
+
+    <!-- ════════════════════════════════════════════════════════════════
+         FOOTER
+         Copyright notice displayed at the bottom of both screens.
+         ════════════════════════════════════════════════════════════════ -->
+    <string name="footer_text">SipSense Smart Bottle Ecosystem © 2026. All rights reserved.</string>
+
+    <!-- ════════════════════════════════════════════════════════════════
+         VALIDATION ERROR MESSAGES
+         Displayed when user input fails validation checks.
+         ════════════════════════════════════════════════════════════════ -->
+    <string name="error_email_empty">Please enter your email address</string>
+    <string name="error_email_invalid">Please enter a valid email address</string>
+    <string name="error_password_empty">Please enter your password</string>
+    <string name="error_password_short">Password must be at least 8 characters</string>
+    <string name="error_name_empty">Please enter your full name</string>
+    <string name="error_password_mismatch">Passwords do not match</string>
+    <string name="error_terms_required">You must agree to the Terms of Service</string>
+    <string name="error_hydration_empty">Please enter a hydration target</string>
+    <string name="error_hydration_range">Hydration target must be between 500 and 10000 mL</string>
+
+    <!-- ════════════════════════════════════════════════════════════════
+         SUCCESS MESSAGES
+         Toast messages shown after successful form submission.
+         ════════════════════════════════════════════════════════════════ -->
+    <string name="msg_login_success">Login successful!</string>
+    <string name="msg_register_success">Account created successfully!</string>
+    <string name="msg_forgot_password">Forgot Password feature coming soon!</string>
+
+</resources>

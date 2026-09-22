@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    dimens.xml
+
+    Centralized dimension values for the SipSense application.
+    Using dimension resources (instead of hardcoded dp/sp values)
+    ensures visual consistency across all screens and simplifies
+    future design adjustments.
+
+    @project SipSense - Smart Bottle Ecosystem
+-->
+<resources>
+
+    <!-- ════════════════════════════════════════════════════════════════
+         SPACING / MARGINS
+         Standard spacing scale used for padding and margins.
+         ════════════════════════════════════════════════════════════════ -->
+    <dimen name="spacing_xs">4dp</dimen>       <!-- Extra small gap -->
+    <dimen name="spacing_sm">8dp</dimen>       <!-- Small gap (label to field) -->
+    <dimen name="spacing_md">12dp</dimen>      <!-- Medium gap -->
+    <dimen name="spacing_lg">16dp</dimen>      <!-- Large gap (between sections) -->
+    <dimen name="spacing_xl">20dp</dimen>      <!-- Extra large gap -->
+    <dimen name="spacing_xxl">24dp</dimen>     <!-- Card internal padding -->
+    <dimen name="spacing_xxxl">32dp</dimen>    <!-- Major section separators -->
+
+    <!-- ════════════════════════════════════════════════════════════════
+         CORNER RADII
+         Rounded corner values for cards, inputs, buttons, and badges.
+         ════════════════════════════════════════════════════════════════ -->
+    <dimen name="radius_input">12dp</dimen>    <!-- Input field corners -->
+    <dimen name="radius_card">24dp</dimen>     <!-- Card container corners -->
+    <dimen name="radius_button">28dp</dimen>   <!-- Primary button corners -->
+    <dimen name="radius_tab">20dp</dimen>      <!-- Tab container corners -->
+    <dimen name="radius_badge">12dp</dimen>    <!-- IoT Sync badge corners -->
+    <dimen name="radius_logo">16dp</dimen>     <!-- Logo container corners -->
+    <dimen name="radius_strength">4dp</dimen>  <!-- Strength bar segment corners -->
+
+    <!-- ════════════════════════════════════════════════════════════════
+         COMPONENT HEIGHTS
+         Fixed heights for interactive components.
+         ════════════════════════════════════════════════════════════════ -->
+    <dimen name="height_button">56dp</dimen>   <!-- Primary action buttons -->
+    <dimen name="height_tab_row">48dp</dimen>  <!-- Tab toggle container -->
+    <dimen name="height_strength_bar">6dp</dimen> <!-- Password strength segment -->
+
+    <!-- ════════════════════════════════════════════════════════════════
+         LOGO DIMENSIONS
+         Size of the SipSense logo on the login screen.
+         ════════════════════════════════════════════════════════════════ -->
+    <dimen name="logo_size">80dp</dimen>
+    <dimen name="logo_padding">12dp</dimen>
+    <dimen name="logo_margin_top">48dp</dimen>
+
+    <!-- ════════════════════════════════════════════════════════════════
+         TEXT SIZES
+         Typography scale for headings, body, labels, and captions.
+         ════════════════════════════════════════════════════════════════ -->
+    <dimen name="text_app_name">32sp</dimen>   <!-- "SipSense" title -->
+    <dimen name="text_heading">17sp</dimen>    <!-- Button text -->
+    <dimen name="text_tagline">16sp</dimen>    <!-- Tagline text -->
+    <dimen name="text_body">15sp</dimen>       <!-- Input field text / tabs -->
+    <dimen name="text_label">13sp</dimen>      <!-- Field labels -->
+    <dimen name="text_caption">12sp</dimen>    <!-- Footer, badges -->
+    <dimen name="text_badge">11sp</dimen>      <!-- IoT Sync badge -->
+    <dimen name="text_criteria">12sp</dimen>   <!-- Password criteria items -->
+
+    <!-- ════════════════════════════════════════════════════════════════
+         CARD MARGINS
+         Horizontal inset for the login/registration card from screen edge.
+         ════════════════════════════════════════════════════════════════ -->
+    <dimen name="card_margin_horizontal">16dp</dimen>
+    <dimen name="card_padding_horizontal">24dp</dimen>
+    <dimen name="card_padding_top">24dp</dimen>
+    <dimen name="card_padding_bottom">28dp</dimen>
+    <dimen name="card_elevation">8dp</dimen>
+
+</resources>

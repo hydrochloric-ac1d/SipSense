@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    colors.xml
+
+    Centralized color palette for the SipSense application.
+    All colors used throughout the app's UI are defined here for
+    consistency and easy theming. Colors are organized by usage category.
+
+    Brand colors are derived from the SipSense logo and reference designs:
+    - Primary teal (#2BB5B2) – buttons, active states, links
+    - Dark teal (#1A5C6B) – gradient backgrounds, headers
+    - Blue accent (#3B7DD8) – gradient endpoints, highlights
+
+    @project SipSense - Smart Bottle Ecosystem
+-->
+<resources>
+
+    <!-- ════════════════════════════════════════════════════════════════
+         PRIMARY BRAND COLORS
+         Core identity colors derived from the SipSense logo.
+         ════════════════════════════════════════════════════════════════ -->
+    <color name="teal_primary">#2BB5B2</color>       <!-- Main brand teal -->
+    <color name="teal_dark">#1A5C6B</color>           <!-- Dark teal for headers -->
+    <color name="blue_accent">#3B7DD8</color>         <!-- Blue accent for gradients -->
+
+    <!-- ════════════════════════════════════════════════════════════════
+         BACKGROUND GRADIENT COLORS
+         Used for the full-screen teal gradient behind the login card.
+         Gradient direction: top-left → bottom-right
+         ════════════════════════════════════════════════════════════════ -->
+    <color name="gradient_start">#1A5C6B</color>      <!-- Top-left corner -->
+    <color name="gradient_center">#1F7A7A</color>     <!-- Center blend -->
+    <color name="gradient_end">#2E8B8B</color>        <!-- Bottom-right corner -->
+
+    <!-- ════════════════════════════════════════════════════════════════
+         BUTTON GRADIENT COLORS
+         Applied to primary action buttons (Login, Create Account).
+         Creates a vibrant teal-to-blue horizontal sweep.
+         ════════════════════════════════════════════════════════════════ -->
+    <color name="button_gradient_start">#2BB5B2</color>   <!-- Left edge (teal) -->
+    <color name="button_gradient_end">#3B7DD8</color>     <!-- Right edge (blue) -->
+
+    <!-- ════════════════════════════════════════════════════════════════
+         SURFACE / CARD COLORS
+         Backgrounds for cards, input fields, and tab containers.
+         ════════════════════════════════════════════════════════════════ -->
+    <color name="card_background">#FFFFFF</color>     <!-- White card surface -->
+    <color name="input_background">#F0F4F4</color>    <!-- Light grey input field bg -->
+    <color name="tab_container">#E8EDED</color>       <!-- Grey pill for tab row -->
+    <color name="tab_selected">#FFFFFF</color>        <!-- White active tab bg -->
+
+    <!-- ════════════════════════════════════════════════════════════════
+         TEXT COLORS
+         Hierarchical text colors from high to low emphasis.
+         ════════════════════════════════════════════════════════════════ -->
+    <color name="text_primary">#1A3C4D</color>        <!-- Primary body text -->
+    <color name="text_secondary">#5A7A8A</color>      <!-- Secondary / labels -->
+    <color name="text_hint">#9AABB5</color>           <!-- Placeholder / hint text -->
+    <color name="text_link">#2BB5B2</color>           <!-- Clickable links -->
+    <color name="text_white">#FFFFFF</color>          <!-- Text on dark backgrounds -->
+
+    <!-- ════════════════════════════════════════════════════════════════
+         PASSWORD STRENGTH INDICATOR COLORS
+         Color-coded strength levels for the registration form's
+         password strength bar (4 segments).
+         ════════════════════════════════════════════════════════════════ -->
+    <color name="strength_inactive">#D0D8DA</color>   <!-- Unlit segment (grey) -->
+    <color name="strength_weak">#E74C3C</color>       <!-- 1/4 criteria met (red) -->
+    <color name="strength_fair">#F39C12</color>       <!-- 2/4 criteria met (orange) -->
+    <color name="strength_good">#2BB5B2</color>       <!-- 3/4 criteria met (teal) -->
+    <color name="strength_strong">#27AE60</color>     <!-- 4/4 criteria met (green) -->
+
+    <!-- ════════════════════════════════════════════════════════════════
+         SYSTEM UI COLORS
+         Status bar, navigation bar, and other system chrome colors.
+         ════════════════════════════════════════════════════════════════ -->
+    <color name="status_bar">#153D47</color>          <!-- Dark teal status bar -->
+
+</resources>

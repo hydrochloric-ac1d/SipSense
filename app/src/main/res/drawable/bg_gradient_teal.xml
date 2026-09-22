@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    bg_gradient_teal.xml
+
+    Full-screen gradient background for the Login and Registration screens.
+    Creates a diagonal linear gradient transitioning from dark teal (top-left)
+    through a mid-teal center to a brighter teal (bottom-right).
+
+    This gradient mimics the oceanic/water-themed branding of SipSense.
+
+    Usage: android:background="@drawable/bg_gradient_teal"
+-->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+
+    <!-- Diagonal gradient from dark teal to bright teal -->
+    <gradient
+        android:startColor="@color/gradient_start"
+        android:centerColor="@color/gradient_center"
+        android:endColor="@color/gradient_end"
+        android:angle="135"
+        android:type="linear" />
+
+</shape>

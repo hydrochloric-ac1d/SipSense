@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    bg_tab_selected.xml
+
+    White rounded background for the currently active tab in the
+    Login/Sign Up tab toggle. Creates a "raised pill" effect that
+    visually distinguishes the selected tab from the inactive one.
+
+    Applied via android:background on the active tab's TextView.
+
+    Usage: android:background="@drawable/bg_tab_selected"
+-->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+
+    <!-- White background for active tab -->
+    <solid android:color="@color/tab_selected" />
+
+    <!-- Rounded corners matching the container's pill shape -->
+    <corners android:radius="@dimen/radius_tab" />
+
+</shape>

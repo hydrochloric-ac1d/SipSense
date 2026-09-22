@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    bg_tab_container.xml
+
+    Grey pill-shaped container for the Login/Sign Up tab toggle row.
+    Provides a subtle background that visually groups the two tab options
+    and serves as the "track" behind the active tab indicator.
+
+    Usage: android:background="@drawable/bg_tab_container"
+-->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+
+    <!-- Light grey background for the tab row -->
+    <solid android:color="@color/tab_container" />
+
+    <!-- Rounded pill shape matching the tab row height -->
+    <corners android:radius="@dimen/radius_tab" />
+
+</shape>

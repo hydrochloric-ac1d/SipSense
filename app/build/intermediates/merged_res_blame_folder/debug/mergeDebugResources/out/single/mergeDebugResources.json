@@ -1,0 +1,82 @@
+[
+    {
+        "merged": "C:\\Users\\Margareth Lim\\.gradle\\daemon\\8.9\\com.sipsense.app-debug-31:\\drawable_bg_password_strength_segment.xml.flat",
+        "source": "C:\\Users\\Margareth Lim\\.gradle\\daemon\\8.9\\com.sipsense.app-main-33:\\drawable\\bg_password_strength_segment.xml"
+    },
+    {
+        "merged": "C:\\Users\\Margareth Lim\\.gradle\\daemon\\8.9\\com.sipsense.app-debug-31:\\layout_activity_register.xml.flat",
+        "source": "C:\\Users\\Margareth Lim\\.gradle\\daemon\\8.9\\com.sipsense.app-main-33:\\layout\\activity_register.xml"
+    },
+    {
+        "merged": "C:\\Users\\Margareth Lim\\.gradle\\daemon\\8.9\\com.sipsense.app-debug-31:\\drawable_ic_person_add.xml.flat",
+        "source": "C:\\Users\\Margareth Lim\\.gradle\\daemon\\8.9\\com.sipsense.app-main-33:\\drawable\\ic_person_add.xml"
+    },
+    {
+        "merged": "C:\\Users\\Margareth Lim\\.gradle\\daemon\\8.9\\com.sipsense.app-debug-31:\\drawable_bg_gradient_teal.xml.flat",
+        "source": "C:\\Users\\Margareth Lim\\.gradle\\daemon\\8.9\\com.sipsense.app-main-33:\\drawable\\bg_gradient_teal.xml"
+    },
+    {
+        "merged": "com.sipsense.app-debug-31:/layout_activity_register.xml.flat",
+        "source": "com.sipsense.app-main-33:/layout/activity_register.xml"
+    },
+    {
+        "merged": "C:\\Users\\Margareth Lim\\.gradle\\daemon\\8.9\\com.sipsense.app-debug-31:\\drawable_ic_lock.xml.flat",
+        "source": "C:\\Users\\Margareth Lim\\.gradle\\daemon\\8.9\\com.sipsense.app-main-33:\\drawable\\ic_lock.xml"
+    },
+    {
+        "merged": "C:\\Users\\Margareth Lim\\.gradle\\daemon\\8.9\\com.sipsense.app-debug-31:\\drawable_bg_tab_container.xml.flat",
+        "source": "C:\\Users\\Margareth Lim\\.gradle\\daemon\\8.9\\com.sipsense.app-main-33:\\drawable\\bg_tab_container.xml"
+    },
+    {
+        "merged": "C:\\Users\\Margareth Lim\\.gradle\\daemon\\8.9\\com.sipsense.app-debug-31:\\drawable_ic_shield_check.xml.flat",
+        "source": "C:\\Users\\Margareth Lim\\.gradle\\daemon\\8.9\\com.sipsense.app-main-33:\\drawable\\ic_shield_check.xml"
+    },
+    {
+        "merged": "C:\\Users\\Margareth Lim\\.gradle\\daemon\\8.9\\com.sipsense.app-debug-31:\\drawable_logo_sipsense.png.flat",
+        "source": "C:\\Users\\Margareth Lim\\.gradle\\daemon\\8.9\\com.sipsense.app-main-33:\\drawable\\logo_sipsense.png"
+    },
+    {
+        "merged": "C:\\Users\\Margareth Lim\\.gradle\\daemon\\8.9\\com.sipsense.app-debug-31:\\drawable_bg_button_gradient.xml.flat",
+        "source": "C:\\Users\\Margareth Lim\\.gradle\\daemon\\8.9\\com.sipsense.app-main-33:\\drawable\\bg_button_gradient.xml"
+    },
+    {
+        "merged": "C:\\Users\\Margareth Lim\\.gradle\\daemon\\8.9\\com.sipsense.app-debug-31:\\drawable_bg_logo_container.xml.flat",
+        "source": "C:\\Users\\Margareth Lim\\.gradle\\daemon\\8.9\\com.sipsense.app-main-33:\\drawable\\bg_logo_container.xml"
+    },
+    {
+        "merged": "C:\\Users\\Margareth Lim\\.gradle\\daemon\\8.9\\com.sipsense.app-debug-31:\\drawable_ic_target.xml.flat",
+        "source": "C:\\Users\\Margareth Lim\\.gradle\\daemon\\8.9\\com.sipsense.app-main-33:\\drawable\\ic_target.xml"
+    },
+    {
+        "merged": "C:\\Users\\Margareth Lim\\.gradle\\daemon\\8.9\\com.sipsense.app-debug-31:\\drawable_bg_tab_selected.xml.flat",
+        "source": "C:\\Users\\Margareth Lim\\.gradle\\daemon\\8.9\\com.sipsense.app-main-33:\\drawable\\bg_tab_selected.xml"
+    },
+    {
+        "merged": "C:\\Users\\Margareth Lim\\.gradle\\daemon\\8.9\\com.sipsense.app-debug-31:\\drawable_ic_login_arrow.xml.flat",
+        "source": "C:\\Users\\Margareth Lim\\.gradle\\daemon\\8.9\\com.sipsense.app-main-33:\\drawable\\ic_login_arrow.xml"
+    },
+    {
+        "merged": "C:\\Users\\Margareth Lim\\.gradle\\daemon\\8.9\\com.sipsense.app-debug-31:\\layout_activity_login.xml.flat",
+        "source": "C:\\Users\\Margareth Lim\\.gradle\\daemon\\8.9\\com.sipsense.app-main-33:\\layout\\activity_login.xml"
+    },
+    {
+        "merged": "com.sipsense.app-debug-31:/layout_activity_login.xml.flat",
+        "source": "com.sipsense.app-main-33:/layout/activity_login.xml"
+    },
+    {
+        "merged": "C:\\Users\\Margareth Lim\\.gradle\\daemon\\8.9\\com.sipsense.app-debug-31:\\drawable_ic_person.xml.flat",
+        "source": "C:\\Users\\Margareth Lim\\.gradle\\daemon\\8.9\\com.sipsense.app-main-33:\\drawable\\ic_person.xml"
+    },
+    {
+        "merged": "C:\\Users\\Margareth Lim\\.gradle\\daemon\\8.9\\com.sipsense.app-debug-31:\\drawable_bg_card_rounded.xml.flat",
+        "source": "C:\\Users\\Margareth Lim\\.gradle\\daemon\\8.9\\com.sipsense.app-main-33:\\drawable\\bg_card_rounded.xml"
+    },
+    {
+        "merged": "C:\\Users\\Margareth Lim\\.gradle\\daemon\\8.9\\com.sipsense.app-debug-31:\\drawable_ic_email.xml.flat",
+        "source": "C:\\Users\\Margareth Lim\\.gradle\\daemon\\8.9\\com.sipsense.app-main-33:\\drawable\\ic_email.xml"
+    },
+    {
+        "merged": "C:\\Users\\Margareth Lim\\.gradle\\daemon\\8.9\\com.sipsense.app-debug-31:\\drawable_bg_iot_badge.xml.flat",
+        "source": "C:\\Users\\Margareth Lim\\.gradle\\daemon\\8.9\\com.sipsense.app-main-33:\\drawable\\bg_iot_badge.xml"
+    }
+]
