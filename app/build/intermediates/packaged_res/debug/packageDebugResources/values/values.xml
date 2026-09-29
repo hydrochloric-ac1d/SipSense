@@ -65,6 +65,7 @@
     <string name="criteria_length">8+ characters</string>
     <string name="criteria_number">1+ number</string>
     <string name="criteria_symbol">1+ symbol (!@#$)</string>
+    <string name="desc_edit_photo">Edit profile photo</string>
     <string name="error_email_empty">Please enter your email address</string>
     <string name="error_email_invalid">Please enter a valid email address</string>
     <string name="error_hydration_empty">Please enter a hydration target</string>
@@ -89,11 +90,16 @@
     <string name="hint_password">Enter your password</string>
     <string name="hint_password_register">At least 8 characters</string>
     <string name="iot_sync">IoT Sync</string>
+    <string name="label_change_password">Change Password</string>
     <string name="label_confirm_password">CONFIRM PASSWORD</string>
+    <string name="label_connected_apps">Connected Apps</string>
+    <string name="label_daily_target">Daily Hydration Target</string>
     <string name="label_email">EMAIL ADDRESS</string>
     <string name="label_full_name">FULL NAME</string>
     <string name="label_hydration">DAILY HYDRATION TARGET (ML)</string>
+    <string name="label_notification_settings">Notification Settings</string>
     <string name="label_password">PASSWORD</string>
+    <string name="label_units">Units (ml / oz)</string>
     <string name="link_log_in">Log In</string>
     <string name="link_sign_up">Sign up now</string>
     <string name="msg_forgot_password">Forgot Password feature coming soon!</string>
@@ -119,7 +125,9 @@
     <string name="tagline">Track. Hydrate. Feel Great.</string>
     <string name="terms_agreement">I agree to the Terms of Service and Privacy Policy.</string>
     <string name="terms_of_service">Terms of Service</string>
+    <string name="title_account_prefs">Account Preferences</string>
     <string name="unit_ml">mL</string>
+    <string name="unit_oz">oz</string>
     <string name="wifi_connected">CONNECTED</string>
     <string name="wifi_disconnected">DISCONNECTED</string>
     <style name="SipSense" parent=""/>

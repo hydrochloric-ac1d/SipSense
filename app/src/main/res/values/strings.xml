@@ -52,6 +52,14 @@
          Labels and buttons displayed in the user profile fragment.
          ════════════════════════════════════════════════════════════════ -->
     <string name="btn_logout">Log Out</string>
+    <string name="label_daily_target">Daily Hydration Target</string>
+    <string name="title_account_prefs">Account Preferences</string>
+    <string name="label_units">Units (ml / oz)</string>
+    <string name="unit_oz">oz</string>
+    <string name="label_change_password">Change Password</string>
+    <string name="label_notification_settings">Notification Settings</string>
+    <string name="label_connected_apps">Connected Apps</string>
+    <string name="desc_edit_photo">Edit profile photo</string>
 
     <!-- ════════════════════════════════════════════════════════════════
          LOGIN SCREEN

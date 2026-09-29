@@ -3081,6 +3081,7 @@ drawable avd_show_password
 drawable bg_bottom_nav
 drawable bg_button_gradient
 drawable bg_card_rounded
+drawable bg_circle_white
 drawable bg_gradient_teal
 drawable bg_iot_badge
 drawable bg_logo_container
@@ -3133,6 +3134,7 @@ drawable ic_call_decline
 drawable ic_call_decline_low
 drawable ic_clear_black_24
 drawable ic_clock_black_24dp
+drawable ic_edit
 drawable ic_email
 drawable ic_keyboard_black_24dp
 drawable ic_lock
@@ -3230,6 +3232,7 @@ drawable test_level_drawable
 drawable tooltip_frame_dark
 drawable tooltip_frame_light
 drawable user
+drawable user_profile
 drawable water_bottle
 drawable wifi
 id ALT
@@ -3507,6 +3510,7 @@ id linear
 id listMode
 id list_item
 id m3_side_sheet
+id main_card
 id marquee
 id masked
 id match_constraint
@@ -3623,7 +3627,6 @@ id pin
 id position
 id postLayout
 id pressed
-id profile_card
 id progress_circular
 id progress_horizontal
 id radio
@@ -3636,7 +3639,11 @@ id rightToLeft
 id right_icon
 id right_side
 id rounded
+id row_change_password
+id row_connected_apps
 id row_index_key
+id row_notifications
+id row_units
 id save_non_transition_alpha
 id save_overlay_view
 id sawtooth
@@ -3670,6 +3677,7 @@ id sin
 id skipCollapsed
 id skipped
 id slide
+id slider_hydration
 id snackbar_action
 id snackbar_text
 id snap
@@ -3784,8 +3792,9 @@ id tv_devices_title
 id tv_header_title
 id tv_history_title
 id tv_profile_email
-id tv_profile_hydration
 id tv_profile_name
+id tv_target_indicator
+id tv_unit_value
 id tv_wifi_status
 id unchecked
 id uniform
@@ -4094,6 +4103,7 @@ string criteria_case
 string criteria_length
 string criteria_number
 string criteria_symbol
+string desc_edit_photo
 string error_a11y_label
 string error_email_empty
 string error_email_invalid
@@ -4129,11 +4139,16 @@ string hint_password_register
 string icon_content_description
 string iot_sync
 string item_view_role_description
+string label_change_password
 string label_confirm_password
+string label_connected_apps
+string label_daily_target
 string label_email
 string label_full_name
 string label_hydration
+string label_notification_settings
 string label_password
+string label_units
 string link_log_in
 string link_sign_up
 string m3_exceed_max_badge_text_suffix
@@ -4271,7 +4286,9 @@ string tab_signup
 string tagline
 string terms_agreement
 string terms_of_service
+string title_account_prefs
 string unit_ml
+string unit_oz
 string wifi_connected
 string wifi_disconnected
 style AlertDialog_AppCompat
