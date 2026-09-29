@@ -152,7 +152,8 @@ class RegisterActivity : AppCompatActivity() {
 
         // Initialize Firebase services
         firebaseAuth = FirebaseAuth.getInstance()
-        database = FirebaseDatabase.getInstance().reference
+        val dbUrl = "https://sipsense-17a90-default-rtdb.firebaseio.com"
+        database = FirebaseDatabase.getInstance(dbUrl).reference
 
         // Bind all view references from the layout XML
         initializeViews()
@@ -623,32 +624,19 @@ class RegisterActivity : AppCompatActivity() {
                             )
 
                             // Write the profile to Realtime Database at /users/{uid}
+                            // This operation is asynchronous and handles offline queuing automatically.
+                            // We don't block the UI waiting for the server callback.
                             database.child("users").child(uid).setValue(userProfile)
-                                .addOnSuccessListener {
-                                    // Profile saved successfully
-                                    Toast.makeText(
-                                        this,
-                                        getString(R.string.msg_register_success),
-                                        Toast.LENGTH_SHORT
-                                    ).show()
-
-                                    // Sign out so user must log in with their new credentials
-                                    firebaseAuth.signOut()
-
-                                    // Navigate to Login screen
-                                    val intent = Intent(this, LoginActivity::class.java)
-                                    startActivity(intent)
-                                    finish()
-                                }
                                 .addOnFailureListener { e ->
-                                    // Database write failed
-                                    Toast.makeText(
-                                        this,
-                                        "Failed to save profile: ${e.message}",
-                                        Toast.LENGTH_LONG
-                                    ).show()
-                                    btnCreateAccount.isEnabled = true
+                                    // Log failure if it happens later (e.g. permission denied)
+                                    e.printStackTrace()
                                 }
+
+                            // Always navigate to Login immediately after account creation
+                            navigateToLogin()
+                        } else {
+                            // UID was null (rare edge case) – still navigate
+                            navigateToLogin()
                         }
                     } else {
                         // ── Registration failed ──
@@ -662,6 +650,27 @@ class RegisterActivity : AppCompatActivity() {
                     }
                 }
         }
+    }
+
+    /**
+     * Signs out the current user, shows a success toast, and navigates
+     * to LoginActivity. Called after successful account creation.
+     */
+    private fun navigateToLogin() {
+        // Show success feedback
+        Toast.makeText(
+            this,
+            getString(R.string.msg_register_success),
+            Toast.LENGTH_SHORT
+        ).show()
+
+        // Sign out so user must log in with their new credentials
+        firebaseAuth.signOut()
+
+        // Navigate to Login screen and close this activity
+        val intent = Intent(this, LoginActivity::class.java)
+        startActivity(intent)
+        finish()
     }
 
     // ═══════════════════════════════════════════════════════════════════

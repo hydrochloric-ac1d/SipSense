@@ -65,7 +65,7 @@ class ProfileFragment : Fragment() {
     private val firebaseAuth = FirebaseAuth.getInstance()
 
     /** Firebase Realtime Database instance */
-    private val database = FirebaseDatabase.getInstance().reference
+    private val database = FirebaseDatabase.getInstance("https://sipsense-17a90-default-rtdb.firebaseio.com").reference
 
     // ═══════════════════════════════════════════════════════════════════
     // LIFECYCLE
