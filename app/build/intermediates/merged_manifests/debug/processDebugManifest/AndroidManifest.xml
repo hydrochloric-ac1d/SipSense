@@ -69,6 +69,17 @@
             android:exported="false"
             android:screenOrientation="portrait" />
 
+        <!--
+            MainActivity - Post-login main screen
+            Hosts the bottom navigation bar with four top-level destinations:
+            Dashboard, History, Devices, and Profile.
+            Not exported (only accessible after successful authentication).
+        -->
+        <activity
+            android:name="com.sipsense.app.MainActivity"
+            android:exported="false"
+            android:screenOrientation="portrait" />
+
         <provider
             android:name="androidx.startup.InitializationProvider"
             android:authorities="com.sipsense.app.androidx-startup"

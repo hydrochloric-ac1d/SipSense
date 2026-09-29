@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    bg_bottom_nav.xml
+
+    Background drawable for the bottom navigation bar.
+    White rectangle with rounded top-left and top-right corners (24dp)
+    matching the card login radius (radius_card). Bottom corners remain
+    square to sit flush against the screen edge.
+
+    Usage: android:background="@drawable/bg_bottom_nav"
+
+    @project SipSense - Smart Bottle Ecosystem
+-->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+
+    <!-- Solid white navigation bar surface -->
+    <solid android:color="@color/card_background" />
+
+    <!-- Rounded top corners only (matching card radius) -->
+    <corners
+        android:topLeftRadius="@dimen/radius_card"
+        android:topRightRadius="@dimen/radius_card"
+        android:bottomLeftRadius="0dp"
+        android:bottomRightRadius="0dp" />
+
+</shape>

@@ -30,6 +30,15 @@
     <string name="tab_signup">Sign Up</string>
 
     <!-- ════════════════════════════════════════════════════════════════
+         BOTTOM NAVIGATION BAR
+         Labels for the four main navigation tabs displayed after login.
+         ════════════════════════════════════════════════════════════════ -->
+    <string name="nav_dashboard">Dashboard</string>
+    <string name="nav_history">History</string>
+    <string name="nav_devices">Devices</string>
+    <string name="nav_profile">Profile</string>
+
+    <!-- ════════════════════════════════════════════════════════════════
          LOGIN SCREEN
          ════════════════════════════════════════════════════════════════ -->
     <!-- Field labels (displayed above input fields) -->

@@ -241,9 +241,10 @@ class LoginActivity : AppCompatActivity() {
                 Toast.LENGTH_SHORT
             ).show()
 
-            // TODO: Replace with actual authentication logic
-            // Example: FirebaseAuth.getInstance().signInWithEmailAndPassword(email, password)
-            // Example: Retrofit API call to POST /api/auth/login
+            // Navigate to the main screen with bottom navigation
+            val intent = Intent(this, MainActivity::class.java)
+            startActivity(intent)
+            finish()  // Close LoginActivity so back press doesn't return here
         }
     }
 

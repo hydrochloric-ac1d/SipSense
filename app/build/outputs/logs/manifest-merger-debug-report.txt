@@ -1,9 +1,9 @@
 -- Merging decision tree log ---
 manifest
-ADDED from C:\Users\Margareth Lim\Documents\GitHub\SipSense\app\src\main\AndroidManifest.xml:19:1-56:12
-INJECTED from C:\Users\Margareth Lim\Documents\GitHub\SipSense\app\src\main\AndroidManifest.xml:19:1-56:12
-INJECTED from C:\Users\Margareth Lim\Documents\GitHub\SipSense\app\src\main\AndroidManifest.xml:19:1-56:12
-INJECTED from C:\Users\Margareth Lim\Documents\GitHub\SipSense\app\src\main\AndroidManifest.xml:19:1-56:12
+ADDED from C:\Users\Margareth Lim\Documents\GitHub\SipSense\app\src\main\AndroidManifest.xml:19:1-67:12
+INJECTED from C:\Users\Margareth Lim\Documents\GitHub\SipSense\app\src\main\AndroidManifest.xml:19:1-67:12
+INJECTED from C:\Users\Margareth Lim\Documents\GitHub\SipSense\app\src\main\AndroidManifest.xml:19:1-67:12
+INJECTED from C:\Users\Margareth Lim\Documents\GitHub\SipSense\app\src\main\AndroidManifest.xml:19:1-67:12
 MERGED from [com.google.android.material:material:1.12.0] C:\Users\Margareth Lim\.gradle\caches\8.9\transforms\2686b096f91f8c4f95f10b52fa54fff8\transformed\material-1.12.0\AndroidManifest.xml:17:1-24:12
 MERGED from [androidx.constraintlayout:constraintlayout:2.2.0] C:\Users\Margareth Lim\.gradle\caches\8.9\transforms\f7f10f99eb766817c878da04a64aaddc\transformed\constraintlayout-2.2.0\AndroidManifest.xml:2:1-9:12
 MERGED from [androidx.appcompat:appcompat-resources:1.7.0] C:\Users\Margareth Lim\.gradle\caches\8.9\transforms\95a40ad6d4357a979807dafe70b4b725\transformed\appcompat-resources-1.7.0\AndroidManifest.xml:2:1-7:12
@@ -54,8 +54,8 @@ MERGED from [androidx.print:print:1.0.0] C:\Users\Margareth Lim\.gradle\caches\8
 	xmlns:android
 		ADDED from C:\Users\Margareth Lim\Documents\GitHub\SipSense\app\src\main\AndroidManifest.xml:19:11-69
 application
-ADDED from C:\Users\Margareth Lim\Documents\GitHub\SipSense\app\src\main\AndroidManifest.xml:21:5-54:19
-INJECTED from C:\Users\Margareth Lim\Documents\GitHub\SipSense\app\src\main\AndroidManifest.xml:21:5-54:19
+ADDED from C:\Users\Margareth Lim\Documents\GitHub\SipSense\app\src\main\AndroidManifest.xml:21:5-65:19
+INJECTED from C:\Users\Margareth Lim\Documents\GitHub\SipSense\app\src\main\AndroidManifest.xml:21:5-65:19
 MERGED from [com.google.android.material:material:1.12.0] C:\Users\Margareth Lim\.gradle\caches\8.9\transforms\2686b096f91f8c4f95f10b52fa54fff8\transformed\material-1.12.0\AndroidManifest.xml:22:5-20
 MERGED from [com.google.android.material:material:1.12.0] C:\Users\Margareth Lim\.gradle\caches\8.9\transforms\2686b096f91f8c4f95f10b52fa54fff8\transformed\material-1.12.0\AndroidManifest.xml:22:5-20
 MERGED from [androidx.constraintlayout:constraintlayout:2.2.0] C:\Users\Margareth Lim\.gradle\caches\8.9\transforms\f7f10f99eb766817c878da04a64aaddc\transformed\constraintlayout-2.2.0\AndroidManifest.xml:7:5-20
@@ -114,6 +114,14 @@ ADDED from C:\Users\Margareth Lim\Documents\GitHub\SipSense\app\src\main\Android
 		ADDED from C:\Users\Margareth Lim\Documents\GitHub\SipSense\app\src\main\AndroidManifest.xml:51:13-37
 	android:name
 		ADDED from C:\Users\Margareth Lim\Documents\GitHub\SipSense\app\src\main\AndroidManifest.xml:50:13-45
+activity#com.sipsense.app.MainActivity
+ADDED from C:\Users\Margareth Lim\Documents\GitHub\SipSense\app\src\main\AndroidManifest.xml:60:9-63:52
+	android:screenOrientation
+		ADDED from C:\Users\Margareth Lim\Documents\GitHub\SipSense\app\src\main\AndroidManifest.xml:63:13-49
+	android:exported
+		ADDED from C:\Users\Margareth Lim\Documents\GitHub\SipSense\app\src\main\AndroidManifest.xml:62:13-37
+	android:name
+		ADDED from C:\Users\Margareth Lim\Documents\GitHub\SipSense\app\src\main\AndroidManifest.xml:61:13-41
 uses-sdk
 INJECTED from C:\Users\Margareth Lim\Documents\GitHub\SipSense\app\src\main\AndroidManifest.xml reason: use-sdk injection requested
 INJECTED from C:\Users\Margareth Lim\Documents\GitHub\SipSense\app\src\main\AndroidManifest.xml

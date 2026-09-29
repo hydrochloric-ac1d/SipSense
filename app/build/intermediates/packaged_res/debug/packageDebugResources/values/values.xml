@@ -8,6 +8,7 @@
     <color name="gradient_end">#2E8B8B</color>
     <color name="gradient_start">#1A5C6B</color>
     <color name="input_background">#F0F4F4</color>
+    <color name="nav_unselected">#9E9E9E</color>
     <color name="status_bar">#153D47</color>
     <color name="strength_fair">#F39C12</color>
     <color name="strength_good">#2BB5B2</color>
@@ -91,6 +92,10 @@
     <string name="msg_forgot_password">Forgot Password feature coming soon!</string>
     <string name="msg_login_success">Login successful!</string>
     <string name="msg_register_success">Account created successfully!</string>
+    <string name="nav_dashboard">Dashboard</string>
+    <string name="nav_devices">Devices</string>
+    <string name="nav_history">History</string>
+    <string name="nav_profile">Profile</string>
     <string name="password_strength">Password Strength:</string>
     <string name="privacy_policy">Privacy Policy</string>
     <string name="prompt_has_account">Already have an account?</string>
