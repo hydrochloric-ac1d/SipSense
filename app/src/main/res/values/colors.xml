@@ -75,5 +75,6 @@
          Status bar, navigation bar, and other system chrome colors.
          ════════════════════════════════════════════════════════════════ -->
     <color name="status_bar">#153D47</color>          <!-- Dark teal status bar -->
+    <color name="nav_unselected">#9E9E9E</color>      <!-- Grey for unselected nav items -->
 
 </resources>

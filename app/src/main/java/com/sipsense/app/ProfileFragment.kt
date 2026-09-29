@@ -1,0 +1,212 @@
+package com.sipsense.app
+
+/**
+ * ProfileFragment.kt
+ *
+ * Displays the current user's profile information fetched from
+ * Firebase Realtime Database and allows updating account settings.
+ *
+ * ══════════════════════════════════════════════════════════════════════════
+ * FEATURES:
+ * ──────────────────────────────────────────────────────────────────────────
+ * 1. Reads user profile from /users/{uid} in Realtime Database
+ * 2. Displays full name and email
+ * 3. Daily Hydration Target slider – updates Firebase DB when adjusted
+ * 4. Account Preferences panel: Units toggle (ml/oz) and Change Password
+ * 5. Logout button signs out via FirebaseAuth and returns to LoginActivity
+ *
+ * @project SipSense - Smart Bottle Ecosystem
+ * @version 1.2
+ */
+
+import android.content.Intent
+import android.os.Bundle
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
+import android.widget.Button
+import android.widget.ImageView
+import android.widget.TextView
+import android.widget.Toast
+import androidx.fragment.app.Fragment
+import com.google.android.material.button.MaterialButtonToggleGroup
+import com.google.android.material.slider.Slider
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.database.DataSnapshot
+import com.google.firebase.database.DatabaseError
+import com.google.firebase.database.FirebaseDatabase
+import com.google.firebase.database.ValueEventListener
+import com.sipsense.app.model.UserProfile
+import kotlin.math.roundToInt
+
+class ProfileFragment : Fragment() {
+
+    // ═══════════════════════════════════════════════════════════════════
+    // VIEW REFERENCES
+    // ═══════════════════════════════════════════════════════════════════
+
+
+    private lateinit var tvProfileName: TextView
+    private lateinit var tvProfileEmail: TextView
+    
+    // Hydration Target
+    private lateinit var tvTargetIndicator: TextView
+    private lateinit var sliderHydration: Slider
+    
+    // Account Preferences Rows
+    private lateinit var rowUnits: View
+    private lateinit var tvUnitValue: TextView
+    private lateinit var rowNotifications: View
+    private lateinit var rowConnectedApps: View
+    private lateinit var rowChangePassword: View
+    private lateinit var btnLogout: Button
+
+    // State
+    private var currentUnit = "ml"
+
+    // ═══════════════════════════════════════════════════════════════════
+    // FIREBASE REFERENCES
+    // ═══════════════════════════════════════════════════════════════════
+
+    /** Firebase Authentication instance */
+    private val firebaseAuth = FirebaseAuth.getInstance()
+
+    /** Firebase Realtime Database instance */
+    private val database = FirebaseDatabase.getInstance("https://sipsense-17a90-default-rtdb.firebaseio.com").reference
+
+    // ═══════════════════════════════════════════════════════════════════
+    // LIFECYCLE
+    // ═══════════════════════════════════════════════════════════════════
+
+    override fun onCreateView(
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?
+    ): View? {
+        val view = inflater.inflate(R.layout.fragment_profile, container, false)
+
+        // ── Bind views ──
+        tvProfileName = view.findViewById(R.id.tv_profile_name)
+        tvProfileEmail = view.findViewById(R.id.tv_profile_email)
+        tvTargetIndicator = view.findViewById(R.id.tv_target_indicator)
+        sliderHydration = view.findViewById(R.id.slider_hydration)
+        
+        rowUnits = view.findViewById(R.id.row_units)
+        tvUnitValue = view.findViewById(R.id.tv_unit_value)
+        rowNotifications = view.findViewById(R.id.row_notifications)
+        rowConnectedApps = view.findViewById(R.id.row_connected_apps)
+        rowChangePassword = view.findViewById(R.id.row_change_password)
+        btnLogout = view.findViewById(R.id.btn_logout)
+
+        // ── Load profile data from Firebase ──
+        loadUserProfile()
+
+        // ── Setup listeners ──
+        setupListeners()
+
+        return view
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    // SETUP
+    // ═══════════════════════════════════════════════════════════════════
+
+    private fun setupListeners() {
+        // Hydration Slider (Live Update Text)
+        sliderHydration.addOnChangeListener { _, value, _ ->
+            updateTargetIndicator(value.roundToInt())
+        }
+
+        // Hydration Slider (Save to DB on stop tracking)
+        sliderHydration.addOnSliderTouchListener(object : Slider.OnSliderTouchListener {
+            override fun onStartTrackingTouch(slider: Slider) {}
+            override fun onStopTrackingTouch(slider: Slider) {
+                saveHydrationTarget(slider.value.roundToInt())
+            }
+        })
+
+        // Units Row
+        rowUnits.setOnClickListener {
+            currentUnit = if (currentUnit == "ml") "oz" else "ml"
+            tvUnitValue.text = currentUnit
+            updateTargetIndicator(sliderHydration.value.roundToInt())
+        }
+        
+        // Notifications Row (Placeholder)
+        rowNotifications.setOnClickListener {
+            Toast.makeText(context, "Notification settings coming soon", Toast.LENGTH_SHORT).show()
+        }
+        
+        // Connected Apps Row (Placeholder)
+        rowConnectedApps.setOnClickListener {
+            Toast.makeText(context, "Connected apps coming soon", Toast.LENGTH_SHORT).show()
+        }
+
+        // Change Password Row (Placeholder)
+        rowChangePassword.setOnClickListener {
+            Toast.makeText(context, "Change password feature coming soon", Toast.LENGTH_SHORT).show()
+        }
+
+        // Logout Button
+        btnLogout.setOnClickListener {
+            firebaseAuth.signOut()
+            val intent = Intent(requireContext(), LoginActivity::class.java)
+            intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+            startActivity(intent)
+        }
+    }
+
+    private fun updateTargetIndicator(value: Int) {
+        tvTargetIndicator.text = "$value $currentUnit"
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    // PROFILE DATA LOADING & SAVING
+    // ═══════════════════════════════════════════════════════════════════
+
+    /**
+     * Reads the current user's profile from Firebase Realtime Database.
+     */
+    private fun loadUserProfile() {
+        val uid = firebaseAuth.currentUser?.uid ?: return
+
+        database.child("users").child(uid)
+            .addListenerForSingleValueEvent(object : ValueEventListener {
+                override fun onDataChange(snapshot: DataSnapshot) {
+                    val profile = snapshot.getValue(UserProfile::class.java)
+                    if (profile != null) {
+                        // Handle cases where the DB record is partially created
+                        val name = profile.fullName.takeIf { it.isNotBlank() } ?: "User"
+                        val emailStr = profile.email.takeIf { it.isNotBlank() } ?: (firebaseAuth.currentUser?.email ?: "")
+
+                        tvProfileName.text = name
+                        tvProfileEmail.text = emailStr
+                        
+                        // Update slider without triggering the listener save loop
+                        sliderHydration.value = profile.hydrationTarget.toFloat()
+                        updateTargetIndicator(profile.hydrationTarget)
+                    } else {
+                        tvProfileName.text = firebaseAuth.currentUser?.email ?: "User"
+                        tvProfileEmail.text = ""
+                        updateTargetIndicator(sliderHydration.value.roundToInt())
+                    }
+                }
+
+                override fun onCancelled(error: DatabaseError) {
+                    Toast.makeText(context, "Failed to load profile", Toast.LENGTH_SHORT).show()
+                }
+            })
+    }
+
+    /**
+     * Saves the newly selected hydration target to the Firebase Realtime Database.
+     */
+    private fun saveHydrationTarget(newTarget: Int) {
+        val uid = firebaseAuth.currentUser?.uid ?: return
+        
+        database.child("users").child(uid).child("hydrationTarget").setValue(newTarget)
+            .addOnFailureListener {
+                Toast.makeText(context, "Failed to update target", Toast.LENGTH_SHORT).show()
+            }
+    }
+}
