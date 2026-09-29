@@ -39,6 +39,15 @@
     <string name="nav_profile">Profile</string>
 
     <!-- ════════════════════════════════════════════════════════════════
+         HEADER BAR
+         Branding and WiFi connectivity status displayed at the top
+         of the main screen (always visible above fragments).
+         ════════════════════════════════════════════════════════════════ -->
+    <string name="header_title">SipSense</string>
+    <string name="wifi_connected">CONNECTED</string>
+    <string name="wifi_disconnected">DISCONNECTED</string>
+
+    <!-- ════════════════════════════════════════════════════════════════
          LOGIN SCREEN
          ════════════════════════════════════════════════════════════════ -->
     <!-- Field labels (displayed above input fields) -->

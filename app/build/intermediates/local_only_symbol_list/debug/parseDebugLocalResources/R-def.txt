@@ -67,6 +67,7 @@ drawable bg_logo_container
 drawable bg_password_strength_segment
 drawable bg_tab_container
 drawable bg_tab_selected
+drawable bg_wifi_status_badge
 drawable calendar
 drawable droplet
 drawable ic_email
@@ -79,6 +80,7 @@ drawable ic_target
 drawable logo_sipsense
 drawable user
 drawable water_bottle
+drawable wifi
 id bottom_navigation
 id btnCreateAccount
 id btnLogin
@@ -92,7 +94,10 @@ id etFullName
 id etHydration
 id etPassword
 id fragment_container
+id header_bar
 id ivLogo
+id iv_header_logo
+id iv_wifi_icon
 id nav_dashboard
 id nav_devices
 id nav_history
@@ -132,8 +137,11 @@ id tvStrengthValue
 id tvTagline
 id tv_dashboard_title
 id tv_devices_title
+id tv_header_title
 id tv_history_title
 id tv_profile_title
+id tv_wifi_status
+id wifi_status_badge
 layout activity_login
 layout activity_main
 layout activity_register
@@ -160,6 +168,7 @@ string error_password_short
 string error_terms_required
 string footer_text
 string forgot_password
+string header_title
 string hint_confirm_password
 string hint_email
 string hint_full_name
@@ -197,6 +206,8 @@ string tagline
 string terms_agreement
 string terms_of_service
 string unit_ml
+string wifi_connected
+string wifi_disconnected
 style SipSense
 style SipSense.FieldLabel
 style SipSense.TextInputEditText

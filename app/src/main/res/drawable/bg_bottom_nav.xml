@@ -17,11 +17,7 @@
     <!-- Solid white navigation bar surface -->
     <solid android:color="@color/card_background" />
 
-    <!-- Rounded top corners only (matching card radius) -->
-    <corners
-        android:topLeftRadius="@dimen/radius_card"
-        android:topRightRadius="@dimen/radius_card"
-        android:bottomLeftRadius="0dp"
-        android:bottomRightRadius="0dp" />
+    <!-- Rounded corners on all four sides (matching card radius) -->
+    <corners android:radius="@dimen/radius_card" />
 
 </shape>

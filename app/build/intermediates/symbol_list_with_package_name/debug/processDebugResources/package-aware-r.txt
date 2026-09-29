@@ -3064,6 +3064,7 @@ drawable bg_logo_container
 drawable bg_password_strength_segment
 drawable bg_tab_container
 drawable bg_tab_selected
+drawable bg_wifi_status_badge
 drawable btn_checkbox_checked_mtrl
 drawable btn_checkbox_checked_to_unchecked_mtrl_animation
 drawable btn_checkbox_unchecked_mtrl
@@ -3183,6 +3184,7 @@ drawable tooltip_frame_dark
 drawable tooltip_frame_light
 drawable user
 drawable water_bottle
+drawable wifi
 id ALT
 id BOTTOM_END
 id BOTTOM_START
@@ -3407,6 +3409,7 @@ id graph_wrap
 id group_divider
 id grouping
 id groups
+id header_bar
 id header_title
 id hide_ime_id
 id hideable
@@ -3430,6 +3433,8 @@ id inward
 id italic
 id item_touch_helper_previous_elevation
 id ivLogo
+id iv_header_logo
+id iv_wifi_icon
 id jumpToEnd
 id jumpToStart
 id labeled
@@ -3716,8 +3721,10 @@ id tvStrengthValue
 id tvTagline
 id tv_dashboard_title
 id tv_devices_title
+id tv_header_title
 id tv_history_title
 id tv_profile_title
+id tv_wifi_status
 id unchecked
 id uniform
 id unlabeled
@@ -3734,6 +3741,7 @@ id view_tree_view_model_store_owner
 id visible
 id visible_removing_fragment_view_tag
 id west
+id wifi_status_badge
 id withText
 id with_icon
 id withinBounds
@@ -4013,6 +4021,7 @@ string fab_transformation_scrim_behavior
 string fab_transformation_sheet_behavior
 string footer_text
 string forgot_password
+string header_title
 string hide_bottom_view_on_scroll_behavior
 string hint_confirm_password
 string hint_email
@@ -4165,6 +4174,8 @@ string tagline
 string terms_agreement
 string terms_of_service
 string unit_ml
+string wifi_connected
+string wifi_disconnected
 style AlertDialog_AppCompat
 style AlertDialog_AppCompat_Light
 style Animation_AppCompat_Dialog

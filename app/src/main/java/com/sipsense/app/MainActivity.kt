@@ -4,11 +4,17 @@ package com.sipsense.app
  * MainActivity.kt
  *
  * Primary post-login screen of the SipSense application.
- * Hosts the bottom navigation bar and manages fragment switching
- * between the four top-level destinations:
+ * Hosts a persistent header bar at the top, a fragment container in
+ * the middle, and a bottom navigation bar at the bottom.
  *
  * ══════════════════════════════════════════════════════════════════════════
- * NAVIGATION TABS:
+ * HEADER BAR (always visible):
+ * ──────────────────────────────────────────────────────────────────────────
+ * - Left side:  SipSense logo + "SipSense" title
+ * - Right side: WiFi icon + "CONNECTED" / "DISCONNECTED" badge
+ *
+ * ══════════════════════════════════════════════════════════════════════════
+ * NAVIGATION TABS (bottom):
  * ──────────────────────────────────────────────────────────────────────────
  * 1. Dashboard  (droplet icon)       – Hydration overview / home
  * 2. History    (calendar icon)      – Intake tracking logs
@@ -21,7 +27,9 @@ package com.sipsense.app
  * - Dashboard is the default tab shown on launch
  * - Fragments are replaced (not added) to keep memory usage low
  * - Selected tab icon/text is tinted teal; unselected tabs are grey
- * - The system navigation bar color matches the white surface
+ * - Header and bottom nav are always visible across all fragments
+ * - WiFi status defaults to "CONNECTED" and can be toggled via
+ *   updateWifiStatus(isConnected: Boolean)
  *
  * ══════════════════════════════════════════════════════════════════════════
  * LAYOUT: res/layout/activity_main.xml (ConstraintLayout-based)
@@ -29,10 +37,12 @@ package com.sipsense.app
  *
  * @project SipSense - Smart Bottle Ecosystem
  * @author SipSense Development Team
- * @version 1.0
+ * @version 1.1
  */
 
 import android.os.Bundle
+import android.widget.ImageView
+import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
@@ -47,12 +57,18 @@ class MainActivity : AppCompatActivity() {
     /** Bottom navigation bar with 4 tabs */
     private lateinit var bottomNavigation: BottomNavigationView
 
+    /** WiFi status icon in the header bar */
+    private lateinit var ivWifiIcon: ImageView
+
+    /** WiFi status text label ("CONNECTED" / "DISCONNECTED") */
+    private lateinit var tvWifiStatus: TextView
+
     // ═══════════════════════════════════════════════════════════════════
     // LIFECYCLE
     // ═══════════════════════════════════════════════════════════════════
 
     /**
-     * Initializes the activity, sets up the bottom navigation,
+     * Initializes the activity, sets up the header bar, bottom navigation,
      * and loads the default Dashboard fragment.
      *
      * @param savedInstanceState Previously saved state bundle
@@ -66,9 +82,14 @@ class MainActivity : AppCompatActivity() {
 
         // ── Initialize views ──
         bottomNavigation = findViewById(R.id.bottom_navigation)
+        ivWifiIcon = findViewById(R.id.iv_wifi_icon)
+        tvWifiStatus = findViewById(R.id.tv_wifi_status)
 
         // ── Set up bottom navigation listener ──
         setupBottomNavigation()
+
+        // ── Set default WiFi status to connected ──
+        updateWifiStatus(true)
 
         // ── Load the default fragment (Dashboard) on first launch ──
         if (savedInstanceState == null) {
@@ -125,5 +146,41 @@ class MainActivity : AppCompatActivity() {
         supportFragmentManager.beginTransaction()
             .replace(R.id.fragment_container, fragment)
             .commit()
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    // WIFI STATUS MANAGEMENT
+    // ═══════════════════════════════════════════════════════════════════
+
+    /**
+     * Updates the WiFi connection status indicator in the header bar.
+     *
+     * When connected:
+     * - Displays "CONNECTED" text
+     * - WiFi icon is tinted white (normal)
+     *
+     * When disconnected:
+     * - Displays "DISCONNECTED" text
+     * - WiFi icon is tinted with a muted grey overlay
+     *
+     * This method can be called from anywhere in the activity or from
+     * child fragments via (activity as MainActivity).updateWifiStatus(...)
+     *
+     * @param isConnected true if WiFi/IoT device is connected, false otherwise
+     */
+    fun updateWifiStatus(isConnected: Boolean) {
+        if (isConnected) {
+            tvWifiStatus.text = getString(R.string.wifi_connected)
+            ivWifiIcon.contentDescription = getString(R.string.wifi_connected)
+            ivWifiIcon.setColorFilter(
+                ContextCompat.getColor(this, R.color.text_white)
+            )
+        } else {
+            tvWifiStatus.text = getString(R.string.wifi_disconnected)
+            ivWifiIcon.contentDescription = getString(R.string.wifi_disconnected)
+            ivWifiIcon.setColorFilter(
+                ContextCompat.getColor(this, R.color.nav_unselected)
+            )
+        }
     }
 }

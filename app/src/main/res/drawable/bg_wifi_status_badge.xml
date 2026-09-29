@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    bg_wifi_status_badge.xml
+
+    Dark teal rounded badge background for the WiFi connection
+    status indicator displayed in the header bar.
+    Uses the dark teal brand color with rounded corners matching
+    the badge radius for a compact, pill-shaped appearance.
+
+    Usage: android:background="@drawable/bg_wifi_status_badge"
+
+    @project SipSense - Smart Bottle Ecosystem
+-->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+
+    <!-- Dark teal fill matching brand header color -->
+    <solid android:color="@color/teal_dark" />
+
+    <!-- Rounded corners for pill / badge appearance -->
+    <corners android:radius="@dimen/radius_badge" />
+
+</shape>

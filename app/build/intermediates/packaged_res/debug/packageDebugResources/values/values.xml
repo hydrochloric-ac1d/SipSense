@@ -75,6 +75,7 @@
     <string name="error_terms_required">You must agree to the Terms of Service</string>
     <string name="footer_text">SipSense Smart Bottle Ecosystem © 2026. All rights reserved.</string>
     <string name="forgot_password">Forgot Password?</string>
+    <string name="header_title">SipSense</string>
     <string name="hint_confirm_password">Re-enter password</string>
     <string name="hint_email">name@example.com</string>
     <string name="hint_full_name">John Doe</string>
@@ -112,6 +113,8 @@
     <string name="terms_agreement">I agree to the Terms of Service and Privacy Policy.</string>
     <string name="terms_of_service">Terms of Service</string>
     <string name="unit_ml">mL</string>
+    <string name="wifi_connected">CONNECTED</string>
+    <string name="wifi_disconnected">DISCONNECTED</string>
     <style name="SipSense" parent=""/>
     <style name="SipSense.FieldLabel">
         <item name="android:textColor">@color/text_primary</item>

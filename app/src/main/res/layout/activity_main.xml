@@ -9,6 +9,8 @@
 
     Structure:
     ┌──────────────────────────────────┐
+    │  [Logo SipSense]  [WiFi Status] │  ← Header Bar
+    ├──────────────────────────────────┤
     │                                  │
     │       Fragment Container         │
     │    (swapped by navigation)       │
@@ -26,18 +28,103 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:fitsSystemWindows="true"
     android:background="@drawable/bg_gradient_teal">
+
+    <!-- ════════════════════════════════════════════════════════════════
+         HEADER BAR
+         Always-visible top bar containing:
+         - Left side: SipSense logo + app name
+         - Right side: WiFi connection status badge (dark teal card)
+         Constrained to the top of the screen with horizontal padding.
+         ════════════════════════════════════════════════════════════════ -->
+    <LinearLayout
+        android:id="@+id/header_bar"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingStart="@dimen/spacing_lg"
+        android:paddingEnd="@dimen/spacing_lg"
+        android:paddingTop="@dimen/spacing_md"
+        android:paddingBottom="@dimen/spacing_md"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <!-- ── LEFT SIDE: Logo + App Name ────────────────────────── -->
+
+        <!-- SipSense logo icon -->
+        <ImageView
+            android:id="@+id/iv_header_logo"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:src="@drawable/logo_sipsense"
+            android:contentDescription="@string/app_name"
+            android:scaleType="fitCenter" />
+
+        <!-- "SipSense" title text -->
+        <TextView
+            android:id="@+id/tv_header_title"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="@dimen/spacing_sm"
+            android:text="@string/header_title"
+            android:textColor="@color/text_white"
+            android:textSize="22sp"
+            android:textStyle="bold" />
+
+        <!-- ── RIGHT SIDE: WiFi Status Badge ─────────────────────── -->
+
+        <!-- Dark teal card with WiFi icon and status text -->
+        <LinearLayout
+            android:id="@+id/wifi_status_badge"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:background="@drawable/bg_wifi_status_badge"
+            android:paddingStart="@dimen/spacing_md"
+            android:paddingEnd="@dimen/spacing_md"
+            android:paddingTop="@dimen/spacing_sm"
+            android:paddingBottom="@dimen/spacing_sm">
+
+            <!-- WiFi icon -->
+            <ImageView
+                android:id="@+id/iv_wifi_icon"
+                android:layout_width="18dp"
+                android:layout_height="18dp"
+                android:src="@drawable/wifi"
+                android:contentDescription="@string/wifi_connected"
+                android:scaleType="fitCenter" />
+
+            <!-- Connection status label -->
+            <TextView
+                android:id="@+id/tv_wifi_status"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="@dimen/spacing_xs"
+                android:text="@string/wifi_connected"
+                android:textColor="@color/text_white"
+                android:textSize="@dimen/text_badge"
+                android:textStyle="bold"
+                android:letterSpacing="0.05" />
+
+        </LinearLayout>
+
+    </LinearLayout>
 
     <!-- ════════════════════════════════════════════════════════════════
          FRAGMENT CONTAINER
          Hosts the currently active fragment (Dashboard, History,
-         Devices, or Profile). Fills all space above the nav bar.
+         Devices, or Profile). Fills space between header and nav bar.
          ════════════════════════════════════════════════════════════════ -->
     <FrameLayout
         android:id="@+id/fragment_container"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/header_bar"
         app:layout_constraintBottom_toTopOf="@id/bottom_navigation"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
