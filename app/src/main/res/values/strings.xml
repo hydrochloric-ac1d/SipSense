@@ -48,6 +48,12 @@
     <string name="wifi_disconnected">DISCONNECTED</string>
 
     <!-- ════════════════════════════════════════════════════════════════
+         PROFILE SCREEN
+         Labels and buttons displayed in the user profile fragment.
+         ════════════════════════════════════════════════════════════════ -->
+    <string name="btn_logout">Log Out</string>
+
+    <!-- ════════════════════════════════════════════════════════════════
          LOGIN SCREEN
          ════════════════════════════════════════════════════════════════ -->
     <!-- Field labels (displayed above input fields) -->

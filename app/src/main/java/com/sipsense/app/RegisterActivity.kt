@@ -63,6 +63,10 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import com.google.android.material.textfield.TextInputEditText
 import com.google.android.material.textfield.TextInputLayout
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.database.DatabaseReference
+import com.google.firebase.database.FirebaseDatabase
+import com.sipsense.app.model.UserProfile
 
 class RegisterActivity : AppCompatActivity() {
 
@@ -124,6 +128,13 @@ class RegisterActivity : AppCompatActivity() {
     /** "Already have an account? Log In" navigation prompt */
     private lateinit var tvLoginPrompt: TextView
 
+    // ── Firebase ─────────────────────────────────────────────────────
+    /** Firebase Authentication instance for creating new user accounts */
+    private lateinit var firebaseAuth: FirebaseAuth
+
+    /** Firebase Realtime Database reference for storing user profiles */
+    private lateinit var database: DatabaseReference
+
     // ═══════════════════════════════════════════════════════════════════
     // LIFECYCLE
     // ═══════════════════════════════════════════════════════════════════
@@ -138,6 +149,10 @@ class RegisterActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_register)
+
+        // Initialize Firebase services
+        firebaseAuth = FirebaseAuth.getInstance()
+        database = FirebaseDatabase.getInstance().reference
 
         // Bind all view references from the layout XML
         initializeViews()
@@ -584,25 +599,68 @@ class RegisterActivity : AppCompatActivity() {
             }
 
             // ══════════════════════════════════════════════════════════
-            // ALL VALIDATIONS PASSED – Process registration
+            // ALL VALIDATIONS PASSED – Register with Firebase
             // ══════════════════════════════════════════════════════════
 
-            // Show success feedback
-            Toast.makeText(
-                this,
-                getString(R.string.msg_register_success),
-                Toast.LENGTH_SHORT
-            ).show()
+            // Disable button to prevent duplicate submissions
+            btnCreateAccount.isEnabled = false
 
-            // TODO: Replace with actual registration logic
-            // Example: FirebaseAuth.getInstance().createUserWithEmailAndPassword(email, password)
-            // Example: Retrofit API call to POST /api/auth/register
-            //          with body: { fullName, email, password, hydrationTarget }
+            // Create a new user account with Firebase Authentication
+            firebaseAuth.createUserWithEmailAndPassword(email, password)
+                .addOnCompleteListener(this) { task ->
+                    if (task.isSuccessful) {
+                        // ── Registration successful ──
+                        // Get the newly created user's unique ID
+                        val uid = firebaseAuth.currentUser?.uid
 
-            // Navigate to Login screen after successful registration
-            val intent = Intent(this, LoginActivity::class.java)
-            startActivity(intent)
-            finish()
+                        if (uid != null) {
+                            // Build the user profile data object
+                            val userProfile = UserProfile(
+                                fullName = fullName,
+                                email = email,
+                                hydrationTarget = hydrationValue,
+                                createdAt = System.currentTimeMillis()
+                            )
+
+                            // Write the profile to Realtime Database at /users/{uid}
+                            database.child("users").child(uid).setValue(userProfile)
+                                .addOnSuccessListener {
+                                    // Profile saved successfully
+                                    Toast.makeText(
+                                        this,
+                                        getString(R.string.msg_register_success),
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+
+                                    // Sign out so user must log in with their new credentials
+                                    firebaseAuth.signOut()
+
+                                    // Navigate to Login screen
+                                    val intent = Intent(this, LoginActivity::class.java)
+                                    startActivity(intent)
+                                    finish()
+                                }
+                                .addOnFailureListener { e ->
+                                    // Database write failed
+                                    Toast.makeText(
+                                        this,
+                                        "Failed to save profile: ${e.message}",
+                                        Toast.LENGTH_LONG
+                                    ).show()
+                                    btnCreateAccount.isEnabled = true
+                                }
+                        }
+                    } else {
+                        // ── Registration failed ──
+                        // Display the Firebase error message (e.g., "email already in use")
+                        Toast.makeText(
+                            this,
+                            "Registration failed: ${task.exception?.message}",
+                            Toast.LENGTH_LONG
+                        ).show()
+                        btnCreateAccount.isEnabled = true
+                    }
+                }
         }
     }
 

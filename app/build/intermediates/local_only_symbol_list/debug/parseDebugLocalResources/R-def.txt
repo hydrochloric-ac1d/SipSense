@@ -84,6 +84,7 @@ drawable wifi
 id bottom_navigation
 id btnCreateAccount
 id btnLogin
+id btn_logout
 id cardLogin
 id cardRegister
 id cbRememberMe
@@ -97,11 +98,13 @@ id fragment_container
 id header_bar
 id ivLogo
 id iv_header_logo
+id iv_profile_avatar
 id iv_wifi_icon
 id nav_dashboard
 id nav_devices
 id nav_history
 id nav_profile
+id profile_card
 id scrollView
 id strengthBarContainer
 id strengthSegment1
@@ -139,7 +142,9 @@ id tv_dashboard_title
 id tv_devices_title
 id tv_header_title
 id tv_history_title
-id tv_profile_title
+id tv_profile_email
+id tv_profile_hydration
+id tv_profile_name
 id tv_wifi_status
 id wifi_status_badge
 layout activity_login
@@ -153,6 +158,7 @@ menu bottom_nav_menu
 string app_name
 string btn_create_account
 string btn_login
+string btn_logout
 string criteria_case
 string criteria_length
 string criteria_number
@@ -168,6 +174,11 @@ string error_password_short
 string error_terms_required
 string footer_text
 string forgot_password
+string gcm_defaultSenderId
+string google_api_key
+string google_app_id
+string google_crash_reporting_api_key
+string google_storage_bucket
 string header_title
 string hint_confirm_password
 string hint_email
@@ -192,6 +203,7 @@ string nav_history
 string nav_profile
 string password_strength
 string privacy_policy
+string project_id
 string prompt_has_account
 string prompt_no_account
 string remember_me

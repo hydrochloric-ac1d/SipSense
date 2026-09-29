@@ -1,10 +1,10 @@
 {
     "logs": [
         {
-            "outputFile": "com.sipsense.app-mergeDebugResources-29:/values-h720dp-v13/values-h720dp-v13.xml",
+            "outputFile": "com.sipsense.app-mergeDebugResources-38:/values-h720dp-v13/values-h720dp-v13.xml",
             "map": [
                 {
-                    "source": "C:\\Users\\Margareth Lim\\.gradle\\caches\\8.9\\transforms\\c9ee471f09a8cafc65d73c555d1d55ed\\transformed\\appcompat-1.7.0\\res\\values-h720dp-v13\\values-h720dp-v13.xml",
+                    "source": "C:\\Users\\Margareth Lim\\.gradle\\caches\\8.9\\transforms\\0cc272e9ad25261886a4486a819473b9\\transformed\\appcompat-1.7.0\\res\\values-h720dp-v13\\values-h720dp-v13.xml",
                     "from": {
                         "startLines": "2",
                         "startColumns": "4",

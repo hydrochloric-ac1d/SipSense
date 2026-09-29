@@ -60,6 +60,7 @@
     <string name="app_name">SipSense</string>
     <string name="btn_create_account">Create SipSense Account</string>
     <string name="btn_login">Log In  →</string>
+    <string name="btn_logout">Log Out</string>
     <string name="criteria_case">Upper &amp; Lowercase</string>
     <string name="criteria_length">8+ characters</string>
     <string name="criteria_number">1+ number</string>
@@ -75,6 +76,11 @@
     <string name="error_terms_required">You must agree to the Terms of Service</string>
     <string name="footer_text">SipSense Smart Bottle Ecosystem © 2026. All rights reserved.</string>
     <string name="forgot_password">Forgot Password?</string>
+    <string name="gcm_defaultSenderId" translatable="false">742335544977</string>
+    <string name="google_api_key" translatable="false">AIzaSyCJvQ8n3yKIKc2Uoi0yxx8voMLKGja665U</string>
+    <string name="google_app_id" translatable="false">1:742335544977:android:d56be56e11fa7e8b444930</string>
+    <string name="google_crash_reporting_api_key" translatable="false">AIzaSyCJvQ8n3yKIKc2Uoi0yxx8voMLKGja665U</string>
+    <string name="google_storage_bucket" translatable="false">sipsense-17a90.firebasestorage.app</string>
     <string name="header_title">SipSense</string>
     <string name="hint_confirm_password">Re-enter password</string>
     <string name="hint_email">name@example.com</string>
@@ -99,6 +105,7 @@
     <string name="nav_profile">Profile</string>
     <string name="password_strength">Password Strength:</string>
     <string name="privacy_policy">Privacy Policy</string>
+    <string name="project_id" translatable="false">sipsense-17a90</string>
     <string name="prompt_has_account">Already have an account?</string>
     <string name="prompt_no_account">Don\'t have an account?</string>
     <string name="remember_me">Remember me</string>

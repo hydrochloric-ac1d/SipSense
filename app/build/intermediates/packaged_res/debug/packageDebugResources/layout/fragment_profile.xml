@@ -2,9 +2,15 @@
 <!--
     fragment_profile.xml
 
-    Placeholder layout for the Profile fragment.
-    Displays a centered label indicating this is the Profile screen.
-    This will be replaced with the user account and settings UI later.
+    Layout for the Profile fragment displaying the user's account
+    information fetched from Firebase Realtime Database.
+
+    Displays:
+    - User avatar placeholder (circular)
+    - Full name
+    - Email address
+    - Daily hydration target
+    - Logout button
 
     @project SipSense - Smart Bottle Ecosystem
 -->
@@ -15,17 +21,109 @@
     android:layout_height="match_parent"
     android:background="@drawable/bg_gradient_teal">
 
-    <TextView
-        android:id="@+id/tv_profile_title"
-        android:layout_width="wrap_content"
+    <!-- ════════════════════════════════════════════════════════════════
+         PROFILE CARD
+         White rounded card containing user profile information.
+         Centered vertically with horizontal margin.
+         ════════════════════════════════════════════════════════════════ -->
+    <LinearLayout
+        android:id="@+id/profile_card"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:text="@string/nav_profile"
-        android:textColor="@color/text_white"
-        android:textSize="24sp"
-        android:textStyle="bold"
+        android:orientation="vertical"
+        android:gravity="center_horizontal"
+        android:background="@drawable/bg_card_rounded"
+        android:padding="@dimen/spacing_xxl"
+        android:layout_marginStart="@dimen/card_margin_horizontal"
+        android:layout_marginEnd="@dimen/card_margin_horizontal"
+        android:elevation="@dimen/card_elevation"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <!-- User avatar placeholder (circular icon) -->
+        <ImageView
+            android:id="@+id/iv_profile_avatar"
+            android:layout_width="80dp"
+            android:layout_height="80dp"
+            android:src="@drawable/user"
+            android:contentDescription="@string/nav_profile"
+            android:scaleType="fitCenter"
+            android:layout_marginBottom="@dimen/spacing_lg" />
+
+        <!-- Full name display -->
+        <TextView
+            android:id="@+id/tv_profile_name"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text=""
+            android:textColor="@color/text_primary"
+            android:textSize="22sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="@dimen/spacing_xs" />
+
+        <!-- Email display -->
+        <TextView
+            android:id="@+id/tv_profile_email"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text=""
+            android:textColor="@color/text_secondary"
+            android:textSize="@dimen/text_body"
+            android:layout_marginBottom="@dimen/spacing_xl" />
+
+        <!-- Hydration target section -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:background="@drawable/bg_tab_container"
+            android:padding="@dimen/spacing_lg"
+            android:layout_marginBottom="@dimen/spacing_xl">
+
+            <ImageView
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:src="@drawable/droplet"
+                android:contentDescription="@string/label_hydration"
+                android:scaleType="fitCenter" />
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="@dimen/spacing_md"
+                android:text="@string/label_hydration"
+                android:textColor="@color/text_primary"
+                android:textSize="@dimen/text_label"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/tv_profile_hydration"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text=""
+                android:textColor="@color/teal_primary"
+                android:textSize="@dimen/text_body"
+                android:textStyle="bold" />
+
+        </LinearLayout>
+
+        <!-- Logout button -->
+        <Button
+            android:id="@+id/btn_logout"
+            android:layout_width="match_parent"
+            android:layout_height="@dimen/height_button"
+            android:text="@string/btn_logout"
+            android:textColor="@color/text_white"
+            android:textSize="@dimen/text_heading"
+            android:textStyle="bold"
+            android:textAllCaps="false"
+            android:background="@drawable/bg_button_gradient"
+            android:letterSpacing="0.02" />
+
+    </LinearLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

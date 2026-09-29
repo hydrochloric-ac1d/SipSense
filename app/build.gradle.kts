@@ -21,6 +21,9 @@ plugins {
 
     // Apply the Kotlin Android plugin for Kotlin language support
     id("org.jetbrains.kotlin.android")
+
+    // Google Services – processes google-services.json for Firebase SDK configuration
+    id("com.google.gms.google-services")
 }
 
 // ── Android Configuration ────────────────────────────────────────────
@@ -86,4 +89,15 @@ dependencies {
     // ConstraintLayout – Primary layout manager for Login & Registration screens
     // Enables flat view hierarchies with flexible constraint-based positioning
     implementation("androidx.constraintlayout:constraintlayout:2.2.0")
+
+    // ── Firebase ─────────────────────────────────────────────────────
+    // Firebase BoM – manages all Firebase library versions automatically.
+    // Only the BoM version is specified; individual library versions are inherited.
+    implementation(platform("com.google.firebase:firebase-bom:33.6.0"))
+
+    // Firebase Authentication – Email/Password user sign-in and registration
+    implementation("com.google.firebase:firebase-auth-ktx")
+
+    // Firebase Realtime Database – Store and sync user profile data
+    implementation("com.google.firebase:firebase-database-ktx")
 }

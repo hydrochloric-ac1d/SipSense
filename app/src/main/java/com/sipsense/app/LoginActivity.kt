@@ -45,6 +45,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import com.google.android.material.textfield.TextInputEditText
 import com.google.android.material.textfield.TextInputLayout
+import com.google.firebase.auth.FirebaseAuth
 
 class LoginActivity : AppCompatActivity() {
 
@@ -91,6 +92,9 @@ class LoginActivity : AppCompatActivity() {
     /** SharedPreferences instance for persisting user preferences */
     private lateinit var sharedPreferences: SharedPreferences
 
+    /** Firebase Authentication instance for signing in users */
+    private lateinit var firebaseAuth: FirebaseAuth
+
     companion object {
         /** SharedPreferences file name */
         private const val PREFS_NAME = "SipSensePrefs"
@@ -120,6 +124,16 @@ class LoginActivity : AppCompatActivity() {
 
         // Initialize SharedPreferences for "Remember me" feature
         sharedPreferences = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
+
+        // Initialize Firebase Authentication
+        firebaseAuth = FirebaseAuth.getInstance()
+
+        // ── Auto-login: skip to MainActivity if user is already signed in ──
+        if (firebaseAuth.currentUser != null) {
+            startActivity(Intent(this, MainActivity::class.java))
+            finish()
+            return
+        }
 
         // Bind all view references
         initializeViews()
@@ -234,17 +248,35 @@ class LoginActivity : AppCompatActivity() {
             // Persist or clear email based on "Remember me" checkbox
             saveCredentials(email)
 
-            // Show success feedback to the user
-            Toast.makeText(
-                this,
-                getString(R.string.msg_login_success),
-                Toast.LENGTH_SHORT
-            ).show()
+            // Disable button to prevent duplicate submissions
+            btnLogin.isEnabled = false
 
-            // Navigate to the main screen with bottom navigation
-            val intent = Intent(this, MainActivity::class.java)
-            startActivity(intent)
-            finish()  // Close LoginActivity so back press doesn't return here
+            // Authenticate with Firebase
+            firebaseAuth.signInWithEmailAndPassword(email, password)
+                .addOnCompleteListener(this) { task ->
+                    if (task.isSuccessful) {
+                        // ── Login successful ──
+                        Toast.makeText(
+                            this,
+                            getString(R.string.msg_login_success),
+                            Toast.LENGTH_SHORT
+                        ).show()
+
+                        // Navigate to the main screen with bottom navigation
+                        val intent = Intent(this, MainActivity::class.java)
+                        startActivity(intent)
+                        finish()
+                    } else {
+                        // ── Login failed ──
+                        // Display the Firebase error message
+                        Toast.makeText(
+                            this,
+                            "Login failed: ${task.exception?.message}",
+                            Toast.LENGTH_LONG
+                        ).show()
+                        btnLogin.isEnabled = true
+                    }
+                }
         }
     }
 

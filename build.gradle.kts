@@ -18,4 +18,7 @@ plugins {
 
     // Kotlin Android Plugin – enables Kotlin language support for Android
     id("org.jetbrains.kotlin.android") version "2.0.20" apply false
+
+    // Google Services Plugin – processes google-services.json for Firebase
+    id("com.google.gms.google-services") version "4.4.2" apply false
 }
