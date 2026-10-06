@@ -53,6 +53,7 @@ import android.text.TextPaint
 import android.text.TextWatcher
 import android.text.method.LinkMovementMethod
 import android.text.style.ClickableSpan
+import android.util.Log
 import android.util.Patterns
 import android.view.View
 import android.widget.Button
@@ -65,7 +66,7 @@ import com.google.android.material.textfield.TextInputEditText
 import com.google.android.material.textfield.TextInputLayout
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.DatabaseReference
-import com.google.firebase.database.FirebaseDatabase
+import com.sipsense.app.data.FirebaseDatabaseProvider
 import com.sipsense.app.model.UserProfile
 
 class RegisterActivity : AppCompatActivity() {
@@ -132,8 +133,8 @@ class RegisterActivity : AppCompatActivity() {
     /** Firebase Authentication instance for creating new user accounts */
     private lateinit var firebaseAuth: FirebaseAuth
 
-    /** Firebase Realtime Database reference for storing user profiles */
-    private lateinit var database: DatabaseReference
+    /** Realtime Database root for storing user profiles, or null if the project has none */
+    private var database: DatabaseReference? = null
 
     // ═══════════════════════════════════════════════════════════════════
     // LIFECYCLE
@@ -152,8 +153,7 @@ class RegisterActivity : AppCompatActivity() {
 
         // Initialize Firebase services
         firebaseAuth = FirebaseAuth.getInstance()
-        val dbUrl = "https://sipsense-17a90-default-rtdb.firebaseio.com"
-        database = FirebaseDatabase.getInstance(dbUrl).reference
+        database = FirebaseDatabaseProvider.reference()
 
         // Bind all view references from the layout XML
         initializeViews()
@@ -626,11 +626,22 @@ class RegisterActivity : AppCompatActivity() {
                             // Write the profile to Realtime Database at /users/{uid}
                             // This operation is asynchronous and handles offline queuing automatically.
                             // We don't block the UI waiting for the server callback.
-                            database.child("users").child(uid).setValue(userProfile)
-                                .addOnFailureListener { e ->
-                                    // Log failure if it happens later (e.g. permission denied)
-                                    e.printStackTrace()
-                                }
+                            val database = this.database
+                            if (database != null) {
+                                database.child("users").child(uid).setValue(userProfile)
+                                    .addOnFailureListener { e ->
+                                        // Log failure if it happens later (e.g. permission denied)
+                                        e.printStackTrace()
+                                    }
+                            } else {
+                                // No Realtime Database is configured, so this profile cannot be
+                                // stored. FirebaseDatabaseProvider has already logged the fix.
+                                Log.e(
+                                    "SipSenseDatabase",
+                                    "Profile for the new account was not stored: no Realtime " +
+                                        "Database is configured for this build."
+                                )
+                            }
 
                             // Always navigate to Login immediately after account creation
                             navigateToLogin()
