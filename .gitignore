@@ -32,3 +32,7 @@ local.properties
 # OS generated files
 .DS_Store
 Thumbs.db
+
+# Cursor local configuration
+.cursor/
+.specify/integrations/cursor-agent.manifest.json

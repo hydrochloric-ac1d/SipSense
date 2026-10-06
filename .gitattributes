@@ -1,0 +1,15 @@
+# Git attributes for SipSense
+#
+# Git for Windows ships with core.autocrlf=true in its system config, which would
+# rewrite the Gradle wrapper's POSIX launcher to CRLF on checkout and make it
+# unrunnable on Linux and macOS. These rules pin the wrapper's line endings so the
+# committed build entry point works on every platform.
+
+# POSIX launcher - must stay LF or /bin/sh cannot execute it.
+gradlew            text eol=lf
+
+# Windows launcher - CRLF is correct for a batch file.
+gradlew.bat        text eol=crlf
+
+# Wrapper jar - never apply text conversion to a binary.
+*.jar              binary

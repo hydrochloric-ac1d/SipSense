@@ -72,6 +72,31 @@ android {
     kotlinOptions {
         jvmTarget = "17"
     }
+
+    // ── Unit Test Options ────────────────────────────────────────────
+    testOptions {
+        unitTests {
+            // Local unit tests run against a stub Android framework whose methods
+            // throw ("Method e in android.util.Log not mocked"). Code under test
+            // logs via android.util.Log inside the branches being verified, so
+            // returning defaults instead of throwing is required for those tests
+            // to reach their assertions. Revisit if a test ever needs real
+            // Android behaviour - that is the point to consider Robolectric.
+            //
+            // Feature 005 reached that point and added Robolectric. This flag is
+            // KEPT deliberately: it applies to tests that do NOT use Robolectric
+            // (FirebaseDatabaseProviderTest, UserProfileTest), which still call
+            // android.util.Log against the stub framework. Robolectric-backed
+            // tests supply real Android behaviour and are unaffected by it, so
+            // the two settings coexist rather than conflict.
+            isReturnDefaultValues = true
+
+            // Robolectric needs the merged resources, assets, and manifest to
+            // inflate layouts and resolve themes. Without this, inflating
+            // fragment_profile fails to find its Material theme.
+            isIncludeAndroidResources = true
+        }
+    }
 }
 
 // ── Dependencies ─────────────────────────────────────────────────────
@@ -100,4 +125,26 @@ dependencies {
 
     // Firebase Realtime Database – Store and sync user profile data
     implementation("com.google.firebase:firebase-database-ktx")
+
+    // ── Local Unit Tests ─────────────────────────────────────────────
+    // These are testImplementation only and are never packaged into the APK.
+
+    // JUnit 4 – the framework the Android Gradle Plugin's unit test task expects
+    // by default, so no extra plugin or runner configuration is needed.
+    testImplementation("junit:junit:4.13.2")
+
+    // MockK – required to stub the static FirebaseDatabase.getInstance() call so
+    // the database-resolution failure path can be exercised. The production code
+    // has no injection seam for it, and adding one purely for tests is out of
+    // scope for the feature that introduced the behaviour.
+    testImplementation("io.mockk:mockk:1.13.13")
+
+    // Robolectric - runs real Android framework behaviour inside a local JVM test,
+    // so code in an Activity or Fragment can be exercised without a device or
+    // emulator. Added by Feature 005 because the unresolved-database guards live in
+    // ProfileFragment and report failure through a Toast; neither is reachable from
+    // a plain JUnit test. The alternative was instrumented (androidTest) tests,
+    // rejected because they need a device and so cannot be part of automated
+    // verification. Test-scoped only - never packaged into the APK.
+    testImplementation("org.robolectric:robolectric:4.14.1")
 }
