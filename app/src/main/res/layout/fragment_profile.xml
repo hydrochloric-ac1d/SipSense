@@ -45,6 +45,9 @@
             app:layout_constraintEnd_toEndOf="parent">
 
             <!-- User Name -->
+
+            <!-- User Email -->
+
             <TextView
                 android:id="@+id/tv_profile_name"
                 android:layout_width="match_parent"
@@ -55,18 +58,17 @@
                 android:textSize="22sp"
                 android:textStyle="bold" />
 
-            <!-- User Email -->
+            <!-- Hydration Target Section -->
             <TextView
                 android:id="@+id/tv_profile_email"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:layout_marginBottom="@dimen/spacing_xxl"
                 android:text=""
                 android:textAlignment="center"
                 android:textColor="@color/text_secondary"
-                android:textSize="@dimen/text_body"
-                android:layout_marginBottom="@dimen/spacing_xxl" />
+                android:textSize="@dimen/text_body" />
 
-            <!-- Hydration Target Section -->
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"

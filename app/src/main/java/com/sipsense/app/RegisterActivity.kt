@@ -19,7 +19,6 @@ package com.sipsense.app
  * 4. Daily Hydration Target input (number with mL unit)
  * 5. Terms of Service checkbox with clickable links
  * 6. Comprehensive form validation on submit
- * 7. Tab-based navigation to LoginActivity ("Log In" tab)
  *
  * ══════════════════════════════════════════════════════════════════════════
  * PASSWORD STRENGTH SCORING:
@@ -64,6 +63,7 @@ import androidx.core.content.ContextCompat
 import com.google.android.material.textfield.TextInputEditText
 import com.google.android.material.textfield.TextInputLayout
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.UserProfileChangeRequest
 import com.google.firebase.database.DatabaseReference
 import com.google.firebase.database.FirebaseDatabase
 import com.sipsense.app.model.UserProfile
@@ -73,13 +73,6 @@ class RegisterActivity : AppCompatActivity() {
     // ═══════════════════════════════════════════════════════════════════
     // VIEW REFERENCES
     // ═══════════════════════════════════════════════════════════════════
-
-    // ── Tab Navigation ───────────────────────────────────────────────
-    /** "Log In" tab – inactive on this screen, navigates to LoginActivity */
-    private lateinit var tabLogin: TextView
-
-    /** "Sign Up" tab – active on this screen (teal text, white bg) */
-    private lateinit var tabSignUp: TextView
 
     // ── Form Input Fields ────────────────────────────────────────────
     /** Full Name field container and input */
@@ -159,7 +152,6 @@ class RegisterActivity : AppCompatActivity() {
         initializeViews()
 
         // Configure all interactive elements
-        setupTabNavigation()
         setupPasswordStrengthWatcher()
         setupTermsCheckbox()
         setupCreateAccountButton()
@@ -172,13 +164,9 @@ class RegisterActivity : AppCompatActivity() {
 
     /**
      * Binds all UI elements from the layout XML to their Kotlin references.
-     * Organized by section: tabs, form fields, strength indicator, controls.
+     * Organized by section: form fields, strength indicator, controls.
      */
     private fun initializeViews() {
-        // Tab navigation
-        tabLogin = findViewById(R.id.tabLogin)
-        tabSignUp = findViewById(R.id.tabSignUp)
-
         // Full Name field
         tilFullName = findViewById(R.id.tilFullName)
         etFullName = findViewById(R.id.etFullName)
@@ -216,37 +204,6 @@ class RegisterActivity : AppCompatActivity() {
         cbTerms = findViewById(R.id.cbTerms)
         btnCreateAccount = findViewById(R.id.btnCreateAccount)
         tvLoginPrompt = findViewById(R.id.tvLoginPrompt)
-
-        // Tint the login tab icon to grey (inactive) on this screen
-        // since the default drawable fill is teal (active on login screen)
-        tabLogin.compoundDrawablesRelative[0]?.mutate()?.setTint(
-            ContextCompat.getColor(this, R.color.text_secondary)
-        )
-
-        // Tint the sign up tab icon to teal (active) on this screen
-        // since the default drawable fill is grey (inactive on login screen)
-        tabSignUp.compoundDrawablesRelative[0]?.mutate()?.setTint(
-            ContextCompat.getColor(this, R.color.teal_primary)
-        )
-    }
-
-    // ═══════════════════════════════════════════════════════════════════
-    // TAB NAVIGATION
-    // ═══════════════════════════════════════════════════════════════════
-
-    /**
-     * Sets up tab navigation to switch between Login and Registration screens.
-     *
-     * On this screen (RegisterActivity):
-     * - "Sign Up" tab is active (no action on tap)
-     * - "Log In" tab navigates to LoginActivity
-     */
-    private fun setupTabNavigation() {
-        tabLogin.setOnClickListener {
-            val intent = Intent(this, LoginActivity::class.java)
-            startActivity(intent)
-            finish() // Close registration to prevent back-stack buildup
-        }
     }
 
     // ═══════════════════════════════════════════════════════════════════
@@ -611,10 +568,11 @@ class RegisterActivity : AppCompatActivity() {
                 .addOnCompleteListener(this) { task ->
                     if (task.isSuccessful) {
                         // ── Registration successful ──
-                        // Get the newly created user's unique ID
-                        val uid = firebaseAuth.currentUser?.uid
+                        val user = firebaseAuth.currentUser
 
-                        if (uid != null) {
+                        if (user != null) {
+                            val uid = user.uid
+
                             // Build the user profile data object
                             val userProfile = UserProfile(
                                 fullName = fullName,
@@ -632,10 +590,25 @@ class RegisterActivity : AppCompatActivity() {
                                     e.printStackTrace()
                                 }
 
-                            // Always navigate to Login immediately after account creation
-                            navigateToLogin()
+                            // Store the full name on the Auth account itself so the
+                            // Profile screen can display it even without a database.
+                            // Wait for it to finish before navigateToLogin() signs out.
+                            val profileUpdate = UserProfileChangeRequest.Builder()
+                                .setDisplayName(fullName)
+                                .build()
+                            user.updateProfile(profileUpdate)
+                                .addOnCompleteListener(this) { updateTask ->
+                                    if (!updateTask.isSuccessful) {
+                                        Log.e(
+                                            "SipSenseAuth",
+                                            "Failed to save display name",
+                                            updateTask.exception
+                                        )
+                                    }
+                                    navigateToLogin()
+                                }
                         } else {
-                            // UID was null (rare edge case) – still navigate
+                            // User was null (rare edge case) – still navigate
                             navigateToLogin()
                         }
                     } else {

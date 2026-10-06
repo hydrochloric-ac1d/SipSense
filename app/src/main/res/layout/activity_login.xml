@@ -14,7 +14,6 @@
     │        ├─ TextView: "IoT Sync" badge
     │        ├─ TextView: "Track. Hydrate. Feel Great." tagline
     │        ├─ ConstraintLayout: White rounded card
-    │        │  ├─ LinearLayout: Tab toggle (Log In | Sign Up)
     │        │  ├─ TextView + TextInputLayout: Email field
     │        │  ├─ TextView + TextInputLayout: Password field
     │        │  ├─ CheckBox: Remember me
@@ -26,7 +25,6 @@
 
     DESIGN NOTES:
     - Uses ConstraintLayout as the primary layout manager (per requirements)
-    - LinearLayout used only for the tab row (weighted distribution)
     - TextInputLayout from Material Components for styled input fields
     - Gradient button uses a custom drawable background
 
@@ -160,52 +158,6 @@
                 app:layout_constraintEnd_toEndOf="parent">
 
                 <!-- ──────────────────────────────────────────────────
-                     TAB TOGGLE ROW
-                     Pill-shaped container with two equally-weighted
-                     tabs: "Log In" (active) and "Sign Up" (inactive).
-                     LinearLayout used here for equal weight distribution.
-                     ────────────────────────────────────────────────── -->
-                <LinearLayout
-                    android:id="@+id/tabContainer"
-                    android:layout_width="0dp"
-                    android:layout_height="@dimen/height_tab_row"
-                    android:orientation="horizontal"
-                    android:background="@drawable/bg_tab_container"
-                    android:padding="@dimen/spacing_xs"
-                    app:layout_constraintTop_toTopOf="parent"
-                    app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintEnd_toEndOf="parent">
-
-                    <!-- Log In Tab (Active State) -->
-                    <TextView
-                        android:id="@+id/tabLogin"
-                        android:layout_width="0dp"
-                        android:layout_height="match_parent"
-                        android:layout_weight="1"
-                        android:text="@string/tab_login"
-                        android:textColor="@color/teal_primary"
-                        android:textStyle="bold"
-                        android:textSize="@dimen/text_body"
-                        android:gravity="center"
-                        android:background="@drawable/bg_tab_selected"
-                        android:drawablePadding="6dp" />
-
-                    <!-- Sign Up Tab (Inactive State) -->
-                    <TextView
-                        android:id="@+id/tabSignUp"
-                        android:layout_width="0dp"
-                        android:layout_height="match_parent"
-                        android:layout_weight="1"
-                        android:text="@string/tab_signup"
-                        android:textColor="@color/text_secondary"
-                        android:textSize="@dimen/text_body"
-                        android:gravity="center"
-                        android:background="@android:color/transparent"
-                        android:drawablePadding="6dp" />
-
-                </LinearLayout>
-
-                <!-- ──────────────────────────────────────────────────
                      EMAIL ADDRESS FIELD
                      ────────────────────────────────────────────────── -->
 
@@ -216,8 +168,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="@string/label_email"
-                    android:layout_marginTop="@dimen/spacing_xxl"
-                    app:layout_constraintTop_toBottomOf="@id/tabContainer"
+                    app:layout_constraintTop_toTopOf="parent"
                     app:layout_constraintStart_toStartOf="parent" />
 
                 <!-- Email TextInputLayout with envelope start icon -->

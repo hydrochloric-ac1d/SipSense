@@ -165,34 +165,53 @@ class ProfileFragment : Fragment() {
     // ═══════════════════════════════════════════════════════════════════
 
     /**
-     * Reads the current user's profile from Firebase Realtime Database.
+     * Displays the current user's name and email.
+     *
+     * The values stored on the FirebaseAuth account (display name + email) are
+     * shown immediately, so the header is never blank. If a Realtime Database
+     * profile exists at /users/{uid}, its values override them.
      */
     private fun loadUserProfile() {
-        val uid = firebaseAuth.currentUser?.uid ?: return
+        val user = firebaseAuth.currentUser ?: return
+        val uid = user.uid
 
+<<<<<<< Updated upstream
+=======
+        // ── Show account info from FirebaseAuth right away ──
+        val authEmail = user.email.orEmpty()
+        val authName = user.displayName?.takeIf { it.isNotBlank() }
+            ?: authEmail.substringBefore('@').ifBlank { "User" }
+        tvProfileName.text = authName
+        tvProfileEmail.text = authEmail
+        updateTargetIndicator(sliderHydration.value.roundToInt())
+
+        // ── Override with the Realtime Database profile, if available ──
+        val database = this.database ?: return
+
+>>>>>>> Stashed changes
         database.child("users").child(uid)
             .addListenerForSingleValueEvent(object : ValueEventListener {
                 override fun onDataChange(snapshot: DataSnapshot) {
-                    val profile = snapshot.getValue(UserProfile::class.java)
-                    if (profile != null) {
-                        // Handle cases where the DB record is partially created
-                        val name = profile.fullName.takeIf { it.isNotBlank() } ?: "User"
-                        val emailStr = profile.email.takeIf { it.isNotBlank() } ?: (firebaseAuth.currentUser?.email ?: "")
+                    // Fragment may have been detached while the read was in flight
+                    if (!isAdded) return
 
-                        tvProfileName.text = name
-                        tvProfileEmail.text = emailStr
-                        
-                        // Update slider without triggering the listener save loop
-                        sliderHydration.value = profile.hydrationTarget.toFloat()
-                        updateTargetIndicator(profile.hydrationTarget)
-                    } else {
-                        tvProfileName.text = firebaseAuth.currentUser?.email ?: "User"
-                        tvProfileEmail.text = ""
-                        updateTargetIndicator(sliderHydration.value.roundToInt())
-                    }
+                    val profile = snapshot.getValue(UserProfile::class.java) ?: return
+
+                    // Handle cases where the DB record is partially created
+                    profile.fullName.takeIf { it.isNotBlank() }?.let { tvProfileName.text = it }
+                    profile.email.takeIf { it.isNotBlank() }?.let { tvProfileEmail.text = it }
+
+                    // Update slider without triggering the listener save loop.
+                    // Snap to the slider's step size (100 ml) – Slider throws otherwise.
+                    val step = sliderHydration.stepSize
+                    val snapped = ((profile.hydrationTarget / step).roundToInt() * step)
+                        .coerceIn(sliderHydration.valueFrom, sliderHydration.valueTo)
+                    sliderHydration.value = snapped
+                    updateTargetIndicator(snapped.roundToInt())
                 }
 
                 override fun onCancelled(error: DatabaseError) {
+                    if (!isAdded) return
                     Toast.makeText(context, "Failed to load profile", Toast.LENGTH_SHORT).show()
                 }
             })
