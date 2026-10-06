@@ -13,8 +13,7 @@ package com.sipsense.app
  * 2. Password visibility toggle (via Material TextInputLayout)
  * 3. "Remember me" checkbox with SharedPreferences persistence
  * 4. "Forgot Password?" link (placeholder for future implementation)
- * 5. Tab-based navigation to RegisterActivity ("Sign Up" tab)
- * 6. "Sign up now" clickable SpannableString for alternative navigation
+ * 5. "Sign up now" clickable SpannableString for navigation to RegisterActivity
  *
  * ══════════════════════════════════════════════════════════════════════════
  * LAYOUT: res/layout/activity_login.xml (ConstraintLayout-based)
@@ -71,12 +70,6 @@ class LoginActivity : AppCompatActivity() {
 
     /** Primary action button – triggers login validation */
     private lateinit var btnLogin: Button
-
-    /** "Log In" tab label (active state on this screen) */
-    private lateinit var tabLogin: TextView
-
-    /** "Sign Up" tab label – navigates to RegisterActivity when tapped */
-    private lateinit var tabSignUp: TextView
 
     /** "Forgot Password?" link text */
     private lateinit var tvForgotPassword: TextView
@@ -139,7 +132,6 @@ class LoginActivity : AppCompatActivity() {
         initializeViews()
 
         // Configure interactive elements
-        setupTabNavigation()
         setupLoginButton()
         setupSignUpPrompt()
         setupForgotPassword()
@@ -168,32 +160,8 @@ class LoginActivity : AppCompatActivity() {
 
         // Buttons and clickable text
         btnLogin = findViewById(R.id.btnLogin)
-        tabLogin = findViewById(R.id.tabLogin)
-        tabSignUp = findViewById(R.id.tabSignUp)
         tvForgotPassword = findViewById(R.id.tvForgotPassword)
         tvSignUpPrompt = findViewById(R.id.tvSignUpPrompt)
-    }
-
-    // ═══════════════════════════════════════════════════════════════════
-    // TAB NAVIGATION
-    // ═══════════════════════════════════════════════════════════════════
-
-    /**
-     * Sets up the tab toggle navigation between Login and Registration screens.
-     *
-     * On this screen (LoginActivity):
-     * - "Log In" tab is active (teal text, white background) – no action
-     * - "Sign Up" tab is inactive (grey text) – navigates to RegisterActivity
-     */
-    private fun setupTabNavigation() {
-        // Tapping "Sign Up" tab navigates to the registration screen
-        tabSignUp.setOnClickListener {
-            val intent = Intent(this, RegisterActivity::class.java)
-            startActivity(intent)
-            // Finish this activity so pressing Back from Register
-            // doesn't return to Login (avoids back-stack buildup)
-            finish()
-        }
     }
 
     // ═══════════════════════════════════════════════════════════════════

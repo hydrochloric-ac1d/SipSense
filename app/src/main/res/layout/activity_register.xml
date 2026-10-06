@@ -10,7 +10,6 @@
     │  └─ ScrollView (fills screen, scrollable for extensive form)
     │     └─ Inner ConstraintLayout (content wrapper)
     │        ├─ ConstraintLayout: White rounded card
-    │        │  ├─ LinearLayout: Tab toggle (Log In | Sign Up)
     │        │  ├─ TextView + TextInputLayout: Full Name field
     │        │  ├─ TextView + TextInputLayout: Email field
     │        │  ├─ TextView + TextInputLayout: Password field
@@ -32,7 +31,6 @@
     - Password strength bar uses 4 View segments with background tint
       changed programmatically in RegisterActivity.kt.
     - Criteria checklist uses ○/● text prefixes toggled in code.
-    - The tab row swaps active/inactive states compared to activity_login.
 
     @project SipSense - Smart Bottle Ecosystem
     @screen Registration Screen
@@ -94,51 +92,6 @@
                 app:layout_constraintEnd_toEndOf="parent">
 
                 <!-- ──────────────────────────────────────────────────
-                     TAB TOGGLE ROW
-                     "Log In" (inactive) | "Sign Up" (active)
-                     Reversed active state compared to login screen.
-                     ────────────────────────────────────────────────── -->
-                <LinearLayout
-                    android:id="@+id/tabContainer"
-                    android:layout_width="0dp"
-                    android:layout_height="@dimen/height_tab_row"
-                    android:orientation="horizontal"
-                    android:background="@drawable/bg_tab_container"
-                    android:padding="@dimen/spacing_xs"
-                    app:layout_constraintTop_toTopOf="parent"
-                    app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintEnd_toEndOf="parent">
-
-                    <!-- Log In Tab (Inactive on Registration screen) -->
-                    <TextView
-                        android:id="@+id/tabLogin"
-                        android:layout_width="0dp"
-                        android:layout_height="match_parent"
-                        android:layout_weight="1"
-                        android:text="@string/tab_login"
-                        android:textColor="@color/text_secondary"
-                        android:textSize="@dimen/text_body"
-                        android:gravity="center"
-                        android:background="@android:color/transparent"
-                        android:drawablePadding="6dp" />
-
-                    <!-- Sign Up Tab (Active on Registration screen) -->
-                    <TextView
-                        android:id="@+id/tabSignUp"
-                        android:layout_width="0dp"
-                        android:layout_height="match_parent"
-                        android:layout_weight="1"
-                        android:text="@string/tab_signup"
-                        android:textColor="@color/teal_primary"
-                        android:textStyle="bold"
-                        android:textSize="@dimen/text_body"
-                        android:gravity="center"
-                        android:background="@drawable/bg_tab_selected"
-                        android:drawablePadding="6dp" />
-
-                </LinearLayout>
-
-                <!-- ──────────────────────────────────────────────────
                      FULL NAME FIELD
                      ────────────────────────────────────────────────── -->
                 <TextView
@@ -147,8 +100,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="@string/label_full_name"
-                    android:layout_marginTop="@dimen/spacing_xxl"
-                    app:layout_constraintTop_toBottomOf="@id/tabContainer"
+                    app:layout_constraintTop_toTopOf="parent"
                     app:layout_constraintStart_toStartOf="parent" />
 
                 <com.google.android.material.textfield.TextInputLayout
