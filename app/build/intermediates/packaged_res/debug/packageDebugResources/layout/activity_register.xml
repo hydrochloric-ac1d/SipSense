@@ -1,0 +1,587 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    activity_register.xml
+
+    Registration screen layout for the SipSense application.
+    ══════════════════════════════════════════════════════════════════════
+
+    LAYOUT STRUCTURE (ConstraintLayout hierarchy):
+    ┌─ Root ConstraintLayout (teal gradient background)
+    │  └─ ScrollView (fills screen, scrollable for extensive form)
+    │     └─ Inner ConstraintLayout (content wrapper)
+    │        ├─ ConstraintLayout: White rounded card
+    │        │  ├─ LinearLayout: Tab toggle (Log In | Sign Up)
+    │        │  ├─ TextView + TextInputLayout: Full Name field
+    │        │  ├─ TextView + TextInputLayout: Email field
+    │        │  ├─ TextView + TextInputLayout: Password field
+    │        │  ├─ Password Strength Section:
+    │        │  │  ├─ Label + Value indicator
+    │        │  │  ├─ LinearLayout: 4 strength bar segments
+    │        │  │  └─ Criteria grid (4 items in 2×2 layout)
+    │        │  ├─ TextView + TextInputLayout: Confirm Password
+    │        │  ├─ TextView + TextInputLayout: Daily Hydration Target
+    │        │  ├─ CheckBox: Terms of Service agreement
+    │        │  ├─ Button: Create SipSense Account (gradient)
+    │        │  └─ TextView: Login prompt
+    │        └─ TextView: Footer copyright
+    └──────────────────────────────────────────────────────────────────
+
+    DESIGN NOTES:
+    - ScrollView is essential here as the registration form is longer
+      than most device screens.
+    - Password strength bar uses 4 View segments with background tint
+      changed programmatically in RegisterActivity.kt.
+    - Criteria checklist uses ○/● text prefixes toggled in code.
+    - The tab row swaps active/inactive states compared to activity_login.
+
+    @project SipSense - Smart Bottle Ecosystem
+    @screen Registration Screen
+    @see RegisterActivity.kt
+-->
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/bg_gradient_teal"
+    tools:context=".RegisterActivity">
+
+    <!-- ════════════════════════════════════════════════════════════════
+         SCROLLABLE CONTENT WRAPPER
+         Registration form requires scrolling due to the number of
+         input fields and the password strength indicator section.
+         ════════════════════════════════════════════════════════════════ -->
+    <ScrollView
+        android:id="@+id/scrollView"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:fillViewport="true"
+        android:scrollbars="none"
+        android:overScrollMode="never"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <!-- Inner content ConstraintLayout -->
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingTop="@dimen/spacing_xxxl"
+            android:paddingBottom="@dimen/spacing_lg">
+
+            <!-- ══════════════════════════════════════════════════════
+                 REGISTRATION CARD
+                 White rounded container holding the entire sign-up form.
+                 No branding header – the card starts near the top of the
+                 screen (matching the reference design for registration).
+                 ══════════════════════════════════════════════════════ -->
+            <androidx.constraintlayout.widget.ConstraintLayout
+                android:id="@+id/cardRegister"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:background="@drawable/bg_card_rounded"
+                android:layout_marginStart="@dimen/card_margin_horizontal"
+                android:layout_marginEnd="@dimen/card_margin_horizontal"
+                android:paddingStart="@dimen/card_padding_horizontal"
+                android:paddingEnd="@dimen/card_padding_horizontal"
+                android:paddingTop="@dimen/card_padding_top"
+                android:paddingBottom="@dimen/card_padding_bottom"
+                android:elevation="@dimen/card_elevation"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent">
+
+                <!-- ──────────────────────────────────────────────────
+                     TAB TOGGLE ROW
+                     "Log In" (inactive) | "Sign Up" (active)
+                     Reversed active state compared to login screen.
+                     ────────────────────────────────────────────────── -->
+                <LinearLayout
+                    android:id="@+id/tabContainer"
+                    android:layout_width="0dp"
+                    android:layout_height="@dimen/height_tab_row"
+                    android:orientation="horizontal"
+                    android:background="@drawable/bg_tab_container"
+                    android:padding="@dimen/spacing_xs"
+                    app:layout_constraintTop_toTopOf="parent"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintEnd_toEndOf="parent">
+
+                    <!-- Log In Tab (Inactive on Registration screen) -->
+                    <TextView
+                        android:id="@+id/tabLogin"
+                        android:layout_width="0dp"
+                        android:layout_height="match_parent"
+                        android:layout_weight="1"
+                        android:text="@string/tab_login"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="@dimen/text_body"
+                        android:gravity="center"
+                        android:background="@android:color/transparent"
+                        android:drawablePadding="6dp" />
+
+                    <!-- Sign Up Tab (Active on Registration screen) -->
+                    <TextView
+                        android:id="@+id/tabSignUp"
+                        android:layout_width="0dp"
+                        android:layout_height="match_parent"
+                        android:layout_weight="1"
+                        android:text="@string/tab_signup"
+                        android:textColor="@color/teal_primary"
+                        android:textStyle="bold"
+                        android:textSize="@dimen/text_body"
+                        android:gravity="center"
+                        android:background="@drawable/bg_tab_selected"
+                        android:drawablePadding="6dp" />
+
+                </LinearLayout>
+
+                <!-- ──────────────────────────────────────────────────
+                     FULL NAME FIELD
+                     ────────────────────────────────────────────────── -->
+                <TextView
+                    android:id="@+id/tvFullNameLabel"
+                    style="@style/SipSense.FieldLabel"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/label_full_name"
+                    android:layout_marginTop="@dimen/spacing_xxl"
+                    app:layout_constraintTop_toBottomOf="@id/tabContainer"
+                    app:layout_constraintStart_toStartOf="parent" />
+
+                <com.google.android.material.textfield.TextInputLayout
+                    android:id="@+id/tilFullName"
+                    style="@style/SipSense.TextInputLayout"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/spacing_sm"
+                    app:startIconDrawable="@drawable/ic_person"
+                    app:startIconTint="@color/text_hint"
+                    app:layout_constraintTop_toBottomOf="@id/tvFullNameLabel"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintEnd_toEndOf="parent">
+
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/etFullName"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:hint="@string/hint_full_name"
+                        android:inputType="textPersonName"
+                        android:textColor="@color/text_primary"
+                        android:textColorHint="@color/text_hint"
+                        android:textSize="@dimen/text_body"
+                        android:paddingTop="16dp"
+                        android:paddingBottom="16dp"
+                        android:gravity="center_vertical"
+                        android:singleLine="true" />
+
+                </com.google.android.material.textfield.TextInputLayout>
+
+                <!-- ──────────────────────────────────────────────────
+                     EMAIL ADDRESS FIELD
+                     ────────────────────────────────────────────────── -->
+                <TextView
+                    android:id="@+id/tvEmailLabel"
+                    style="@style/SipSense.FieldLabel"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/label_email"
+                    android:layout_marginTop="@dimen/spacing_lg"
+                    app:layout_constraintTop_toBottomOf="@id/tilFullName"
+                    app:layout_constraintStart_toStartOf="parent" />
+
+                <com.google.android.material.textfield.TextInputLayout
+                    android:id="@+id/tilEmail"
+                    style="@style/SipSense.TextInputLayout"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/spacing_sm"
+                    app:startIconDrawable="@drawable/ic_email"
+                    app:startIconTint="@color/text_hint"
+                    app:layout_constraintTop_toBottomOf="@id/tvEmailLabel"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintEnd_toEndOf="parent">
+
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/etEmail"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:hint="@string/hint_email"
+                        android:inputType="textEmailAddress"
+                        android:textColor="@color/text_primary"
+                        android:textColorHint="@color/text_hint"
+                        android:textSize="@dimen/text_body"
+                        android:paddingTop="16dp"
+                        android:paddingBottom="16dp"
+                        android:gravity="center_vertical"
+                        android:singleLine="true" />
+
+                </com.google.android.material.textfield.TextInputLayout>
+
+                <!-- ──────────────────────────────────────────────────
+                     PASSWORD FIELD
+                     Includes visibility toggle via endIconMode.
+                     ────────────────────────────────────────────────── -->
+                <TextView
+                    android:id="@+id/tvPasswordLabel"
+                    style="@style/SipSense.FieldLabel"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/label_password"
+                    android:layout_marginTop="@dimen/spacing_lg"
+                    app:layout_constraintTop_toBottomOf="@id/tilEmail"
+                    app:layout_constraintStart_toStartOf="parent" />
+
+                <com.google.android.material.textfield.TextInputLayout
+                    android:id="@+id/tilPassword"
+                    style="@style/SipSense.TextInputLayout"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/spacing_sm"
+                    app:startIconDrawable="@drawable/ic_lock"
+                    app:startIconTint="@color/text_hint"
+                    app:endIconMode="password_toggle"
+                    app:endIconTint="@color/text_hint"
+                    app:layout_constraintTop_toBottomOf="@id/tvPasswordLabel"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintEnd_toEndOf="parent">
+
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/etPassword"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:hint="@string/hint_password_register"
+                        android:inputType="textPassword"
+                        android:textColor="@color/text_primary"
+                        android:textColorHint="@color/text_hint"
+                        android:textSize="@dimen/text_body"
+                        android:paddingTop="16dp"
+                        android:paddingBottom="16dp"
+                        android:gravity="center_vertical"
+                        android:singleLine="true" />
+
+                </com.google.android.material.textfield.TextInputLayout>
+
+                <!-- ──────────────────────────────────────────────────
+                     PASSWORD STRENGTH INDICATOR
+                     Displays a label, 4-segment bar, and criteria grid.
+                     Bar segments are tinted programmatically based on
+                     how many criteria the entered password meets.
+                     ────────────────────────────────────────────────── -->
+
+                <!-- "Password Strength:" label (left-aligned) -->
+                <TextView
+                    android:id="@+id/tvStrengthLabel"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/password_strength"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="@dimen/text_criteria"
+                    android:layout_marginTop="@dimen/spacing_sm"
+                    app:layout_constraintTop_toBottomOf="@id/tilPassword"
+                    app:layout_constraintStart_toStartOf="parent" />
+
+                <!-- Strength value text ("-", "Weak", "Fair", etc.) -->
+                <TextView
+                    android:id="@+id/tvStrengthValue"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/strength_placeholder"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="@dimen/text_criteria"
+                    android:textStyle="bold"
+                    app:layout_constraintTop_toTopOf="@id/tvStrengthLabel"
+                    app:layout_constraintBottom_toBottomOf="@id/tvStrengthLabel"
+                    app:layout_constraintEnd_toEndOf="parent" />
+
+                <!-- 4-Segment Strength Bar
+                     LinearLayout distributes segments equally with gaps.
+                     Each segment starts grey and is tinted by code. -->
+                <LinearLayout
+                    android:id="@+id/strengthBarContainer"
+                    android:layout_width="0dp"
+                    android:layout_height="@dimen/height_strength_bar"
+                    android:orientation="horizontal"
+                    android:layout_marginTop="@dimen/spacing_sm"
+                    app:layout_constraintTop_toBottomOf="@id/tvStrengthLabel"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintEnd_toEndOf="parent">
+
+                    <!-- Segment 1 -->
+                    <View
+                        android:id="@+id/strengthSegment1"
+                        android:layout_width="0dp"
+                        android:layout_height="match_parent"
+                        android:layout_weight="1"
+                        android:layout_marginEnd="3dp"
+                        android:background="@drawable/bg_password_strength_segment" />
+
+                    <!-- Segment 2 -->
+                    <View
+                        android:id="@+id/strengthSegment2"
+                        android:layout_width="0dp"
+                        android:layout_height="match_parent"
+                        android:layout_weight="1"
+                        android:layout_marginHorizontal="3dp"
+                        android:background="@drawable/bg_password_strength_segment" />
+
+                    <!-- Segment 3 -->
+                    <View
+                        android:id="@+id/strengthSegment3"
+                        android:layout_width="0dp"
+                        android:layout_height="match_parent"
+                        android:layout_weight="1"
+                        android:layout_marginHorizontal="3dp"
+                        android:background="@drawable/bg_password_strength_segment" />
+
+                    <!-- Segment 4 -->
+                    <View
+                        android:id="@+id/strengthSegment4"
+                        android:layout_width="0dp"
+                        android:layout_height="match_parent"
+                        android:layout_weight="1"
+                        android:layout_marginStart="3dp"
+                        android:background="@drawable/bg_password_strength_segment" />
+
+                </LinearLayout>
+
+                <!-- Password Criteria Checklist (2×2 grid)
+                     ○ = criterion not met (grey)
+                     ● = criterion met (teal/green)
+                     Text prefix toggled programmatically. -->
+
+                <!-- Row 1, Left: "○  8+ characters" -->
+                <TextView
+                    android:id="@+id/tvCriteriaLength"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:text="@string/criteria_length"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="@dimen/text_criteria"
+                    android:layout_marginTop="@dimen/spacing_sm"
+                    app:layout_constraintTop_toBottomOf="@id/strengthBarContainer"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintEnd_toStartOf="@id/tvCriteriaNumber" />
+
+                <!-- Row 1, Right: "○  1+ number" -->
+                <TextView
+                    android:id="@+id/tvCriteriaNumber"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:text="@string/criteria_number"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="@dimen/text_criteria"
+                    android:layout_marginTop="@dimen/spacing_sm"
+                    app:layout_constraintTop_toBottomOf="@id/strengthBarContainer"
+                    app:layout_constraintStart_toEndOf="@id/tvCriteriaLength"
+                    app:layout_constraintEnd_toEndOf="parent" />
+
+                <!-- Row 2, Left: "○  Upper & Lowercase" -->
+                <TextView
+                    android:id="@+id/tvCriteriaCase"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:text="@string/criteria_case"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="@dimen/text_criteria"
+                    android:layout_marginTop="@dimen/spacing_xs"
+                    app:layout_constraintTop_toBottomOf="@id/tvCriteriaLength"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintEnd_toStartOf="@id/tvCriteriaSymbol" />
+
+                <!-- Row 2, Right: "○  1+ symbol (!@#$)" -->
+                <TextView
+                    android:id="@+id/tvCriteriaSymbol"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:text="@string/criteria_symbol"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="@dimen/text_criteria"
+                    android:layout_marginTop="@dimen/spacing_xs"
+                    app:layout_constraintTop_toBottomOf="@id/tvCriteriaNumber"
+                    app:layout_constraintStart_toEndOf="@id/tvCriteriaCase"
+                    app:layout_constraintEnd_toEndOf="parent" />
+
+                <!-- ──────────────────────────────────────────────────
+                     CONFIRM PASSWORD FIELD
+                     ────────────────────────────────────────────────── -->
+                <TextView
+                    android:id="@+id/tvConfirmPasswordLabel"
+                    style="@style/SipSense.FieldLabel"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/label_confirm_password"
+                    android:layout_marginTop="@dimen/spacing_lg"
+                    app:layout_constraintTop_toBottomOf="@id/tvCriteriaCase"
+                    app:layout_constraintStart_toStartOf="parent" />
+
+                <com.google.android.material.textfield.TextInputLayout
+                    android:id="@+id/tilConfirmPassword"
+                    style="@style/SipSense.TextInputLayout"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/spacing_sm"
+                    app:startIconDrawable="@drawable/ic_shield_check"
+                    app:startIconTint="@color/text_hint"
+                    app:layout_constraintTop_toBottomOf="@id/tvConfirmPasswordLabel"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintEnd_toEndOf="parent">
+
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/etConfirmPassword"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:hint="@string/hint_confirm_password"
+                        android:inputType="textPassword"
+                        android:textColor="@color/text_primary"
+                        android:textColorHint="@color/text_hint"
+                        android:textSize="@dimen/text_body"
+                        android:paddingTop="16dp"
+                        android:paddingBottom="16dp"
+                        android:gravity="center_vertical"
+                        android:singleLine="true" />
+
+                </com.google.android.material.textfield.TextInputLayout>
+
+                <!-- ──────────────────────────────────────────────────
+                     DAILY HYDRATION TARGET FIELD
+                     Number input with target icon and "mL" unit label.
+                     ────────────────────────────────────────────────── -->
+                <TextView
+                    android:id="@+id/tvHydrationLabel"
+                    style="@style/SipSense.FieldLabel"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/label_hydration"
+                    android:layout_marginTop="@dimen/spacing_lg"
+                    app:layout_constraintTop_toBottomOf="@id/tilConfirmPassword"
+                    app:layout_constraintStart_toStartOf="parent" />
+
+                <!-- Hydration input field (number only) -->
+                <com.google.android.material.textfield.TextInputLayout
+                    android:id="@+id/tilHydration"
+                    style="@style/SipSense.TextInputLayout"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/spacing_sm"
+                    app:startIconDrawable="@drawable/ic_target"
+                    app:startIconTint="@color/text_hint"
+                    app:layout_constraintTop_toBottomOf="@id/tvHydrationLabel"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintEnd_toStartOf="@id/tvMlUnit">
+
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/etHydration"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:hint="@string/hint_hydration"
+                        android:inputType="number"
+                        android:textColor="@color/text_primary"
+                        android:textColorHint="@color/text_hint"
+                        android:textSize="@dimen/text_body"
+                        android:paddingTop="16dp"
+                        android:paddingBottom="16dp"
+                        android:gravity="center_vertical"
+                        android:singleLine="true" />
+
+                </com.google.android.material.textfield.TextInputLayout>
+
+                <!-- "mL" unit label positioned to the right of the input -->
+                <TextView
+                    android:id="@+id/tvMlUnit"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/unit_ml"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="@dimen/text_body"
+                    android:textStyle="bold"
+                    android:paddingStart="@dimen/spacing_md"
+                    android:paddingEnd="@dimen/spacing_xs"
+                    app:layout_constraintTop_toTopOf="@id/tilHydration"
+                    app:layout_constraintBottom_toBottomOf="@id/tilHydration"
+                    app:layout_constraintEnd_toEndOf="parent" />
+
+                <!-- ──────────────────────────────────────────────────
+                     TERMS OF SERVICE CHECKBOX
+                     Text with clickable "Terms of Service" and
+                     "Privacy Policy" links set programmatically.
+                     ────────────────────────────────────────────────── -->
+                <CheckBox
+                    android:id="@+id/cbTerms"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="13sp"
+                    android:buttonTint="@color/teal_primary"
+                    android:layout_marginTop="@dimen/spacing_lg"
+                    app:layout_constraintTop_toBottomOf="@id/tilHydration"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintEnd_toEndOf="parent" />
+
+                <!-- ──────────────────────────────────────────────────
+                     CREATE ACCOUNT BUTTON
+                     Gradient teal-to-blue button.
+                     ────────────────────────────────────────────────── -->
+                <Button
+                    android:id="@+id/btnCreateAccount"
+                    android:layout_width="0dp"
+                    android:layout_height="@dimen/height_button"
+                    android:text="@string/btn_create_account"
+                    android:textColor="@color/text_white"
+                    android:textSize="@dimen/text_heading"
+                    android:textStyle="bold"
+                    android:textAllCaps="false"
+                    android:background="@drawable/bg_button_gradient"
+                    android:stateListAnimator="@null"
+                    android:elevation="4dp"
+                    android:layout_marginTop="@dimen/spacing_lg"
+                    app:layout_constraintTop_toBottomOf="@id/cbTerms"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintEnd_toEndOf="parent" />
+
+                <!-- ──────────────────────────────────────────────────
+                     LOGIN NAVIGATION PROMPT
+                     "Already have an account? Log In"
+                     ────────────────────────────────────────────────── -->
+                <TextView
+                    android:id="@+id/tvLoginPrompt"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textSize="14sp"
+                    android:textColor="@color/text_secondary"
+                    android:layout_marginTop="@dimen/spacing_lg"
+                    android:layout_marginBottom="@dimen/spacing_sm"
+                    app:layout_constraintTop_toBottomOf="@id/btnCreateAccount"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintEnd_toEndOf="parent" />
+
+            </androidx.constraintlayout.widget.ConstraintLayout>
+            <!-- End of Registration Card -->
+
+            <!-- ══════════════════════════════════════════════════════
+                 FOOTER COPYRIGHT
+                 ══════════════════════════════════════════════════════ -->
+            <TextView
+                android:id="@+id/tvFooter"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/footer_text"
+                android:textColor="@color/text_white"
+                android:textSize="@dimen/text_caption"
+                android:alpha="0.7"
+                android:gravity="center"
+                android:layout_marginTop="@dimen/spacing_xl"
+                android:paddingHorizontal="@dimen/spacing_xxxl"
+                app:layout_constraintTop_toBottomOf="@id/cardRegister"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent" />
+
+        </androidx.constraintlayout.widget.ConstraintLayout>
+        <!-- End of inner content -->
+
+    </ScrollView>
+
+</androidx.constraintlayout.widget.ConstraintLayout>

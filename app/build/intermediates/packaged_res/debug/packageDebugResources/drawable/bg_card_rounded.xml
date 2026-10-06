@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    bg_card_rounded.xml
+
+    White rounded rectangle background for the main login/registration card.
+    Features generous 24dp corner radius for a modern, soft appearance
+    matching the reference design's "floating card" aesthetic.
+
+    Usage: android:background="@drawable/bg_card_rounded"
+-->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+
+    <!-- Solid white card background -->
+    <solid android:color="@color/card_background" />
+
+    <!-- Rounded corners on all four sides (24dp radius) -->
+    <corners android:radius="@dimen/radius_card" />
+
+</shape>

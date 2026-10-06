@@ -34,8 +34,8 @@ import com.google.android.material.slider.Slider
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
+import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.database.ValueEventListener
-import com.sipsense.app.data.FirebaseDatabaseProvider
 import com.sipsense.app.model.UserProfile
 import kotlin.math.roundToInt
 
@@ -71,8 +71,8 @@ class ProfileFragment : Fragment() {
     /** Firebase Authentication instance */
     private val firebaseAuth = FirebaseAuth.getInstance()
 
-    /** Realtime Database root for the configured Firebase project, or null if it has none */
-    private val database = FirebaseDatabaseProvider.reference()
+    /** Firebase Realtime Database instance */
+    private val database = FirebaseDatabase.getInstance("https://sipsense-17a90-default-rtdb.firebaseio.com").reference
 
     // ═══════════════════════════════════════════════════════════════════
     // LIFECYCLE
@@ -170,11 +170,6 @@ class ProfileFragment : Fragment() {
     private fun loadUserProfile() {
         val uid = firebaseAuth.currentUser?.uid ?: return
 
-        val database = this.database ?: run {
-            Toast.makeText(context, "Failed to load profile", Toast.LENGTH_SHORT).show()
-            return
-        }
-
         database.child("users").child(uid)
             .addListenerForSingleValueEvent(object : ValueEventListener {
                 override fun onDataChange(snapshot: DataSnapshot) {
@@ -208,12 +203,7 @@ class ProfileFragment : Fragment() {
      */
     private fun saveHydrationTarget(newTarget: Int) {
         val uid = firebaseAuth.currentUser?.uid ?: return
-
-        val database = this.database ?: run {
-            Toast.makeText(context, "Failed to update target", Toast.LENGTH_SHORT).show()
-            return
-        }
-
+        
         database.child("users").child(uid).child("hydrationTarget").setValue(newTarget)
             .addOnFailureListener {
                 Toast.makeText(context, "Failed to update target", Toast.LENGTH_SHORT).show()
