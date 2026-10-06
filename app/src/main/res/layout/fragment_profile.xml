@@ -118,6 +118,7 @@
                     android:layout_weight="1" />
 
                 <TextView
+                    android:id="@+id/tv_target_max"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="5000 ml"
@@ -171,14 +172,7 @@
                     android:layout_height="wrap_content"
                     android:text="ml"
                     android:textColor="@color/text_secondary"
-                    android:textSize="@dimen/text_body"
-                    android:layout_marginEnd="8dp" />
-
-                <ImageView
-                    android:layout_width="20dp"
-                    android:layout_height="20dp"
-                    android:src="@drawable/ic_login_arrow"
-                    app:tint="@color/text_secondary" />
+                    android:textSize="@dimen/text_body" />
             </LinearLayout>
 
             <View
@@ -197,11 +191,11 @@
                 android:clickable="true"
                 android:focusable="true">
 
-                <!-- Reusing target icon as placeholder for bell -->
+                <!-- Bell icon for notification settings -->
                 <ImageView
                     android:layout_width="24dp"
                     android:layout_height="24dp"
-                    android:src="@drawable/ic_target"
+                    android:src="@drawable/ic_bell"
                     app:tint="@color/teal_primary"
                     android:layout_marginEnd="@dimen/spacing_md" />
 
@@ -213,11 +207,7 @@
                     android:textColor="@color/text_primary"
                     android:textSize="@dimen/text_body" />
 
-                <ImageView
-                    android:layout_width="20dp"
-                    android:layout_height="20dp"
-                    android:src="@drawable/ic_login_arrow"
-                    app:tint="@color/text_secondary" />
+
             </LinearLayout>
 
             <View
@@ -252,11 +242,7 @@
                     android:textColor="@color/text_primary"
                     android:textSize="@dimen/text_body" />
 
-                <ImageView
-                    android:layout_width="20dp"
-                    android:layout_height="20dp"
-                    android:src="@drawable/ic_login_arrow"
-                    app:tint="@color/text_secondary" />
+
             </LinearLayout>
 
             <View
@@ -290,11 +276,7 @@
                     android:textColor="@color/text_primary"
                     android:textSize="@dimen/text_body" />
 
-                <ImageView
-                    android:layout_width="20dp"
-                    android:layout_height="20dp"
-                    android:src="@drawable/ic_login_arrow"
-                    app:tint="@color/text_secondary" />
+
             </LinearLayout>
             
             <View

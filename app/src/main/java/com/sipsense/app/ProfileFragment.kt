@@ -51,6 +51,7 @@ class ProfileFragment : Fragment() {
     
     // Hydration Target
     private lateinit var tvTargetIndicator: TextView
+    private lateinit var tvTargetMax: TextView
     private lateinit var sliderHydration: Slider
     
     // Account Preferences Rows
@@ -89,6 +90,7 @@ class ProfileFragment : Fragment() {
         tvProfileName = view.findViewById(R.id.tv_profile_name)
         tvProfileEmail = view.findViewById(R.id.tv_profile_email)
         tvTargetIndicator = view.findViewById(R.id.tv_target_indicator)
+        tvTargetMax = view.findViewById(R.id.tv_target_max)
         sliderHydration = view.findViewById(R.id.slider_hydration)
         
         rowUnits = view.findViewById(R.id.row_units)
@@ -112,7 +114,9 @@ class ProfileFragment : Fragment() {
     // ═══════════════════════════════════════════════════════════════════
 
     private fun setupListeners() {
-        // Hydration Slider (Live Update Text)
+        // Hydration Slider (Live Update Text). The slider always works in ml;
+        // only the displayed text is converted to the selected unit.
+        sliderHydration.setLabelFormatter { value -> formatAmount(value.roundToInt()) }
         sliderHydration.addOnChangeListener { _, value, _ ->
             updateTargetIndicator(value.roundToInt())
         }
@@ -156,8 +160,26 @@ class ProfileFragment : Fragment() {
         }
     }
 
-    private fun updateTargetIndicator(value: Int) {
-        tvTargetIndicator.text = "$value $currentUnit"
+    /**
+     * Formats an amount given in millilitres for display in the current unit.
+     * ml is shown as-is; oz is converted (1 oz = 29.5735 ml) and rounded.
+     */
+    private fun formatAmount(valueMl: Int): String =
+        if (currentUnit == "oz") {
+            "${(valueMl / ML_PER_OZ).roundToInt()} oz"
+        } else {
+            "$valueMl ml"
+        }
+
+    /** Updates the selected-value text and the max-value label for the current unit. */
+    private fun updateTargetIndicator(valueMl: Int) {
+        tvTargetIndicator.text = formatAmount(valueMl)
+        tvTargetMax.text = formatAmount(sliderHydration.valueTo.roundToInt())
+    }
+
+    private companion object {
+        /** Millilitres in one US fluid ounce */
+        const val ML_PER_OZ = 29.5735f
     }
 
     // ═══════════════════════════════════════════════════════════════════
