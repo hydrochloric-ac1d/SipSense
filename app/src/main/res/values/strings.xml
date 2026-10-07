@@ -49,7 +49,7 @@
     <string name="label_recent_sip">Recent Sip</string>
     <string name="label_hydration_streak">Hydration Streak</string>
     <string name="placeholder_recent_sip_time">9:30 AM</string>
-    <string name="placeholder_recent_sip_amount">250 ml</string>
+    <string name="placeholder_recent_sip_amount">100 ml</string>
     <string name="placeholder_streak_days">2 Days</string>
     <string name="progress_format_ml">%1$d ml</string>
     <string name="progress_max_format_ml">/ %1$d ml</string>

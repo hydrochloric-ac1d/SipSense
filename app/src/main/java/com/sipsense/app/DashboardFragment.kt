@@ -14,7 +14,9 @@ import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.ValueEventListener
 import com.sipsense.app.data.FirebaseDatabaseProvider
 import com.sipsense.app.model.UserProfile
+import java.text.SimpleDateFormat
 import java.util.Calendar
+import java.util.Locale
 
 class DashboardFragment : Fragment() {
 
@@ -22,9 +24,12 @@ class DashboardFragment : Fragment() {
     private lateinit var progressHydration: CircularProgressIndicator
     private lateinit var tvProgressCurrent: TextView
     private lateinit var tvProgressMax: TextView
+    private lateinit var tvRecentSipTime: TextView
 
     private val firebaseAuth = FirebaseAuth.getInstance()
     private val database = FirebaseDatabaseProvider.reference()
+    
+    private var profileListener: ValueEventListener? = null
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -37,11 +42,21 @@ class DashboardFragment : Fragment() {
         progressHydration = view.findViewById(R.id.progress_hydration)
         tvProgressCurrent = view.findViewById(R.id.tv_progress_current)
         tvProgressMax = view.findViewById(R.id.tv_progress_max)
+        tvRecentSipTime = view.findViewById(R.id.tv_recent_sip_time)
 
         setupGreeting()
+        setupRecentSipTime()
         loadUserProfile()
 
         return view
+    }
+    
+    override fun onDestroyView() {
+        super.onDestroyView()
+        val uid = firebaseAuth.currentUser?.uid
+        if (uid != null && profileListener != null) {
+            database?.child("users")?.child(uid)?.removeEventListener(profileListener!!)
+        }
     }
 
     private fun setupGreeting(firstName: String = "User") {
@@ -57,6 +72,12 @@ class DashboardFragment : Fragment() {
         tvGreeting.text = getString(greetingRes, firstName)
     }
 
+    private fun setupRecentSipTime() {
+        val sdf = SimpleDateFormat("h:mm a", Locale.getDefault())
+        val currentTime = sdf.format(Calendar.getInstance().time)
+        tvRecentSipTime.text = currentTime
+    }
+
     private fun loadUserProfile() {
         val user = firebaseAuth.currentUser ?: return
         val uid = user.uid
@@ -67,31 +88,32 @@ class DashboardFragment : Fragment() {
         val firstName = authName.substringBefore(" ").replaceFirstChar { it.uppercase() }
         setupGreeting(firstName)
 
-        database?.child("users")?.child(uid)
-            ?.addListenerForSingleValueEvent(object : ValueEventListener {
-                override fun onDataChange(snapshot: DataSnapshot) {
-                    if (!isAdded) return
+        profileListener = object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                if (!isAdded) return
 
-                    val profile = snapshot.getValue(UserProfile::class.java) ?: return
-                    
-                    val name = profile.fullName.takeIf { it.isNotBlank() } ?: firstName
-                    val shortName = name.substringBefore(" ").replaceFirstChar { it.uppercase() }
-                    setupGreeting(shortName)
+                val profile = snapshot.getValue(UserProfile::class.java) ?: return
+                
+                val name = profile.fullName.takeIf { it.isNotBlank() } ?: firstName
+                val shortName = name.substringBefore(" ").replaceFirstChar { it.uppercase() }
+                setupGreeting(shortName)
 
-                    val target = profile.hydrationTarget
-                    progressHydration.max = target
-                    tvProgressMax.text = getString(R.string.progress_max_format_ml, target)
-                    
-                    // Placeholder for current progress
-                    val currentProgress = 1750
-                    progressHydration.progress = currentProgress
-                    tvProgressCurrent.text = getString(R.string.progress_format_ml, currentProgress)
-                }
+                val target = profile.hydrationTarget
+                progressHydration.max = target
+                tvProgressMax.text = getString(R.string.progress_max_format_ml, target)
+                
+                // Placeholder for current progress
+                val currentProgress = 1750
+                progressHydration.progress = currentProgress
+                tvProgressCurrent.text = getString(R.string.progress_format_ml, currentProgress)
+            }
 
-                override fun onCancelled(error: DatabaseError) {
-                    if (!isAdded) return
-                    Toast.makeText(context, "Failed to load profile", Toast.LENGTH_SHORT).show()
-                }
-            })
+            override fun onCancelled(error: DatabaseError) {
+                if (!isAdded) return
+                Toast.makeText(context, "Failed to load profile", Toast.LENGTH_SHORT).show()
+            }
+        }
+        
+        database?.child("users")?.child(uid)?.addValueEventListener(profileListener!!)
     }
 }
