@@ -36,6 +36,7 @@
     <string name="nav_dashboard">Dashboard</string>
     <string name="nav_history">History</string>
     <string name="nav_devices">Devices</string>
+    <string name="nav_notifications">Notifications</string>
     <string name="nav_profile">Profile</string>
 
     <!-- ════════════════════════════════════════════════════════════════

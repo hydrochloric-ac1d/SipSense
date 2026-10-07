@@ -131,7 +131,7 @@
 
     <!-- ════════════════════════════════════════════════════════════════
          BOTTOM NAVIGATION BAR
-         Fixed at the bottom of the screen. Displays four tabs with
+         Fixed at the bottom of the screen. Displays five tabs with
          icons and labels. Uses a color state list for selected/
          unselected tinting (teal vs. grey).
          ════════════════════════════════════════════════════════════════ -->

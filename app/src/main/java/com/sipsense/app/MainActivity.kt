@@ -112,6 +112,7 @@ class MainActivity : AppCompatActivity() {
      * - nav_dashboard → DashboardFragment
      * - nav_history   → HistoryFragment
      * - nav_devices   → DevicesFragment
+     * - nav_notifications → NotificationsFragment
      * - nav_profile   → ProfileFragment
      */
     private fun setupBottomNavigation() {
@@ -120,6 +121,7 @@ class MainActivity : AppCompatActivity() {
                 R.id.nav_dashboard -> DashboardFragment()
                 R.id.nav_history   -> HistoryFragment()
                 R.id.nav_devices   -> DevicesFragment()
+                R.id.nav_notifications -> NotificationsFragment()
                 R.id.nav_profile   -> ProfileFragment()
                 else -> return@setOnItemSelectedListener false
             }
