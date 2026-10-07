@@ -40,6 +40,21 @@
     <string name="nav_profile">Profile</string>
 
     <!-- ════════════════════════════════════════════════════════════════
+         DASHBOARD SCREEN
+         ════════════════════════════════════════════════════════════════ -->
+    <string name="greeting_morning">Good Morning, %s!</string>
+    <string name="greeting_afternoon">Good Afternoon, %s!</string>
+    <string name="greeting_evening">Good Evening, %s!</string>
+    <string name="label_daily_goal">Daily Goal</string>
+    <string name="label_recent_sip">Recent Sip</string>
+    <string name="label_hydration_streak">Hydration Streak</string>
+    <string name="placeholder_recent_sip_time">9:30 AM</string>
+    <string name="placeholder_recent_sip_amount">250 ml</string>
+    <string name="placeholder_streak_days">2 Days</string>
+    <string name="progress_format_ml">%1$d ml</string>
+    <string name="progress_max_format_ml">/ %1$d ml</string>
+
+    <!-- ════════════════════════════════════════════════════════════════
          HEADER BAR
          Branding and WiFi connectivity status displayed at the top
          of the main screen (always visible above fragments).
