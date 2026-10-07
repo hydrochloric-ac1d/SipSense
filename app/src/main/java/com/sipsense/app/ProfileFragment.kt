@@ -132,6 +132,7 @@ class ProfileFragment : Fragment() {
             currentUnit = if (currentUnit == "ml") "oz" else "ml"
             tvUnitValue.text = currentUnit
             updateTargetIndicator(sliderHydration.value.roundToInt())
+            savePreferredUnit(currentUnit)
         }
         
         // Notifications Row (Placeholder)
@@ -212,6 +213,9 @@ class ProfileFragment : Fragment() {
                     // Handle cases where the DB record is partially created
                     profile.fullName.takeIf { it.isNotBlank() }?.let { tvProfileName.text = it }
                     profile.email.takeIf { it.isNotBlank() }?.let { tvProfileEmail.text = it }
+                    
+                    currentUnit = profile.preferredUnit
+                    tvUnitValue.text = currentUnit
 
                     // Update slider without triggering the listener save loop.
                     // Snap to the slider's step size (100 ml) – Slider throws otherwise.
@@ -243,6 +247,20 @@ class ProfileFragment : Fragment() {
         database.child("users").child(uid).child("hydrationTarget").setValue(newTarget)
             .addOnFailureListener {
                 Toast.makeText(context, "Failed to update target", Toast.LENGTH_SHORT).show()
+            }
+    }
+
+    /**
+     * Saves the newly selected preferred unit to the Firebase Realtime Database.
+     */
+    private fun savePreferredUnit(unit: String) {
+        val uid = firebaseAuth.currentUser?.uid ?: return
+
+        val database = this.database ?: return
+
+        database.child("users").child(uid).child("preferredUnit").setValue(unit)
+            .addOnFailureListener {
+                Toast.makeText(context, "Failed to update unit preference", Toast.LENGTH_SHORT).show()
             }
     }
 }
