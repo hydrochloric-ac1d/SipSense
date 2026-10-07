@@ -76,7 +76,7 @@
                 android:id="@+id/ivLogo"
                 android:layout_width="@dimen/logo_size"
                 android:layout_height="@dimen/logo_size"
-                android:src="@drawable/logo_sipsense"
+                android:src="@drawable/logo_sipsense_green"
                 android:contentDescription="@string/app_name"
                 android:scaleType="centerInside"
                 android:background="@drawable/bg_logo_container"
