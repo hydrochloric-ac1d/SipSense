@@ -58,7 +58,6 @@ class ProfileFragment : Fragment() {
     private lateinit var rowUnits: View
     private lateinit var tvUnitValue: TextView
     private lateinit var rowNotifications: View
-    private lateinit var rowConnectedApps: View
     private lateinit var rowChangePassword: View
     private lateinit var btnLogout: Button
 
@@ -96,7 +95,6 @@ class ProfileFragment : Fragment() {
         rowUnits = view.findViewById(R.id.row_units)
         tvUnitValue = view.findViewById(R.id.tv_unit_value)
         rowNotifications = view.findViewById(R.id.row_notifications)
-        rowConnectedApps = view.findViewById(R.id.row_connected_apps)
         rowChangePassword = view.findViewById(R.id.row_change_password)
         btnLogout = view.findViewById(R.id.btn_logout)
 
@@ -141,11 +139,6 @@ class ProfileFragment : Fragment() {
             Toast.makeText(context, "Notification settings coming soon", Toast.LENGTH_SHORT).show()
         }
         
-        // Connected Apps Row (Placeholder)
-        rowConnectedApps.setOnClickListener {
-            Toast.makeText(context, "Connected apps coming soon", Toast.LENGTH_SHORT).show()
-        }
-
         // Change Password Row (Placeholder)
         rowChangePassword.setOnClickListener {
             Toast.makeText(context, "Change password feature coming soon", Toast.LENGTH_SHORT).show()
