@@ -26,6 +26,7 @@ class DashboardFragment : Fragment() {
     private lateinit var tvProgressCurrent: TextView
     private lateinit var tvProgressMax: TextView
     private lateinit var tvRecentSipTime: TextView
+    private lateinit var tvRecentSipAmount: TextView
 
     private val firebaseAuth = FirebaseAuth.getInstance()
     private val database = FirebaseDatabaseProvider.reference()
@@ -44,6 +45,7 @@ class DashboardFragment : Fragment() {
         tvProgressCurrent = view.findViewById(R.id.tv_progress_current)
         tvProgressMax = view.findViewById(R.id.tv_progress_max)
         tvRecentSipTime = view.findViewById(R.id.tv_recent_sip_time)
+        tvRecentSipAmount = view.findViewById(R.id.tv_recent_sip_amount)
 
         setupGreeting()
         setupRecentSipTime()
@@ -90,11 +92,31 @@ class DashboardFragment : Fragment() {
                         
                         if (dataObject != null) {
                             val totalConsumed = dataObject.optInt("totalConsumedToday", 0)
+                            val sipAmount = dataObject.optInt("sipAmount", 0)
+                            val lastSipTimestamp = dataObject.optString("lastSipTimestamp", "")
                             
                             activity?.runOnUiThread {
                                 if (isAdded) {
                                     progressHydration.progress = totalConsumed
                                     tvProgressCurrent.text = getString(R.string.progress_format_ml, totalConsumed)
+                                    
+                                    if (sipAmount > 0) {
+                                        tvRecentSipAmount.text = "$sipAmount ml"
+                                    }
+                                    
+                                    if (lastSipTimestamp.isNotEmpty()) {
+                                        try {
+                                            val parser = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", java.util.Locale.getDefault())
+                                            parser.timeZone = java.util.TimeZone.getTimeZone("UTC")
+                                            val date = parser.parse(lastSipTimestamp)
+                                            if (date != null) {
+                                                val formatter = java.text.SimpleDateFormat("h:mm a", java.util.Locale.getDefault())
+                                                tvRecentSipTime.text = formatter.format(date)
+                                            }
+                                        } catch (e: Exception) {
+                                            e.printStackTrace()
+                                        }
+                                    }
                                 }
                             }
                         }
