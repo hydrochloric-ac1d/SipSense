@@ -14,6 +14,7 @@ import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.ValueEventListener
 import com.sipsense.app.data.FirebaseDatabaseProvider
 import com.sipsense.app.model.UserProfile
+import org.json.JSONObject
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
@@ -59,6 +60,54 @@ class DashboardFragment : Fragment() {
         }
     }
 
+    private var isPolling = false
+
+    override fun onResume() {
+        super.onResume()
+        isPolling = true
+        startPollingBackend()
+    }
+
+    override fun onPause() {
+        super.onPause()
+        isPolling = false
+    }
+
+    private fun startPollingBackend() {
+        Thread {
+            while (isPolling) {
+                try {
+                    val url = java.net.URL("http://10.0.2.2:3000/api/hydration")
+                    val connection = url.openConnection() as java.net.HttpURLConnection
+                    connection.requestMethod = "GET"
+                    connection.connectTimeout = 2000
+                    connection.readTimeout = 2000
+
+                    if (connection.responseCode == 200) {
+                        val response = connection.inputStream.bufferedReader().use { it.readText() }
+                        val jsonObject = JSONObject(response)
+                        val dataObject = jsonObject.optJSONObject("data")
+                        
+                        if (dataObject != null) {
+                            val totalConsumed = dataObject.optInt("totalConsumedToday", 0)
+                            
+                            activity?.runOnUiThread {
+                                if (isAdded) {
+                                    progressHydration.progress = totalConsumed
+                                    tvProgressCurrent.text = getString(R.string.progress_format_ml, totalConsumed)
+                                }
+                            }
+                        }
+                    }
+                    connection.disconnect()
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+                Thread.sleep(3000)
+            }
+        }.start()
+    }
+
     private fun setupGreeting(firstName: String = "User") {
         val calendar = Calendar.getInstance()
         val hour = calendar.get(Calendar.HOUR_OF_DAY)
@@ -102,10 +151,7 @@ class DashboardFragment : Fragment() {
                 progressHydration.max = target
                 tvProgressMax.text = getString(R.string.progress_max_format_ml, target)
                 
-                // Placeholder for current progress
-                val currentProgress = 1750
-                progressHydration.progress = currentProgress
-                tvProgressCurrent.text = getString(R.string.progress_format_ml, currentProgress)
+                // The current progress is now fetched live from the backend API
             }
 
             override fun onCancelled(error: DatabaseError) {
