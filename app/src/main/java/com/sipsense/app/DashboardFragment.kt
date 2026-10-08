@@ -50,6 +50,7 @@ class DashboardFragment : Fragment() {
         setupGreeting()
         setupRecentSipTime()
         loadUserProfile()
+        loadRecentSipFromFirebase()
 
         return view
     }
@@ -63,6 +64,7 @@ class DashboardFragment : Fragment() {
     }
 
     private var isPolling = false
+    private var lastSavedSipTimestampMs: Long = 0L
 
     override fun onResume() {
         super.onResume()
@@ -93,29 +95,41 @@ class DashboardFragment : Fragment() {
                         if (dataObject != null) {
                             val totalConsumed = dataObject.optInt("totalConsumedToday", 0)
                             val sipAmount = dataObject.optInt("sipAmount", 0)
-                            val lastSipTimestamp = dataObject.optString("lastSipTimestamp", "")
+                            val lastSipTimestampStr = dataObject.optString("lastSipTimestamp", "")
+                            
+                            var currentSipTimestampMs = 0L
+                            if (lastSipTimestampStr.isNotEmpty()) {
+                                try {
+                                    val parser = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", java.util.Locale.getDefault())
+                                    parser.timeZone = java.util.TimeZone.getTimeZone("UTC")
+                                    val date = parser.parse(lastSipTimestampStr)
+                                    if (date != null) {
+                                        currentSipTimestampMs = date.time
+                                    }
+                                } catch (e: Exception) {
+                                    e.printStackTrace()
+                                }
+                            }
+
+                            // Detect a genuinely new sip and save to Firebase
+                            if (currentSipTimestampMs > lastSavedSipTimestampMs && sipAmount > 0) {
+                                lastSavedSipTimestampMs = currentSipTimestampMs
+                                
+                                val uid = firebaseAuth.currentUser?.uid
+                                if (uid != null && database != null) {
+                                    val recordRef = database.child("users").child(uid).child("sip_records").push()
+                                    val newRecord = com.sipsense.app.model.SipRecord(sipAmount, currentSipTimestampMs)
+                                    recordRef.setValue(newRecord)
+                                }
+                            }
                             
                             activity?.runOnUiThread {
                                 if (isAdded) {
                                     progressHydration.progress = totalConsumed
                                     tvProgressCurrent.text = getString(R.string.progress_format_ml, totalConsumed)
                                     
-                                    if (sipAmount > 0) {
-                                        tvRecentSipAmount.text = "$sipAmount ml"
-                                    }
-                                    
-                                    if (lastSipTimestamp.isNotEmpty()) {
-                                        try {
-                                            val parser = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", java.util.Locale.getDefault())
-                                            parser.timeZone = java.util.TimeZone.getTimeZone("UTC")
-                                            val date = parser.parse(lastSipTimestamp)
-                                            if (date != null) {
-                                                val formatter = java.text.SimpleDateFormat("h:mm a", java.util.Locale.getDefault())
-                                                tvRecentSipTime.text = formatter.format(date)
-                                            }
-                                        } catch (e: Exception) {
-                                            e.printStackTrace()
-                                        }
+                                    if (currentSipTimestampMs > 0) {
+                                        updateRecentSipUI(sipAmount, currentSipTimestampMs)
                                     }
                                 }
                             }
@@ -183,5 +197,55 @@ class DashboardFragment : Fragment() {
         }
         
         database?.child("users")?.child(uid)?.addValueEventListener(profileListener!!)
+    }
+
+    private fun loadRecentSipFromFirebase() {
+        val uid = firebaseAuth.currentUser?.uid ?: return
+        database?.child("users")?.child(uid)?.child("sip_records")
+            ?.orderByChild("timestamp")
+            ?.limitToLast(1)
+            ?.addListenerForSingleValueEvent(object : ValueEventListener {
+                override fun onDataChange(snapshot: DataSnapshot) {
+                    if (!isAdded) return
+                    for (child in snapshot.children) {
+                        val record = child.getValue(com.sipsense.app.model.SipRecord::class.java)
+                        if (record != null) {
+                            lastSavedSipTimestampMs = record.timestamp
+                            updateRecentSipUI(record.amount, record.timestamp)
+                        }
+                    }
+                }
+                override fun onCancelled(error: DatabaseError) {}
+            })
+    }
+
+    private fun updateRecentSipUI(amount: Int, timestampMs: Long) {
+        if (amount > 0) {
+            tvRecentSipAmount.text = "$amount ml"
+        }
+        
+        val sipCalendar = Calendar.getInstance().apply { timeInMillis = timestampMs }
+        val todayCalendar = Calendar.getInstance()
+        
+        val isToday = sipCalendar.get(Calendar.YEAR) == todayCalendar.get(Calendar.YEAR) &&
+                      sipCalendar.get(Calendar.DAY_OF_YEAR) == todayCalendar.get(Calendar.DAY_OF_YEAR)
+                      
+        todayCalendar.add(Calendar.DAY_OF_YEAR, -1)
+        val isYesterday = sipCalendar.get(Calendar.YEAR) == todayCalendar.get(Calendar.YEAR) &&
+                          sipCalendar.get(Calendar.DAY_OF_YEAR) == todayCalendar.get(Calendar.DAY_OF_YEAR)
+
+        val timeFormat = java.text.SimpleDateFormat("h:mm a", java.util.Locale.getDefault())
+        val timeString = timeFormat.format(sipCalendar.time)
+        
+        val displayString = when {
+            isToday -> "Today, $timeString"
+            isYesterday -> "Yesterday, $timeString"
+            else -> {
+                val dateFormat = java.text.SimpleDateFormat("MMM d, h:mm a", java.util.Locale.getDefault())
+                dateFormat.format(sipCalendar.time)
+            }
+        }
+        
+        tvRecentSipTime.text = displayString
     }
 }
