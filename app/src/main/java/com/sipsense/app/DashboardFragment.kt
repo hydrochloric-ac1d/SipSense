@@ -67,6 +67,8 @@ class DashboardFragment : Fragment() {
     private var lastSavedSipTimestampMs: Long = 0L
     private var currentHydrationTarget: Int = 2500
     private var currentDailyTotal: Int = 0
+    private var isFirebaseRecentSipLoaded = false
+    private var varFirebaseDailyTotalLoaded = false
 
     override fun onResume() {
         super.onResume()
@@ -95,6 +97,12 @@ class DashboardFragment : Fragment() {
                         val dataObject = jsonObject.optJSONObject("data")
                         
                         if (dataObject != null) {
+                            if (!isFirebaseRecentSipLoaded || !varFirebaseDailyTotalLoaded) {
+                                connection.disconnect()
+                                Thread.sleep(500)
+                                continue
+                            }
+                            
                             val totalConsumed = dataObject.optInt("totalConsumedToday", 0)
                             val sipAmount = dataObject.optInt("sipAmount", 0)
                             val lastSipTimestampStr = dataObject.optString("lastSipTimestamp", "")
@@ -225,8 +233,11 @@ class DashboardFragment : Fragment() {
                             updateRecentSipUI(record.amount, record.timestamp)
                         }
                     }
+                    isFirebaseRecentSipLoaded = true
                 }
-                override fun onCancelled(error: DatabaseError) {}
+                override fun onCancelled(error: DatabaseError) {
+                    isFirebaseRecentSipLoaded = true
+                }
             })
             
         // 2. Load Daily Totals for Streak and Today's Progress
@@ -251,8 +262,11 @@ class DashboardFragment : Fragment() {
                         updateProgressUI(currentDailyTotal)
                         calculateAndDisplayStreak(dailyTotals)
                     }
+                    varFirebaseDailyTotalLoaded = true
                 }
-                override fun onCancelled(error: DatabaseError) {}
+                override fun onCancelled(error: DatabaseError) {
+                    varFirebaseDailyTotalLoaded = true
+                }
             })
     }
     
