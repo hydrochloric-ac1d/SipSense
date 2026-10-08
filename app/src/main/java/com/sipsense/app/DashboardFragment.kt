@@ -65,6 +65,8 @@ class DashboardFragment : Fragment() {
 
     private var isPolling = false
     private var lastSavedSipTimestampMs: Long = 0L
+    private var currentHydrationTarget: Int = 2500
+    private var currentDailyTotal: Int = 0
 
     override fun onResume() {
         super.onResume()
@@ -114,19 +116,25 @@ class DashboardFragment : Fragment() {
                             // Detect a genuinely new sip and save to Firebase
                             if (currentSipTimestampMs > lastSavedSipTimestampMs && sipAmount > 0) {
                                 lastSavedSipTimestampMs = currentSipTimestampMs
+                                currentDailyTotal += sipAmount
                                 
                                 val uid = firebaseAuth.currentUser?.uid
                                 if (uid != null && database != null) {
+                                    // 1. Save the individual sip record
                                     val recordRef = database.child("users").child(uid).child("sip_records").push()
                                     val newRecord = com.sipsense.app.model.SipRecord(sipAmount, currentSipTimestampMs)
                                     recordRef.setValue(newRecord)
+                                    
+                                    // 2. Save the total daily sip record
+                                    val dateFormat = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault())
+                                    val dateKey = dateFormat.format(java.util.Date(currentSipTimestampMs))
+                                    database.child("users").child(uid).child("daily_totals").child(dateKey).setValue(currentDailyTotal)
                                 }
                             }
                             
                             activity?.runOnUiThread {
                                 if (isAdded) {
-                                    progressHydration.progress = totalConsumed
-                                    tvProgressCurrent.text = getString(R.string.progress_format_ml, totalConsumed)
+                                    updateProgressUI(currentDailyTotal)
                                     
                                     if (currentSipTimestampMs > 0) {
                                         updateRecentSipUI(sipAmount, currentSipTimestampMs)
@@ -184,6 +192,7 @@ class DashboardFragment : Fragment() {
                 setupGreeting(shortName)
 
                 val target = profile.hydrationTarget
+                currentHydrationTarget = target
                 progressHydration.max = target
                 tvProgressMax.text = getString(R.string.progress_max_format_ml, target)
                 
@@ -201,6 +210,8 @@ class DashboardFragment : Fragment() {
 
     private fun loadRecentSipFromFirebase() {
         val uid = firebaseAuth.currentUser?.uid ?: return
+        
+        // 1. Load Recent Sip
         database?.child("users")?.child(uid)?.child("sip_records")
             ?.orderByChild("timestamp")
             ?.limitToLast(1)
@@ -217,6 +228,39 @@ class DashboardFragment : Fragment() {
                 }
                 override fun onCancelled(error: DatabaseError) {}
             })
+            
+        // 2. Load Today's Daily Total
+        val dateFormat = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault())
+        val dateKey = dateFormat.format(java.util.Date())
+        database?.child("users")?.child(uid)?.child("daily_totals")?.child(dateKey)
+            ?.addListenerForSingleValueEvent(object : ValueEventListener {
+                override fun onDataChange(snapshot: DataSnapshot) {
+                    if (!isAdded) return
+                    val total = snapshot.getValue(Int::class.java) ?: 0
+                    currentDailyTotal = total
+                    activity?.runOnUiThread {
+                        updateProgressUI(total)
+                    }
+                }
+                override fun onCancelled(error: DatabaseError) {}
+            })
+    }
+    
+    private fun updateProgressUI(totalConsumed: Int) {
+        progressHydration.progress = totalConsumed
+        
+        if (totalConsumed >= currentHydrationTarget && currentHydrationTarget > 0) {
+            progressHydration.setIndicatorColor(androidx.core.content.ContextCompat.getColor(requireContext(), R.color.strength_fair))
+            val exceededBy = totalConsumed - currentHydrationTarget
+            tvProgressCurrent.text = "+$exceededBy ml"
+            tvProgressCurrent.setTextColor(androidx.core.content.ContextCompat.getColor(requireContext(), R.color.strength_fair))
+            tvProgressMax.text = "Exceeded Daily Goal"
+        } else {
+            progressHydration.setIndicatorColor(androidx.core.content.ContextCompat.getColor(requireContext(), R.color.teal_primary))
+            tvProgressCurrent.text = getString(R.string.progress_format_ml, totalConsumed)
+            tvProgressCurrent.setTextColor(androidx.core.content.ContextCompat.getColor(requireContext(), R.color.text_primary))
+            tvProgressMax.text = getString(R.string.progress_max_format_ml, currentHydrationTarget)
+        }
     }
 
     private fun updateRecentSipUI(amount: Int, timestampMs: Long) {

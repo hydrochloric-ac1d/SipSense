@@ -29,7 +29,6 @@ function takeASip() {
     if (currentWaterLevel - sipAmount < 0) {
         console.log('[ESP32 SIMULATOR] Bottle is empty! Please refill.');
         currentWaterLevel = 500; // Auto-refill for the simulation
-        totalConsumed = 0;
         console.log('[ESP32 SIMULATOR] Bottle auto-refilled.');
         return;
     }
