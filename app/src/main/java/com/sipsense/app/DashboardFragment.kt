@@ -229,23 +229,63 @@ class DashboardFragment : Fragment() {
                 override fun onCancelled(error: DatabaseError) {}
             })
             
-        // 2. Load Today's Daily Total
-        val dateFormat = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault())
-        val dateKey = dateFormat.format(java.util.Date())
-        database?.child("users")?.child(uid)?.child("daily_totals")?.child(dateKey)
-            ?.addListenerForSingleValueEvent(object : ValueEventListener {
+        // 2. Load Daily Totals for Streak and Today's Progress
+        database?.child("users")?.child(uid)?.child("daily_totals")
+            ?.addValueEventListener(object : ValueEventListener {
                 override fun onDataChange(snapshot: DataSnapshot) {
                     if (!isAdded) return
-                    val total = snapshot.getValue(Int::class.java) ?: 0
-                    currentDailyTotal = total
+                    val dailyTotals = mutableMapOf<String, Int>()
+                    for (child in snapshot.children) {
+                        val dateKey = child.key
+                        val total = child.getValue(Int::class.java)
+                        if (dateKey != null && total != null) {
+                            dailyTotals[dateKey] = total
+                        }
+                    }
+                    
+                    val dateFormat = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault())
+                    val todayKey = dateFormat.format(java.util.Date())
+                    
+                    currentDailyTotal = dailyTotals[todayKey] ?: 0
                     activity?.runOnUiThread {
-                        updateProgressUI(total)
+                        updateProgressUI(currentDailyTotal)
+                        calculateAndDisplayStreak(dailyTotals)
                     }
                 }
                 override fun onCancelled(error: DatabaseError) {}
             })
     }
     
+    private fun calculateAndDisplayStreak(dailyTotals: Map<String, Int>) {
+        var streak = 0
+        val format = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault())
+        val calendar = java.util.Calendar.getInstance()
+        
+        // Check today first
+        val today = format.format(calendar.time)
+        if ((dailyTotals[today] ?: 0) > 0) {
+            streak++
+        }
+        
+        // Check previous days backwards
+        calendar.add(java.util.Calendar.DAY_OF_YEAR, -1)
+        while (true) {
+            val dateString = format.format(calendar.time)
+            if ((dailyTotals[dateString] ?: 0) > 0) {
+                streak++
+                calendar.add(java.util.Calendar.DAY_OF_YEAR, -1)
+            } else {
+                break
+            }
+        }
+        
+        val tvStreakDays = view?.findViewById<android.widget.TextView>(R.id.tv_streak_days)
+        val tvStreakIcon = view?.findViewById<android.widget.TextView>(R.id.tv_streak_icon)
+        
+        tvStreakDays?.text = if (streak == 1) "1 Day" else "$streak Days"
+        tvStreakIcon?.visibility = if (streak >= 3) android.view.View.VISIBLE else android.view.View.GONE
+    }
+
     private fun updateProgressUI(totalConsumed: Int) {
         progressHydration.progress = totalConsumed
         
