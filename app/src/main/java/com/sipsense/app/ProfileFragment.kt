@@ -51,13 +51,13 @@ class ProfileFragment : Fragment() {
     
     // Hydration Target
     private lateinit var tvTargetIndicator: TextView
+    private lateinit var tvTargetMax: TextView
     private lateinit var sliderHydration: Slider
     
     // Account Preferences Rows
     private lateinit var rowUnits: View
     private lateinit var tvUnitValue: TextView
     private lateinit var rowNotifications: View
-    private lateinit var rowConnectedApps: View
     private lateinit var rowChangePassword: View
     private lateinit var btnLogout: Button
 
@@ -89,12 +89,12 @@ class ProfileFragment : Fragment() {
         tvProfileName = view.findViewById(R.id.tv_profile_name)
         tvProfileEmail = view.findViewById(R.id.tv_profile_email)
         tvTargetIndicator = view.findViewById(R.id.tv_target_indicator)
+        tvTargetMax = view.findViewById(R.id.tv_target_max)
         sliderHydration = view.findViewById(R.id.slider_hydration)
         
         rowUnits = view.findViewById(R.id.row_units)
         tvUnitValue = view.findViewById(R.id.tv_unit_value)
         rowNotifications = view.findViewById(R.id.row_notifications)
-        rowConnectedApps = view.findViewById(R.id.row_connected_apps)
         rowChangePassword = view.findViewById(R.id.row_change_password)
         btnLogout = view.findViewById(R.id.btn_logout)
 
@@ -112,7 +112,9 @@ class ProfileFragment : Fragment() {
     // ═══════════════════════════════════════════════════════════════════
 
     private fun setupListeners() {
-        // Hydration Slider (Live Update Text)
+        // Hydration Slider (Live Update Text). The slider always works in ml;
+        // only the displayed text is converted to the selected unit.
+        sliderHydration.setLabelFormatter { value -> formatAmount(value.roundToInt()) }
         sliderHydration.addOnChangeListener { _, value, _ ->
             updateTargetIndicator(value.roundToInt())
         }
@@ -130,6 +132,7 @@ class ProfileFragment : Fragment() {
             currentUnit = if (currentUnit == "ml") "oz" else "ml"
             tvUnitValue.text = currentUnit
             updateTargetIndicator(sliderHydration.value.roundToInt())
+            savePreferredUnit(currentUnit)
         }
         
         // Notifications Row (Placeholder)
@@ -137,11 +140,6 @@ class ProfileFragment : Fragment() {
             Toast.makeText(context, "Notification settings coming soon", Toast.LENGTH_SHORT).show()
         }
         
-        // Connected Apps Row (Placeholder)
-        rowConnectedApps.setOnClickListener {
-            Toast.makeText(context, "Connected apps coming soon", Toast.LENGTH_SHORT).show()
-        }
-
         // Change Password Row (Placeholder)
         rowChangePassword.setOnClickListener {
             Toast.makeText(context, "Change password feature coming soon", Toast.LENGTH_SHORT).show()
@@ -156,8 +154,26 @@ class ProfileFragment : Fragment() {
         }
     }
 
-    private fun updateTargetIndicator(value: Int) {
-        tvTargetIndicator.text = "$value $currentUnit"
+    /**
+     * Formats an amount given in millilitres for display in the current unit.
+     * ml is shown as-is; oz is converted (1 oz = 29.5735 ml) and rounded.
+     */
+    private fun formatAmount(valueMl: Int): String =
+        if (currentUnit == "oz") {
+            "${(valueMl / ML_PER_OZ).roundToInt()} oz"
+        } else {
+            "$valueMl ml"
+        }
+
+    /** Updates the selected-value text and the max-value label for the current unit. */
+    private fun updateTargetIndicator(valueMl: Int) {
+        tvTargetIndicator.text = formatAmount(valueMl)
+        tvTargetMax.text = formatAmount(sliderHydration.valueTo.roundToInt())
+    }
+
+    private companion object {
+        /** Millilitres in one US fluid ounce */
+        const val ML_PER_OZ = 29.5735f
     }
 
     // ═══════════════════════════════════════════════════════════════════
@@ -165,39 +181,53 @@ class ProfileFragment : Fragment() {
     // ═══════════════════════════════════════════════════════════════════
 
     /**
-     * Reads the current user's profile from Firebase Realtime Database.
+     * Displays the current user's name and email.
+     *
+     * The values stored on the FirebaseAuth account (display name + email) are
+     * shown immediately, so the header is never blank. If a Realtime Database
+     * profile exists at /users/{uid}, its values override them.
      */
     private fun loadUserProfile() {
-        val uid = firebaseAuth.currentUser?.uid ?: return
+        val user = firebaseAuth.currentUser ?: return
+        val uid = user.uid
 
-        val database = this.database ?: run {
-            Toast.makeText(context, "Failed to load profile", Toast.LENGTH_SHORT).show()
-            return
-        }
+        // ── Show account info from FirebaseAuth right away ──
+        val authEmail = user.email.orEmpty()
+        val authName = user.displayName?.takeIf { it.isNotBlank() }
+            ?: authEmail.substringBefore('@').ifBlank { "User" }
+        tvProfileName.text = authName
+        tvProfileEmail.text = authEmail
+        updateTargetIndicator(sliderHydration.value.roundToInt())
+
+        // ── Override with the Realtime Database profile, if available ──
+        val database = this.database ?: return
 
         database.child("users").child(uid)
             .addListenerForSingleValueEvent(object : ValueEventListener {
                 override fun onDataChange(snapshot: DataSnapshot) {
-                    val profile = snapshot.getValue(UserProfile::class.java)
-                    if (profile != null) {
-                        // Handle cases where the DB record is partially created
-                        val name = profile.fullName.takeIf { it.isNotBlank() } ?: "User"
-                        val emailStr = profile.email.takeIf { it.isNotBlank() } ?: (firebaseAuth.currentUser?.email ?: "")
+                    // Fragment may have been detached while the read was in flight
+                    if (!isAdded) return
 
-                        tvProfileName.text = name
-                        tvProfileEmail.text = emailStr
-                        
-                        // Update slider without triggering the listener save loop
-                        sliderHydration.value = profile.hydrationTarget.toFloat()
-                        updateTargetIndicator(profile.hydrationTarget)
-                    } else {
-                        tvProfileName.text = firebaseAuth.currentUser?.email ?: "User"
-                        tvProfileEmail.text = ""
-                        updateTargetIndicator(sliderHydration.value.roundToInt())
-                    }
+                    val profile = snapshot.getValue(UserProfile::class.java) ?: return
+
+                    // Handle cases where the DB record is partially created
+                    profile.fullName.takeIf { it.isNotBlank() }?.let { tvProfileName.text = it }
+                    profile.email.takeIf { it.isNotBlank() }?.let { tvProfileEmail.text = it }
+                    
+                    currentUnit = profile.preferredUnit
+                    tvUnitValue.text = currentUnit
+
+                    // Update slider without triggering the listener save loop.
+                    // Snap to the slider's step size (100 ml) – Slider throws otherwise.
+                    val step = sliderHydration.stepSize
+                    val snapped = ((profile.hydrationTarget / step).roundToInt() * step)
+                        .coerceIn(sliderHydration.valueFrom, sliderHydration.valueTo)
+                    sliderHydration.value = snapped
+                    updateTargetIndicator(snapped.roundToInt())
                 }
 
                 override fun onCancelled(error: DatabaseError) {
+                    if (!isAdded) return
                     Toast.makeText(context, "Failed to load profile", Toast.LENGTH_SHORT).show()
                 }
             })
@@ -217,6 +247,20 @@ class ProfileFragment : Fragment() {
         database.child("users").child(uid).child("hydrationTarget").setValue(newTarget)
             .addOnFailureListener {
                 Toast.makeText(context, "Failed to update target", Toast.LENGTH_SHORT).show()
+            }
+    }
+
+    /**
+     * Saves the newly selected preferred unit to the Firebase Realtime Database.
+     */
+    private fun savePreferredUnit(unit: String) {
+        val uid = firebaseAuth.currentUser?.uid ?: return
+
+        val database = this.database ?: return
+
+        database.child("users").child(uid).child("preferredUnit").setValue(unit)
+            .addOnFailureListener {
+                Toast.makeText(context, "Failed to update unit preference", Toast.LENGTH_SHORT).show()
             }
     }
 }

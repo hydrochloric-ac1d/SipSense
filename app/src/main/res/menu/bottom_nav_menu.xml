@@ -7,6 +7,7 @@
     - Dashboard: Home screen with hydration overview
     - History: Hydration tracking history / logs
     - Devices: Connected IoT bottle device management
+    - Notifications: Hydration reminders and device alerts
     - Profile: User account and settings
 
     Icons are PNG assets located in res/drawable/.
@@ -29,6 +30,11 @@
         android:id="@+id/nav_devices"
         android:icon="@drawable/water_bottle"
         android:title="@string/nav_devices" />
+
+    <item
+        android:id="@+id/nav_notifications"
+        android:icon="@drawable/ic_bell"
+        android:title="@string/nav_notifications" />
 
     <item
         android:id="@+id/nav_profile"

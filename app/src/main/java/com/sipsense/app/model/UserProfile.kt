@@ -38,5 +38,6 @@ data class UserProfile(
     val fullName: String = "",
     val email: String = "",
     val hydrationTarget: Int = 2500,
+    val preferredUnit: String = "ml",
     val createdAt: Long = System.currentTimeMillis()
 )
