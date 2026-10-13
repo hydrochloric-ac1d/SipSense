@@ -23,6 +23,8 @@ let latestSensorData = {
     waterLevelLiters: 0.65,
     bottleCapacity: 1000,
     batteryLevel: 88,
+    ambientTemperature: 24, // °C ambient room temperature where bottle is placed
+    temperature: 24,
     humidity: 55,
     lastSipTimestamp: null,
     totalConsumedToday: 0

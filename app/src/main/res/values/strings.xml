@@ -57,11 +57,16 @@
     <string name="label_water_level">Water in Bottle</string>
     <string name="label_battery">Battery</string>
     <string name="label_humidity">Humidity</string>
+    <string name="label_ambient_temperature">Ambient Temperature</string>
+    <string name="label_ambient_temp">Ambient Temp</string>
     <string name="device_connected">CONNECTED</string>
     <string name="device_offline">OFFLINE</string>
     <string name="battery_status_good">Healthy</string>
     <string name="battery_status_low">Low</string>
     <string name="humidity_status_normal">Optimal</string>
+    <string name="ambient_temp_status_normal">Room Temp</string>
+    <string name="ambient_temp_status_cool">Cool</string>
+    <string name="ambient_temp_status_warm">Warm</string>
 
     <!-- ════════════════════════════════════════════════════════════════
          HEADER BAR

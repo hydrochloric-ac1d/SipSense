@@ -262,11 +262,11 @@
         </LinearLayout>
 
         <!-- ════════════════════════════════════════════════════════════════
-             DEVICE STATUS CARD
+             DEVICE STATUS CARD (SipSense Smart Bottle)
              Shows real-time Smart Bottle telemetry:
              - Water inside bottle in Liters (and ml)
              - Device Battery %
-             - Humidity %
+             - Ambient Room Temperature
              ════════════════════════════════════════════════════════════════ -->
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/card_device"
@@ -277,7 +277,6 @@
             app:cardElevation="4dp"
             app:cardBackgroundColor="@color/card_background"
             app:layout_constraintTop_toBottomOf="@id/layout_cards"
-            app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent">
 
@@ -354,8 +353,8 @@
                     <LinearLayout
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
-                        android:layout_weight="1.1"
-                        android:layout_marginEnd="4dp"
+                        android:layout_weight="1.05"
+                        android:layout_marginEnd="3dp"
                         android:background="@drawable/bg_metric_tile"
                         android:orientation="vertical"
                         android:padding="10dp">
@@ -417,7 +416,7 @@
                     <LinearLayout
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
-                        android:layout_weight="0.95"
+                        android:layout_weight="0.85"
                         android:layout_marginHorizontal="2dp"
                         android:background="@drawable/bg_metric_tile"
                         android:orientation="vertical"
@@ -477,12 +476,12 @@
                             android:progressBackgroundTint="@color/input_background" />
                     </LinearLayout>
 
-                    <!-- 3. Humidity Tile -->
+                    <!-- 3. Ambient Room Temperature Tile -->
                     <LinearLayout
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
-                        android:layout_weight="0.95"
-                        android:layout_marginStart="4dp"
+                        android:layout_weight="1.1"
+                        android:layout_marginStart="3dp"
                         android:background="@drawable/bg_metric_tile"
                         android:orientation="vertical"
                         android:padding="10dp">
@@ -494,49 +493,53 @@
                             android:gravity="center_vertical">
 
                             <ImageView
+                                android:id="@+id/iv_temp_icon"
                                 android:layout_width="14dp"
                                 android:layout_height="14dp"
-                                android:src="@drawable/ic_humidity"
-                                app:tint="@color/blue_accent" />
+                                android:src="@drawable/ic_temperature"
+                                app:tint="@color/strength_fair" />
 
                             <TextView
+                                android:id="@+id/tv_device_temp_label"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:layout_marginStart="4dp"
-                                android:text="@string/label_humidity"
+                                android:text="@string/label_ambient_temperature"
                                 android:textColor="@color/text_secondary"
-                                android:textSize="10sp"
-                                android:textStyle="bold" />
+                                android:textSize="9.5sp"
+                                android:textStyle="bold"
+                                android:maxLines="1"
+                                android:ellipsize="end" />
                         </LinearLayout>
 
                         <TextView
-                            android:id="@+id/tv_device_humidity"
+                            android:id="@+id/tv_device_ambient_temp"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="6dp"
-                            android:text="55%"
+                            android:text="24°C"
                             android:textColor="@color/text_primary"
                             android:textSize="16sp"
                             android:textStyle="bold" />
 
                         <TextView
-                            android:id="@+id/tv_device_humidity_status"
+                            android:id="@+id/tv_device_temp_status"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="2dp"
-                            android:text="@string/humidity_status_normal"
+                            android:text="@string/ambient_temp_status_normal"
                             android:textColor="@color/text_hint"
                             android:textSize="10sp" />
 
                         <ProgressBar
-                            android:id="@+id/pb_bottle_humidity"
+                            android:id="@+id/pb_bottle_temp"
                             style="?android:attr/progressBarStyleHorizontal"
                             android:layout_width="match_parent"
                             android:layout_height="4dp"
                             android:layout_marginTop="6dp"
-                            android:max="100"
-                            android:progress="55"
-                            android:progressTint="@color/blue_accent"
+                            android:max="50"
+                            android:progress="24"
+                            android:progressTint="@color/strength_fair"
                             android:progressBackgroundTint="@color/input_background" />
                     </LinearLayout>
                 </LinearLayout>

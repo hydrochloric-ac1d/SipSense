@@ -32,7 +32,7 @@ class DashboardFragment : Fragment() {
     private lateinit var tvRecentSipTime: TextView
     private lateinit var tvRecentSipAmount: TextView
 
-    // ── Device Telemetry Views (Battery, Humidity, Water In Liters) ──
+    // ── Device Telemetry Views (Battery, Ambient Room Temperature, Water In Liters) ──
     private lateinit var tvDeviceName: TextView
     private lateinit var tvDeviceConnectionStatus: TextView
     private lateinit var vStatusDot: View
@@ -43,9 +43,9 @@ class DashboardFragment : Fragment() {
     private lateinit var tvDeviceBatteryStatus: TextView
     private lateinit var pbBottleBattery: ProgressBar
     private lateinit var ivBatteryIcon: ImageView
-    private lateinit var tvDeviceHumidity: TextView
-    private lateinit var tvDeviceHumidityStatus: TextView
-    private lateinit var pbBottleHumidity: ProgressBar
+    private lateinit var tvDeviceAmbientTemp: TextView
+    private lateinit var tvDeviceTempStatus: TextView
+    private lateinit var pbBottleTemp: ProgressBar
 
     private val firebaseAuth = FirebaseAuth.getInstance()
     private val database = FirebaseDatabaseProvider.reference()
@@ -64,7 +64,7 @@ class DashboardFragment : Fragment() {
     private var currentBottleWaterLevel: Int = 650
     private var currentBottleCapacity: Int = 1000
     private var currentBatteryLevel: Int = 88
-    private var currentHumidity: Int = 55
+    private var currentAmbientTemp: Int = 24
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -92,9 +92,9 @@ class DashboardFragment : Fragment() {
         tvDeviceBatteryStatus = view.findViewById(R.id.tv_device_battery_status)
         pbBottleBattery = view.findViewById(R.id.pb_bottle_battery)
         ivBatteryIcon = view.findViewById(R.id.iv_battery_icon)
-        tvDeviceHumidity = view.findViewById(R.id.tv_device_humidity)
-        tvDeviceHumidityStatus = view.findViewById(R.id.tv_device_humidity_status)
-        pbBottleHumidity = view.findViewById(R.id.pb_bottle_humidity)
+        tvDeviceAmbientTemp = view.findViewById(R.id.tv_device_ambient_temp)
+        tvDeviceTempStatus = view.findViewById(R.id.tv_device_temp_status)
+        pbBottleTemp = view.findViewById(R.id.pb_bottle_temp)
 
         setupGreeting()
         setupRecentSipTime()
@@ -131,7 +131,7 @@ class DashboardFragment : Fragment() {
             waterLevel = currentBottleWaterLevel,
             bottleCapacity = currentBottleCapacity,
             batteryLevel = currentBatteryLevel,
-            humidity = currentHumidity,
+            ambientTemp = currentAmbientTemp,
             isConnected = true
         )
     }
@@ -155,12 +155,15 @@ class DashboardFragment : Fragment() {
                             val waterLevel = dataObject.optInt("waterLevel", currentBottleWaterLevel)
                             val bottleCapacity = dataObject.optInt("bottleCapacity", currentBottleCapacity)
                             val battery = dataObject.optInt("batteryLevel", currentBatteryLevel)
-                            val humidity = dataObject.optInt("humidity", currentHumidity)
+                            val ambientTemp = dataObject.optInt(
+                                "ambientTemperature",
+                                dataObject.optInt("temperature", currentAmbientTemp)
+                            )
 
                             currentBottleWaterLevel = waterLevel
                             currentBottleCapacity = bottleCapacity
                             currentBatteryLevel = battery
-                            currentHumidity = humidity
+                            currentAmbientTemp = ambientTemp
 
                             if (!isFirebaseRecentSipLoaded || !varFirebaseDailyTotalLoaded) {
                                 connection.disconnect()
@@ -211,7 +214,9 @@ class DashboardFragment : Fragment() {
                                     "waterLevel" to waterLevel,
                                     "bottleCapacity" to bottleCapacity,
                                     "batteryLevel" to battery,
-                                    "humidity" to humidity,
+                                    "ambientTemperature" to ambientTemp,
+                                    "temperature" to ambientTemp,
+                                    "humidity" to dataObject.optInt("humidity", 55),
                                     "lastUpdated" to System.currentTimeMillis()
                                 )
                                 database.child("users").child(uid).child("device_telemetry").setValue(telemetryMap)
@@ -229,7 +234,7 @@ class DashboardFragment : Fragment() {
                                         waterLevel = waterLevel,
                                         bottleCapacity = bottleCapacity,
                                         batteryLevel = battery,
-                                        humidity = humidity,
+                                        ambientTemp = ambientTemp,
                                         isConnected = true
                                     )
                                 }
@@ -371,12 +376,14 @@ class DashboardFragment : Fragment() {
                 val waterLevel = snapshot.child("waterLevel").getValue(Int::class.java) ?: currentBottleWaterLevel
                 val bottleCapacity = snapshot.child("bottleCapacity").getValue(Int::class.java) ?: currentBottleCapacity
                 val battery = snapshot.child("batteryLevel").getValue(Int::class.java) ?: currentBatteryLevel
-                val humidity = snapshot.child("humidity").getValue(Int::class.java) ?: currentHumidity
+                val ambientTemp = snapshot.child("ambientTemperature").getValue(Int::class.java)
+                    ?: snapshot.child("temperature").getValue(Int::class.java)
+                    ?: currentAmbientTemp
 
                 currentBottleWaterLevel = waterLevel
                 currentBottleCapacity = bottleCapacity
                 currentBatteryLevel = battery
-                currentHumidity = humidity
+                currentAmbientTemp = ambientTemp
 
                 activity?.runOnUiThread {
                     if (isAdded) {
@@ -384,7 +391,7 @@ class DashboardFragment : Fragment() {
                             waterLevel = waterLevel,
                             bottleCapacity = bottleCapacity,
                             batteryLevel = battery,
-                            humidity = humidity,
+                            ambientTemp = ambientTemp,
                             isConnected = true
                         )
                     }
@@ -479,13 +486,13 @@ class DashboardFragment : Fragment() {
      * Updates the Device Status card on the Dashboard with:
      * 1. Water inside bottle in Liters (and ml capacity)
      * 2. Device battery percentage and status
-     * 3. Ambient/bottle humidity percentage
+     * 3. Ambient room temperature where bottle is placed
      */
     private fun updateDeviceStatusUI(
         waterLevel: Int,
         bottleCapacity: Int,
         batteryLevel: Int,
-        humidity: Int,
+        ambientTemp: Int,
         isConnected: Boolean
     ) {
         if (!isAdded) return
@@ -515,14 +522,14 @@ class DashboardFragment : Fragment() {
             pbBottleBattery.progressTintList = ContextCompat.getColorStateList(requireContext(), R.color.strength_strong)
         }
 
-        // ── 3. Humidity ──
-        val safeHumidity = humidity.coerceIn(0, 100)
-        tvDeviceHumidity.text = "$safeHumidity%"
-        pbBottleHumidity.progress = safeHumidity
-        tvDeviceHumidityStatus.text = when {
-            safeHumidity < 30 -> "Dry"
-            safeHumidity > 70 -> "High"
-            else -> getString(R.string.humidity_status_normal)
+        // ── 3. Ambient Room Temperature ──
+        val safeTemp = ambientTemp.coerceIn(0, 50)
+        tvDeviceAmbientTemp.text = "$safeTemp°C"
+        pbBottleTemp.progress = safeTemp
+        tvDeviceTempStatus.text = when {
+            safeTemp < 20 -> getString(R.string.ambient_temp_status_cool)
+            safeTemp > 28 -> getString(R.string.ambient_temp_status_warm)
+            else -> getString(R.string.ambient_temp_status_normal)
         }
 
         // ── Connection Status ──

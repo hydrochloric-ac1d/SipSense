@@ -6,7 +6,7 @@
     Displays paired device details, connection status, and telemetry:
     - Water inside bottle in Liters
     - Battery level %
-    - Humidity %
+    - Ambient Room Temperature
 -->
 <androidx.core.widget.NestedScrollView
     xmlns:android="http://schemas.android.com/apk/res/android"
@@ -231,7 +231,7 @@
                             android:textSize="10sp" />
                     </LinearLayout>
 
-                    <!-- Humidity Tile -->
+                    <!-- Ambient Temperature Tile -->
                     <LinearLayout
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
@@ -244,31 +244,32 @@
                         <ImageView
                             android:layout_width="16dp"
                             android:layout_height="16dp"
-                            android:src="@drawable/ic_humidity"
-                            app:tint="@color/blue_accent" />
+                            android:src="@drawable/ic_temperature"
+                            app:tint="@color/strength_fair" />
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="8dp"
-                            android:text="@string/label_humidity"
+                            android:text="@string/label_ambient_temperature"
                             android:textColor="@color/text_secondary"
                             android:textSize="11sp" />
 
                         <TextView
-                            android:id="@+id/tv_device_tab_humidity"
+                            android:id="@+id/tv_device_tab_ambient_temp"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="4dp"
-                            android:text="55%"
+                            android:text="24°C"
                             android:textColor="@color/text_primary"
                             android:textSize="17sp"
                             android:textStyle="bold" />
 
                         <TextView
+                            android:id="@+id/tv_device_tab_temp_status"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="@string/humidity_status_normal"
+                            android:text="@string/ambient_temp_status_normal"
                             android:textColor="@color/text_hint"
                             android:textSize="10sp" />
                     </LinearLayout>

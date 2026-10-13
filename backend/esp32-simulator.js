@@ -13,6 +13,7 @@ let currentWaterLevel = 650; // ml
 let bottleCapacity = 1000; // ml (1.0 Liter)
 let totalConsumed = 0; // ml
 let batteryLevel = 88; // %
+let ambientTemperature = 24; // °C (ambient room temperature where bottle is placed)
 let humidity = 55; // %
 
 client.on('connect', () => {
@@ -39,10 +40,12 @@ function takeASip() {
     currentWaterLevel -= sipAmount;
     totalConsumed += sipAmount;
 
-    // Simulate subtle battery drain and natural humidity variation
+    // Simulate subtle battery drain, natural room temperature and humidity variation
     if (Math.random() > 0.6 && batteryLevel > 15) {
         batteryLevel -= 1;
     }
+    // Room temperature fluctuates naturally between 23°C and 25°C
+    ambientTemperature = Math.floor(23 + Math.random() * 3);
     humidity = Math.floor(52 + Math.random() * 6); // 52% - 57%
 
     // Build the JSON payload that the real ESP32 would generate
@@ -51,6 +54,8 @@ function takeASip() {
         waterLevelLiters: +(currentWaterLevel / 1000).toFixed(2),
         bottleCapacity: bottleCapacity,
         batteryLevel: batteryLevel,
+        ambientTemperature: ambientTemperature,
+        temperature: ambientTemperature,
         humidity: humidity,
         totalConsumedToday: totalConsumed,
         sipAmount: sipAmount
