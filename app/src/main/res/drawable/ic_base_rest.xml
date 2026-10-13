@@ -1,0 +1,21 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <!-- Load Cell Base Platform -->
+    <path
+        android:fillColor="#2BB5B2"
+        android:pathData="M2,19c0,-0.55 0.45,-1 1,-1h18c0.55,0 1,0.45 1,1v1c0,0.55 -0.45,1 -1,1H3c-0.55,0 -1,-0.45 -1,-1v-1z" />
+    <path
+        android:fillColor="#1A5C6B"
+        android:pathData="M5,21h2v1.5H5z M17,21h2v1.5h-2z" />
+    <!-- Bottle Resting on Base -->
+    <path
+        android:fillColor="#2BB5B2"
+        android:pathData="M10,2h4v1.5h-4z M10.5,3.5h3v2h-3z M8.5,8c0,-1.4 0.9,-2.5 2,-2.5h3c1.1,0 2,1.1 2,2.5v9.5c0,0.55 -0.45,1 -1,1h-5c-0.55,0 -1,-0.45 -1,-1V8z" />
+    <!-- Bottle Water Fill Accent -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M10,11h4v4h-4z" />
+</vector>

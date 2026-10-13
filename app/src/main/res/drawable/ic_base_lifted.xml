@@ -1,0 +1,21 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <!-- Base Platform at bottom -->
+    <path
+        android:fillColor="#F59E0B"
+        android:pathData="M2,20c0,-0.55 0.45,-1 1,-1h18c0.55,0 1,0.45 1,1v1c0,0.55 -0.45,1 -1,1H3c-0.55,0 -1,-0.45 -1,-1v-1z" />
+    <path
+        android:fillColor="#B45309"
+        android:pathData="M5,22h2v1H5z M17,22h2v1h-2z" />
+    <!-- Bottle Lifted higher up -->
+    <path
+        android:fillColor="#F59E0B"
+        android:pathData="M10,1h4v1.5h-4z M10.5,2.5h3v2h-3z M8.5,6.5c0,-1.4 0.9,-2.5 2,-2.5h3c1.1,0 2,1.1 2,2.5V14c0,0.55 -0.45,1 -1,1h-5c-0.55,0 -1,-0.45 -1,-1V6.5z" />
+    <!-- Lift Indicator Arrows / Air Gap lines -->
+    <path
+        android:fillColor="#F59E0B"
+        android:pathData="M12,16.5l-2,1.5h4z" />
+</vector>

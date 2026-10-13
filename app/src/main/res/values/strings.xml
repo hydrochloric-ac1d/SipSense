@@ -67,6 +67,16 @@
     <string name="ambient_temp_status_normal">Room Temp</string>
     <string name="ambient_temp_status_cool">Cool</string>
     <string name="ambient_temp_status_warm">Warm</string>
+    <string name="bottle_status_at_rest">Bottle at Rest on Base</string>
+    <string name="bottle_status_lifted">Bottle Lifted (Off Base)</string>
+    <string name="bottle_rest_desc_active">Load Cell (HX711) active • Tap to simulate lift</string>
+    <string name="bottle_rest_desc_paused">Calculation paused • Tap to place on base</string>
+    <string name="badge_at_rest">AT REST</string>
+    <string name="badge_lifted">LIFTED</string>
+    <string name="water_level_state_active">Scale Active</string>
+    <string name="water_level_state_paused">Paused</string>
+    <string name="msg_bottle_placed_on_base">Bottle placed on base — Volume updated to %1$d ml</string>
+    <string name="msg_bottle_lifted">Bottle lifted — Water level display paused</string>
 
     <!-- ════════════════════════════════════════════════════════════════
          HEADER BAR

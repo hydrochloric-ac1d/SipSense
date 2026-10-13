@@ -341,7 +341,99 @@
                     </LinearLayout>
                 </LinearLayout>
 
-                <!-- 3 Telemetry Metrics (Water in Liters, Battery %, Humidity %) -->
+                <!-- Interactive Bottle Base Rest Status Indicator (HX711 Load Cell) -->
+                <LinearLayout
+                    android:id="@+id/layout_base_rest_status"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginTop="10dp"
+                    android:background="@drawable/bg_base_rest_card_at_rest"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:foreground="?attr/selectableItemBackground"
+                    android:gravity="center_vertical"
+                    android:paddingStart="12dp"
+                    android:paddingEnd="12dp"
+                    android:paddingTop="9dp"
+                    android:paddingBottom="9dp">
+
+                    <!-- Icon Container -->
+                    <FrameLayout
+                        android:id="@+id/layout_base_icon_container"
+                        android:layout_width="32dp"
+                        android:layout_height="32dp"
+                        android:background="@drawable/bg_circle_light_teal">
+
+                        <ImageView
+                            android:id="@+id/iv_base_rest_icon"
+                            android:layout_width="18dp"
+                            android:layout_height="18dp"
+                            android:layout_gravity="center"
+                            android:src="@drawable/ic_base_rest"
+                            app:tint="@color/teal_primary" />
+                    </FrameLayout>
+
+                    <!-- Status Text Info -->
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:layout_marginStart="10dp"
+                        android:layout_marginEnd="8dp"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:id="@+id/tv_base_rest_title"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/bottle_status_at_rest"
+                            android:textColor="@color/text_primary"
+                            android:textSize="12sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:id="@+id/tv_base_rest_subtitle"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="1dp"
+                            android:text="@string/bottle_rest_desc_active"
+                            android:textColor="@color/text_secondary"
+                            android:textSize="9.5sp" />
+                    </LinearLayout>
+
+                    <!-- Rest Badge / Pill -->
+                    <LinearLayout
+                        android:id="@+id/layout_base_rest_badge"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:background="@drawable/bg_pill_at_rest"
+                        android:paddingStart="8dp"
+                        android:paddingEnd="8dp"
+                        android:paddingTop="4dp"
+                        android:paddingBottom="4dp">
+
+                        <View
+                            android:id="@+id/v_base_rest_dot"
+                            android:layout_width="6dp"
+                            android:layout_height="6dp"
+                            android:background="@drawable/bg_circle_green" />
+
+                        <TextView
+                            android:id="@+id/tv_base_rest_badge"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="5dp"
+                            android:text="@string/badge_at_rest"
+                            android:textColor="@color/teal_primary"
+                            android:textSize="9sp"
+                            android:textStyle="bold" />
+                    </LinearLayout>
+                </LinearLayout>
+
+                <!-- 3 Telemetry Metrics (Water in Liters, Battery %, Ambient Temperature) -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -352,9 +444,9 @@
                     <!-- 1. Water inside bottle (Liters) Tile -->
                     <LinearLayout
                         android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1.05"
-                        android:layout_marginEnd="3dp"
+                        android:layout_height="match_parent"
+                        android:layout_weight="1"
+                        android:layout_marginEnd="4dp"
                         android:background="@drawable/bg_metric_tile"
                         android:orientation="vertical"
                         android:padding="10dp">
@@ -377,8 +469,10 @@
                                 android:layout_marginStart="4dp"
                                 android:text="@string/label_water_level"
                                 android:textColor="@color/text_secondary"
-                                android:textSize="10sp"
-                                android:textStyle="bold" />
+                                android:textSize="9.5sp"
+                                android:textStyle="bold"
+                                android:singleLine="true"
+                                android:ellipsize="end" />
                         </LinearLayout>
 
                         <TextView
@@ -389,23 +483,27 @@
                             android:text="0.65 L"
                             android:textColor="@color/text_primary"
                             android:textSize="16sp"
-                            android:textStyle="bold" />
+                            android:textStyle="bold"
+                            android:singleLine="true" />
 
                         <TextView
                             android:id="@+id/tv_device_water_ml"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="2dp"
-                            android:text="650 ml"
+                            android:text="650 ml / 1000 ml"
                             android:textColor="@color/text_hint"
-                            android:textSize="10sp" />
+                            android:textSize="10sp"
+                            android:singleLine="true"
+                            android:maxLines="1"
+                            android:ellipsize="end" />
 
                         <ProgressBar
                             android:id="@+id/pb_bottle_water_level"
                             style="?android:attr/progressBarStyleHorizontal"
                             android:layout_width="match_parent"
                             android:layout_height="4dp"
-                            android:layout_marginTop="6dp"
+                            android:layout_marginTop="8dp"
                             android:max="100"
                             android:progress="65"
                             android:progressTint="@color/teal_primary"
@@ -415,9 +513,10 @@
                     <!-- 2. Device Battery Tile -->
                     <LinearLayout
                         android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="0.85"
-                        android:layout_marginHorizontal="2dp"
+                        android:layout_height="match_parent"
+                        android:layout_weight="1"
+                        android:layout_marginStart="4dp"
+                        android:layout_marginEnd="4dp"
                         android:background="@drawable/bg_metric_tile"
                         android:orientation="vertical"
                         android:padding="10dp">
@@ -441,8 +540,10 @@
                                 android:layout_marginStart="4dp"
                                 android:text="@string/label_battery"
                                 android:textColor="@color/text_secondary"
-                                android:textSize="10sp"
-                                android:textStyle="bold" />
+                                android:textSize="9.5sp"
+                                android:textStyle="bold"
+                                android:singleLine="true"
+                                android:ellipsize="end" />
                         </LinearLayout>
 
                         <TextView
@@ -453,7 +554,8 @@
                             android:text="85%"
                             android:textColor="@color/text_primary"
                             android:textSize="16sp"
-                            android:textStyle="bold" />
+                            android:textStyle="bold"
+                            android:singleLine="true" />
 
                         <TextView
                             android:id="@+id/tv_device_battery_status"
@@ -462,14 +564,17 @@
                             android:layout_marginTop="2dp"
                             android:text="@string/battery_status_good"
                             android:textColor="@color/text_hint"
-                            android:textSize="10sp" />
+                            android:textSize="10sp"
+                            android:singleLine="true"
+                            android:maxLines="1"
+                            android:ellipsize="end" />
 
                         <ProgressBar
                             android:id="@+id/pb_bottle_battery"
                             style="?android:attr/progressBarStyleHorizontal"
                             android:layout_width="match_parent"
                             android:layout_height="4dp"
-                            android:layout_marginTop="6dp"
+                            android:layout_marginTop="8dp"
                             android:max="100"
                             android:progress="85"
                             android:progressTint="@color/strength_strong"
@@ -479,9 +584,9 @@
                     <!-- 3. Ambient Room Temperature Tile -->
                     <LinearLayout
                         android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1.1"
-                        android:layout_marginStart="3dp"
+                        android:layout_height="match_parent"
+                        android:layout_weight="1"
+                        android:layout_marginStart="4dp"
                         android:background="@drawable/bg_metric_tile"
                         android:orientation="vertical"
                         android:padding="10dp">
@@ -504,11 +609,11 @@
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:layout_marginStart="4dp"
-                                android:text="@string/label_ambient_temperature"
+                                android:text="@string/label_ambient_temp"
                                 android:textColor="@color/text_secondary"
                                 android:textSize="9.5sp"
                                 android:textStyle="bold"
-                                android:maxLines="1"
+                                android:singleLine="true"
                                 android:ellipsize="end" />
                         </LinearLayout>
 
@@ -520,7 +625,8 @@
                             android:text="24°C"
                             android:textColor="@color/text_primary"
                             android:textSize="16sp"
-                            android:textStyle="bold" />
+                            android:textStyle="bold"
+                            android:singleLine="true" />
 
                         <TextView
                             android:id="@+id/tv_device_temp_status"
@@ -529,14 +635,17 @@
                             android:layout_marginTop="2dp"
                             android:text="@string/ambient_temp_status_normal"
                             android:textColor="@color/text_hint"
-                            android:textSize="10sp" />
+                            android:textSize="10sp"
+                            android:singleLine="true"
+                            android:maxLines="1"
+                            android:ellipsize="end" />
 
                         <ProgressBar
                             android:id="@+id/pb_bottle_temp"
                             style="?android:attr/progressBarStyleHorizontal"
                             android:layout_width="match_parent"
                             android:layout_height="4dp"
-                            android:layout_marginTop="6dp"
+                            android:layout_marginTop="8dp"
                             android:max="50"
                             android:progress="24"
                             android:progressTint="@color/strength_fair"

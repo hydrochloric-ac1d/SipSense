@@ -48,6 +48,16 @@ class DashboardFragment : Fragment() {
     private lateinit var tvDeviceTempStatus: TextView
     private lateinit var pbBottleTemp: ProgressBar
 
+    // ── Bottle Base Rest Views (HX711 Load Cell) ──
+    private lateinit var layoutBaseRestStatus: View
+    private lateinit var layoutBaseIconContainer: View
+    private lateinit var ivBaseRestIcon: ImageView
+    private lateinit var tvBaseRestTitle: TextView
+    private lateinit var tvBaseRestSubtitle: TextView
+    private lateinit var layoutBaseRestBadge: View
+    private lateinit var vBaseRestDot: View
+    private lateinit var tvBaseRestBadge: TextView
+
     private val firebaseAuth = FirebaseAuth.getInstance()
     private val database = FirebaseDatabaseProvider.reference()
     
@@ -63,7 +73,9 @@ class DashboardFragment : Fragment() {
     private var isFirebaseRecentSipLoaded = false
     private var varFirebaseDailyTotalLoaded = false
 
+    private var isBottleAtRest: Boolean = true
     private var currentBottleWaterLevel: Int = 650
+    private var latestSensorWaterLevel: Int = 650
     private var currentBottleCapacity: Int = 1000
     private var currentBatteryLevel: Int = 88
     private var currentAmbientTemp: Int = 24
@@ -97,6 +109,20 @@ class DashboardFragment : Fragment() {
         tvDeviceAmbientTemp = view.findViewById(R.id.tv_device_ambient_temp)
         tvDeviceTempStatus = view.findViewById(R.id.tv_device_temp_status)
         pbBottleTemp = view.findViewById(R.id.pb_bottle_temp)
+
+        // Bottle base rest indicator views (interactive simulation)
+        layoutBaseRestStatus = view.findViewById(R.id.layout_base_rest_status)
+        layoutBaseIconContainer = view.findViewById(R.id.layout_base_icon_container)
+        ivBaseRestIcon = view.findViewById(R.id.iv_base_rest_icon)
+        tvBaseRestTitle = view.findViewById(R.id.tv_base_rest_title)
+        tvBaseRestSubtitle = view.findViewById(R.id.tv_base_rest_subtitle)
+        layoutBaseRestBadge = view.findViewById(R.id.layout_base_rest_badge)
+        vBaseRestDot = view.findViewById(R.id.v_base_rest_dot)
+        tvBaseRestBadge = view.findViewById(R.id.tv_base_rest_badge)
+
+        layoutBaseRestStatus.setOnClickListener {
+            toggleBottleRestState()
+        }
 
         setupGreeting()
         setupRecentSipTime()
@@ -134,6 +160,7 @@ class DashboardFragment : Fragment() {
     }
 
     private fun setupInitialDeviceStatus() {
+        updateBaseRestIndicatorUI(isBottleAtRest)
         updateDeviceStatusUI(
             waterLevel = currentBottleWaterLevel,
             bottleCapacity = currentBottleCapacity,
@@ -141,6 +168,140 @@ class DashboardFragment : Fragment() {
             ambientTemp = currentAmbientTemp,
             isConnected = true
         )
+    }
+
+    /**
+     * Toggles the bottle's resting state on the base platform for simulation purposes.
+     * Specification:
+     * "The system shall calculate fluid volume in real-time by subtracting the updated
+     * bottle weight from the prior full reference weight using the Load Cell and HX711
+     * amplifier whenever the bottle rests on the base."
+     */
+    private fun toggleBottleRestState() {
+        isBottleAtRest = !isBottleAtRest
+        updateBaseRestIndicatorUI(isBottleAtRest)
+
+        if (isBottleAtRest) {
+            // Bottle has returned to rest on the base:
+            // Calculate fluid volume and update the water level display!
+            val now = System.currentTimeMillis()
+            if (latestSensorWaterLevel != currentBottleWaterLevel) {
+                // Telemetry changed while bottle was lifted
+                val sipConsumed = (currentBottleWaterLevel - latestSensorWaterLevel).coerceAtLeast(0)
+                currentBottleWaterLevel = latestSensorWaterLevel
+                if (sipConsumed > 0) {
+                    recordSipForUser(sipConsumed, now, currentAmbientTemp)
+                }
+            } else {
+                // Manual simulation mode (e.g. backend inactive or offline):
+                // Simulate taking a 35 ml sip and updating volume once placed on base!
+                val simulatedSip = 35
+                val newLevel = (currentBottleWaterLevel - simulatedSip).coerceAtLeast(0)
+                val actualSip = currentBottleWaterLevel - newLevel
+                currentBottleWaterLevel = newLevel
+                latestSensorWaterLevel = newLevel
+                if (actualSip > 0) {
+                    recordSipForUser(actualSip, now, currentAmbientTemp)
+                }
+            }
+
+            // Immediately refresh the water level display now that the bottle is resting
+            updateDeviceStatusUI(
+                waterLevel = currentBottleWaterLevel,
+                bottleCapacity = currentBottleCapacity,
+                batteryLevel = currentBatteryLevel,
+                ambientTemp = currentAmbientTemp,
+                isConnected = true
+            )
+
+            val msg = getString(R.string.msg_bottle_placed_on_base, currentBottleWaterLevel)
+            Toast.makeText(requireContext(), msg, Toast.LENGTH_SHORT).show()
+        } else {
+            // Bottle lifted from base: measurement paused, displayed water level held steady
+            updateDeviceStatusUI(
+                waterLevel = currentBottleWaterLevel,
+                bottleCapacity = currentBottleCapacity,
+                batteryLevel = currentBatteryLevel,
+                ambientTemp = currentAmbientTemp,
+                isConnected = true
+            )
+            Toast.makeText(requireContext(), getString(R.string.msg_bottle_lifted), Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    /**
+     * Updates the visual indicator for bottle resting on base vs lifted.
+     */
+    private fun updateBaseRestIndicatorUI(isAtRest: Boolean) {
+        if (!isAdded) return
+        if (isAtRest) {
+            layoutBaseRestStatus.setBackgroundResource(R.drawable.bg_base_rest_card_at_rest)
+            layoutBaseIconContainer.setBackgroundResource(R.drawable.bg_circle_light_teal)
+            ivBaseRestIcon.setImageResource(R.drawable.ic_base_rest)
+            ivBaseRestIcon.imageTintList = ContextCompat.getColorStateList(requireContext(), R.color.teal_primary)
+            tvBaseRestTitle.text = getString(R.string.bottle_status_at_rest)
+            tvBaseRestSubtitle.text = getString(R.string.bottle_rest_desc_active)
+            layoutBaseRestBadge.setBackgroundResource(R.drawable.bg_pill_at_rest)
+            vBaseRestDot.setBackgroundResource(R.drawable.bg_circle_green)
+            tvBaseRestBadge.text = getString(R.string.badge_at_rest)
+            tvBaseRestBadge.setTextColor(ContextCompat.getColor(requireContext(), R.color.teal_primary))
+        } else {
+            layoutBaseRestStatus.setBackgroundResource(R.drawable.bg_base_rest_card_lifted)
+            layoutBaseIconContainer.setBackgroundResource(R.drawable.bg_circle_light_amber)
+            ivBaseRestIcon.setImageResource(R.drawable.ic_base_lifted)
+            ivBaseRestIcon.imageTintList = ContextCompat.getColorStateList(requireContext(), R.color.strength_fair)
+            tvBaseRestTitle.text = getString(R.string.bottle_status_lifted)
+            tvBaseRestSubtitle.text = getString(R.string.bottle_rest_desc_paused)
+            layoutBaseRestBadge.setBackgroundResource(R.drawable.bg_pill_lifted)
+            vBaseRestDot.setBackgroundResource(R.drawable.bg_circle_amber)
+            tvBaseRestBadge.text = getString(R.string.badge_lifted)
+            tvBaseRestBadge.setTextColor(ContextCompat.getColor(requireContext(), R.color.strength_fair))
+        }
+    }
+
+    /**
+     * Records a sip and updates daily totals under the current user's Firebase path.
+     */
+    private fun recordSipForUser(sipAmount: Int, timestampMs: Long, ambientTemp: Int) {
+        if (sipAmount <= 0) return
+        val uid = firebaseAuth.currentUser?.uid
+        lastSavedSipTimestampMs = timestampMs
+        currentDailyTotal += sipAmount
+
+        if (uid != null && database != null) {
+            // 1. Save the individual sip record under /users/{uid}/sip_records
+            val recordRef = database.child("users").child(uid).child("sip_records").push()
+            val newRecord = com.sipsense.app.model.SipRecord(
+                amount = sipAmount,
+                timestamp = timestampMs,
+                ambientTemperature = ambientTemp
+            )
+            recordRef.setValue(newRecord)
+                .addOnSuccessListener {
+                    android.util.Log.d("SipSenseDashboard", "Saved sip ($sipAmount ml) for user $uid")
+                }
+                .addOnFailureListener { e ->
+                    android.util.Log.e("SipSenseDashboard", "Failed to save sip for user $uid", e)
+                }
+
+            // 2. Save the total daily sip record under /users/{uid}/daily_totals/{dateKey}
+            val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+            val dateKey = dateFormat.format(java.util.Date(timestampMs))
+            database.child("users").child(uid).child("daily_totals").child(dateKey).setValue(currentDailyTotal)
+                .addOnSuccessListener {
+                    android.util.Log.d("SipSenseDashboard", "Updated daily total ($currentDailyTotal ml) for user $uid on $dateKey")
+                }
+                .addOnFailureListener { e ->
+                    android.util.Log.e("SipSenseDashboard", "Failed to update daily total for user $uid", e)
+                }
+        }
+
+        activity?.runOnUiThread {
+            if (isAdded) {
+                updateProgressUI(currentDailyTotal)
+                updateRecentSipUI(sipAmount, timestampMs)
+            }
+        }
     }
 
     private fun startPollingBackend() {
@@ -159,7 +320,7 @@ class DashboardFragment : Fragment() {
                         val dataObject = jsonObject.optJSONObject("data")
                         
                         if (dataObject != null) {
-                            val waterLevel = dataObject.optInt("waterLevel", currentBottleWaterLevel)
+                            val waterLevel = dataObject.optInt("waterLevel", latestSensorWaterLevel)
                             val bottleCapacity = dataObject.optInt("bottleCapacity", currentBottleCapacity)
                             val battery = dataObject.optInt("batteryLevel", currentBatteryLevel)
                             val ambientTemp = dataObject.optInt(
@@ -167,22 +328,29 @@ class DashboardFragment : Fragment() {
                                 dataObject.optInt("temperature", currentAmbientTemp)
                             )
 
-                            currentBottleWaterLevel = waterLevel
+                            latestSensorWaterLevel = waterLevel
                             currentBottleCapacity = bottleCapacity
                             currentBatteryLevel = battery
                             currentAmbientTemp = ambientTemp
+
+                            // Water level should ONLY update display if the bottle is at rest on the base
+                            if (isBottleAtRest) {
+                                currentBottleWaterLevel = waterLevel
+                            }
 
                             val uid = firebaseAuth.currentUser?.uid
 
                             // 1. Immediately update and persist device telemetry for the active user ID
                             if (uid != null && database != null) {
                                 val telemetryMap = mapOf(
-                                    "waterLevel" to waterLevel,
+                                    "waterLevel" to currentBottleWaterLevel,
+                                    "rawSensorWaterLevel" to latestSensorWaterLevel,
                                     "bottleCapacity" to bottleCapacity,
                                     "batteryLevel" to battery,
                                     "ambientTemperature" to ambientTemp,
                                     "temperature" to ambientTemp,
                                     "humidity" to dataObject.optInt("humidity", 55),
+                                    "isBottleAtRest" to isBottleAtRest,
                                     "lastUpdated" to System.currentTimeMillis()
                                 )
                                 database.child("users").child(uid).child("device_telemetry").setValue(telemetryMap)
@@ -194,7 +362,7 @@ class DashboardFragment : Fragment() {
                             activity?.runOnUiThread {
                                 if (isAdded) {
                                     updateDeviceStatusUI(
-                                        waterLevel = waterLevel,
+                                        waterLevel = currentBottleWaterLevel,
                                         bottleCapacity = bottleCapacity,
                                         batteryLevel = battery,
                                         ambientTemp = ambientTemp,
@@ -203,8 +371,8 @@ class DashboardFragment : Fragment() {
                                 }
                             }
 
-                            // 2. Process sip detection and daily hydration totals per user ID
-                            if (varFirebaseDailyTotalLoaded) {
+                            // 2. Process sip detection and daily hydration totals per user ID ONLY when resting on base
+                            if (varFirebaseDailyTotalLoaded && isBottleAtRest) {
                                 val sipAmount = dataObject.optInt("sipAmount", 0)
                                 val rawTimestamp = if (dataObject.isNull("lastSipTimestamp")) "" else dataObject.optString("lastSipTimestamp", "")
                                 
@@ -223,45 +391,7 @@ class DashboardFragment : Fragment() {
 
                                 // Detect genuinely new sip and save PER USER
                                 if (currentSipTimestampMs > lastSavedSipTimestampMs && sipAmount > 0) {
-                                    lastSavedSipTimestampMs = currentSipTimestampMs
-                                    currentDailyTotal += sipAmount
-                                    
-                                    if (uid != null && database != null) {
-                                        // 1. Save the individual sip record under /users/{uid}/sip_records
-                                        val recordRef = database.child("users").child(uid).child("sip_records").push()
-                                        val newRecord = com.sipsense.app.model.SipRecord(
-                                            amount = sipAmount,
-                                            timestamp = currentSipTimestampMs,
-                                            ambientTemperature = ambientTemp
-                                        )
-                                        recordRef.setValue(newRecord)
-                                            .addOnSuccessListener {
-                                                android.util.Log.d("SipSenseDashboard", "Saved sip ($sipAmount ml) for user $uid")
-                                            }
-                                            .addOnFailureListener { e ->
-                                                android.util.Log.e("SipSenseDashboard", "Failed to save sip for user $uid", e)
-                                            }
-                                        
-                                        // 2. Save the total daily sip record under /users/{uid}/daily_totals/{dateKey}
-                                        val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
-                                        val dateKey = dateFormat.format(java.util.Date(currentSipTimestampMs))
-                                        database.child("users").child(uid).child("daily_totals").child(dateKey).setValue(currentDailyTotal)
-                                            .addOnSuccessListener {
-                                                android.util.Log.d("SipSenseDashboard", "Updated daily total ($currentDailyTotal ml) for user $uid on $dateKey")
-                                            }
-                                            .addOnFailureListener { e ->
-                                                android.util.Log.e("SipSenseDashboard", "Failed to update daily total for user $uid", e)
-                                            }
-                                    }
-                                }
-
-                                activity?.runOnUiThread {
-                                    if (isAdded) {
-                                        updateProgressUI(currentDailyTotal)
-                                        if (currentSipTimestampMs > 0L && sipAmount > 0) {
-                                            updateRecentSipUI(sipAmount, currentSipTimestampMs)
-                                        }
-                                    }
+                                    recordSipForUser(sipAmount, currentSipTimestampMs, ambientTemp)
                                 }
                             }
                         }
@@ -438,15 +568,19 @@ class DashboardFragment : Fragment() {
                     ?: snapshot.child("temperature").getValue(Int::class.java)
                     ?: currentAmbientTemp
 
-                currentBottleWaterLevel = waterLevel
+                latestSensorWaterLevel = waterLevel
                 currentBottleCapacity = bottleCapacity
                 currentBatteryLevel = battery
                 currentAmbientTemp = ambientTemp
 
+                if (isBottleAtRest) {
+                    currentBottleWaterLevel = waterLevel
+                }
+
                 activity?.runOnUiThread {
                     if (isAdded) {
                         updateDeviceStatusUI(
-                            waterLevel = waterLevel,
+                            waterLevel = currentBottleWaterLevel,
                             bottleCapacity = bottleCapacity,
                             batteryLevel = battery,
                             ambientTemp = ambientTemp,
@@ -560,7 +694,11 @@ class DashboardFragment : Fragment() {
         val safeWaterLevel = waterLevel.coerceAtLeast(0)
         val liters = safeWaterLevel / 1000.0
         tvDeviceWaterLiters.text = String.format(Locale.US, "%.2f L", liters)
-        tvDeviceWaterMl.text = "$safeWaterLevel ml / $safeCapacity ml"
+        tvDeviceWaterMl.text = if (isBottleAtRest) {
+            "$safeWaterLevel ml / $safeCapacity ml"
+        } else {
+            "$safeWaterLevel ml (Paused)"
+        }
         val waterPercent = ((safeWaterLevel.toFloat() / safeCapacity) * 100).toInt().coerceIn(0, 100)
         pbBottleWaterLevel.progress = waterPercent
 
