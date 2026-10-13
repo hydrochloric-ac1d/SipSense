@@ -18,7 +18,7 @@ package com.sipsense.app
  * ──────────────────────────────────────────────────────────────────────────
  * 1. Dashboard  (droplet icon)       – Hydration overview / home
  * 2. History    (calendar icon)      – Intake tracking logs
- * 3. Devices    (water-bottle icon)  – Connected IoT bottle management
+ * 3. Notifications (bell icon)       – Hydration reminders & alerts
  * 4. Profile    (user icon)          – Account & settings
  *
  * ══════════════════════════════════════════════════════════════════════════
@@ -111,7 +111,6 @@ class MainActivity : AppCompatActivity() {
      * Tab-to-Fragment mapping:
      * - nav_dashboard → DashboardFragment
      * - nav_history   → HistoryFragment
-     * - nav_devices   → DevicesFragment
      * - nav_notifications → NotificationsFragment
      * - nav_profile   → ProfileFragment
      */
@@ -120,7 +119,6 @@ class MainActivity : AppCompatActivity() {
             val fragment: Fragment = when (item.itemId) {
                 R.id.nav_dashboard -> DashboardFragment()
                 R.id.nav_history   -> HistoryFragment()
-                R.id.nav_devices   -> DevicesFragment()
                 R.id.nav_notifications -> NotificationsFragment()
                 R.id.nav_profile   -> ProfileFragment()
                 else -> return@setOnItemSelectedListener false

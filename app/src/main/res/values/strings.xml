@@ -53,6 +53,15 @@
     <string name="placeholder_streak_days">2 Days</string>
     <string name="progress_format_ml">%1$d ml</string>
     <string name="progress_max_format_ml">/ %1$d ml</string>
+    <string name="label_device_name">SipSense Smart Bottle</string>
+    <string name="label_water_level">Water in Bottle</string>
+    <string name="label_battery">Battery</string>
+    <string name="label_humidity">Humidity</string>
+    <string name="device_connected">CONNECTED</string>
+    <string name="device_offline">OFFLINE</string>
+    <string name="battery_status_good">Healthy</string>
+    <string name="battery_status_low">Low</string>
+    <string name="humidity_status_normal">Optimal</string>
 
     <!-- ════════════════════════════════════════════════════════════════
          HEADER BAR
@@ -102,12 +111,16 @@
          REGISTRATION SCREEN
          ════════════════════════════════════════════════════════════════ -->
     <!-- Field labels -->
-    <string name="label_full_name">FULL NAME</string>
+    <string name="label_first_name">FIRST NAME</string>
+    <string name="label_middle_name">MIDDLE NAME (OPTIONAL)</string>
+    <string name="label_last_name">LAST NAME</string>
     <string name="label_confirm_password">CONFIRM PASSWORD</string>
     <string name="label_hydration">DAILY HYDRATION TARGET (ML)</string>
 
     <!-- Input field placeholder hints -->
-    <string name="hint_full_name">John Doe</string>
+    <string name="hint_first_name">John</string>
+    <string name="hint_middle_name">Doe</string>
+    <string name="hint_last_name">Smith</string>
     <string name="hint_password_register">At least 8 characters</string>
     <string name="hint_confirm_password">Re-enter password</string>
     <string name="hint_hydration">2500</string>
@@ -155,7 +168,8 @@
     <string name="error_email_invalid">Please enter a valid email address</string>
     <string name="error_password_empty">Please enter your password</string>
     <string name="error_password_short">Password must be at least 8 characters</string>
-    <string name="error_name_empty">Please enter your full name</string>
+    <string name="error_first_name_empty">Please enter your first name</string>
+    <string name="error_last_name_empty">Please enter your last name</string>
     <string name="error_password_mismatch">Passwords do not match</string>
     <string name="error_terms_required">You must agree to the Terms of Service</string>
     <string name="error_hydration_empty">Please enter a hydration target</string>

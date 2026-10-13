@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.card.MaterialCardView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginHorizontal="16dp"
+    android:layout_marginVertical="8dp"
+    app:cardCornerRadius="20dp"
+    app:cardElevation="4dp"
+    app:cardBackgroundColor="@color/card_background">
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="16dp">
+
+        <!-- Date Label -->
+        <TextView
+            android:id="@+id/tv_day_date"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:textColor="@color/text_primary"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toStartOf="@id/iv_day_chevron"
+            tools:text="Today" />
+
+        <!-- Total Volume -->
+        <TextView
+            android:id="@+id/tv_day_total"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:textColor="@color/teal_primary"
+            android:textSize="22sp"
+            android:textStyle="bold"
+            app:layout_constraintTop_toBottomOf="@id/tv_day_date"
+            app:layout_constraintStart_toStartOf="parent"
+            tools:text="1750 ml" />
+
+        <!-- Target Volume (smaller, next to total) -->
+        <TextView
+            android:id="@+id/tv_day_target"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="4dp"
+            android:textColor="@color/text_secondary"
+            android:textSize="14sp"
+            app:layout_constraintBaseline_toBaselineOf="@id/tv_day_total"
+            app:layout_constraintStart_toEndOf="@id/tv_day_total"
+            tools:text="/ 2500 ml" />
+
+        <!-- Goal Met Badge -->
+        <TextView
+            android:id="@+id/tv_day_badge"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:background="@drawable/bg_iot_badge"
+            android:paddingHorizontal="8dp"
+            android:paddingVertical="2dp"
+            android:textColor="@color/text_white"
+            android:textSize="10sp"
+            android:textStyle="bold"
+            android:visibility="gone"
+            app:layout_constraintTop_toBottomOf="@id/tv_day_total"
+            app:layout_constraintStart_toStartOf="parent"
+            tools:text="GOAL MET"
+            tools:visibility="visible" />
+
+        <!-- Chevron Indicator -->
+        <ImageView
+            android:id="@+id/iv_day_chevron"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:src="@drawable/droplet"
+            android:contentDescription="Expand"
+            app:tint="@color/text_secondary"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintEnd_toEndOf="parent" />
+
+        <!-- Progress Bar -->
+        <ProgressBar
+            android:id="@+id/pb_day_progress"
+            style="?android:attr/progressBarStyleHorizontal"
+            android:layout_width="0dp"
+            android:layout_height="8dp"
+            android:layout_marginTop="12dp"
+            android:max="100"
+            android:progress="70"
+            android:progressTint="@color/teal_primary"
+            android:progressBackgroundTint="@color/input_background"
+            app:layout_constraintTop_toBottomOf="@id/tv_day_badge"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent" />
+
+        <!-- Divider (visible only when expanded) -->
+        <View
+            android:id="@+id/v_day_divider"
+            android:layout_width="0dp"
+            android:layout_height="1dp"
+            android:layout_marginTop="12dp"
+            android:background="@color/input_background"
+            android:visibility="gone"
+            app:layout_constraintTop_toBottomOf="@id/pb_day_progress"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent" />
+
+        <!-- Nested sips list (visible only when expanded) -->
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/rv_day_sips"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:visibility="gone"
+            app:layout_constraintTop_toBottomOf="@id/v_day_divider"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+</com.google.android.material.card.MaterialCardView>

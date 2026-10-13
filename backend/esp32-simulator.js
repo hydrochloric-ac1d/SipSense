@@ -9,8 +9,11 @@ console.log(`[ESP32 SIMULATOR] Connecting to ${brokerUrl}...`);
 const client = mqtt.connect(brokerUrl);
 
 // Simulated bottle state
-let currentWaterLevel = 500; // ml
+let currentWaterLevel = 650; // ml
+let bottleCapacity = 1000; // ml (1.0 Liter)
 let totalConsumed = 0; // ml
+let batteryLevel = 88; // %
+let humidity = 55; // %
 
 client.on('connect', () => {
     console.log('[ESP32 SIMULATOR] ✅ Connected to Broker!');
@@ -28,7 +31,7 @@ function takeASip() {
     
     if (currentWaterLevel - sipAmount < 0) {
         console.log('[ESP32 SIMULATOR] Bottle is empty! Please refill.');
-        currentWaterLevel = 500; // Auto-refill for the simulation
+        currentWaterLevel = bottleCapacity; // Auto-refill for the simulation
         console.log('[ESP32 SIMULATOR] Bottle auto-refilled.');
         return;
     }
@@ -36,9 +39,19 @@ function takeASip() {
     currentWaterLevel -= sipAmount;
     totalConsumed += sipAmount;
 
+    // Simulate subtle battery drain and natural humidity variation
+    if (Math.random() > 0.6 && batteryLevel > 15) {
+        batteryLevel -= 1;
+    }
+    humidity = Math.floor(52 + Math.random() * 6); // 52% - 57%
+
     // Build the JSON payload that the real ESP32 would generate
     const payload = {
         waterLevel: currentWaterLevel,
+        waterLevelLiters: +(currentWaterLevel / 1000).toFixed(2),
+        bottleCapacity: bottleCapacity,
+        batteryLevel: batteryLevel,
+        humidity: humidity,
         totalConsumedToday: totalConsumed,
         sipAmount: sipAmount
     };

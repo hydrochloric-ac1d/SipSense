@@ -19,7 +19,11 @@ const client = mqtt.connect(brokerUrl);
 
 // Store the latest data received from the MQTT broker
 let latestSensorData = {
-    waterLevel: 0,
+    waterLevel: 650,
+    waterLevelLiters: 0.65,
+    bottleCapacity: 1000,
+    batteryLevel: 88,
+    humidity: 55,
     lastSipTimestamp: null,
     totalConsumedToday: 0
 };

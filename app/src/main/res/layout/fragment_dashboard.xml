@@ -1,232 +1,548 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout
+<androidx.core.widget.NestedScrollView
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@drawable/bg_gradient_teal"
-    android:padding="24dp">
+    android:fillViewport="true"
+    android:overScrollMode="never"
+    android:background="@drawable/bg_gradient_teal">
 
-    <TextView
-        android:id="@+id/tv_greeting"
-        android:layout_width="0dp"
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:textColor="@color/text_white"
-        android:textSize="24sp"
-        android:textStyle="bold"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintBottom_toTopOf="@id/card_progress"
-        app:layout_constraintVertical_chainStyle="packed"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        tools:text="Good Morning, Alex!" />
+        android:padding="20dp"
+        android:paddingBottom="90dp">
 
-    <com.google.android.material.card.MaterialCardView
-        android:id="@+id/card_progress"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="24dp"
-        app:cardCornerRadius="24dp"
-        app:cardElevation="4dp"
-        app:layout_constraintTop_toBottomOf="@id/tv_greeting"
-        app:layout_constraintBottom_toTopOf="@id/layout_cards"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent">
-
-        <androidx.constraintlayout.widget.ConstraintLayout
-            android:layout_width="match_parent"
+        <TextView
+            android:id="@+id/tv_greeting"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:padding="32dp">
+            android:textColor="@color/text_white"
+            android:textSize="24sp"
+            android:textStyle="bold"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            tools:text="Good Morning, Alex!" />
 
-            <com.google.android.material.progressindicator.CircularProgressIndicator
-                android:id="@+id/progress_hydration"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                app:indicatorColor="@color/teal_primary"
-                app:trackColor="@color/input_background"
-                app:indicatorSize="260dp"
-                app:trackThickness="20dp"
-                app:layout_constraintTop_toTopOf="parent"
-                app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintEnd_toEndOf="parent"
-                android:max="2500"
-                android:progress="1750" />
-
-            <!-- Using droplet.png -->
-            <ImageView
-                android:id="@+id/iv_droplet"
-                android:layout_width="24dp"
-                android:layout_height="24dp"
-                android:src="@drawable/droplet"
-                app:tint="@color/teal_primary"
-                app:layout_constraintTop_toTopOf="@id/progress_hydration"
-                app:layout_constraintStart_toStartOf="@id/progress_hydration"
-                app:layout_constraintEnd_toEndOf="@id/progress_hydration"
-                android:layout_marginTop="-12dp" />
-
-            <LinearLayout
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:gravity="center"
-                app:layout_constraintTop_toTopOf="@id/progress_hydration"
-                app:layout_constraintBottom_toBottomOf="@id/progress_hydration"
-                app:layout_constraintStart_toStartOf="@id/progress_hydration"
-                app:layout_constraintEnd_toEndOf="@id/progress_hydration">
-
-                <TextView
-                    android:id="@+id/tv_progress_current"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:textColor="@color/text_primary"
-                    android:textSize="48sp"
-                    android:textStyle="bold"
-                    android:text="1750 ml" />
-
-                <TextView
-                    android:id="@+id/tv_progress_max"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:textColor="@color/text_secondary"
-                    android:textSize="24sp"
-                    android:layout_marginTop="4dp"
-                    android:text="/ 2500 ml" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/label_daily_goal"
-                    android:textColor="@color/text_hint"
-                    android:textSize="16sp"
-                    android:layout_marginTop="8dp" />
-            </LinearLayout>
-
-        </androidx.constraintlayout.widget.ConstraintLayout>
-    </com.google.android.material.card.MaterialCardView>
-
-    <LinearLayout
-        android:id="@+id/layout_cards"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:layout_marginTop="16dp"
-        app:layout_constraintTop_toBottomOf="@id/card_progress"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        android:weightSum="2">
-
-        <!-- Recent Sip Card -->
+        <!-- ── Daily Hydration Progress Card ── -->
         <com.google.android.material.card.MaterialCardView
+            android:id="@+id/card_progress"
             android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_weight="1"
-            android:layout_marginEnd="8dp"
-            app:cardCornerRadius="16dp"
-            app:cardElevation="4dp">
-            
-            <androidx.constraintlayout.widget.ConstraintLayout
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:padding="16dp">
-                
-                <TextView
-                    android:id="@+id/tv_recent_sip_label"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/label_recent_sip"
-                    android:textColor="@color/text_primary"
-                    android:textStyle="bold"
-                    app:layout_constraintTop_toTopOf="parent"
-                    app:layout_constraintStart_toStartOf="parent" />
-                    
-                <TextView
-                    android:id="@+id/tv_recent_sip_time"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/placeholder_recent_sip_time"
-                    android:textColor="@color/text_hint"
-                    android:textSize="12sp"
-                    app:layout_constraintTop_toBottomOf="@id/tv_recent_sip_label"
-                    app:layout_constraintStart_toStartOf="parent" />
-                    
-                <ImageView
-                    android:layout_width="24dp"
-                    android:layout_height="24dp"
-                    android:src="@drawable/water_bottle"
-                    app:layout_constraintTop_toTopOf="parent"
-                    app:layout_constraintEnd_toEndOf="parent" />
-                    
-                <TextView
-                    android:id="@+id/tv_recent_sip_amount"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/placeholder_recent_sip_amount"
-                    android:textColor="@color/text_primary"
-                    android:textSize="20sp"
-                    android:textStyle="bold"
-                    android:layout_marginTop="16dp"
-                    app:layout_constraintTop_toBottomOf="@id/tv_recent_sip_time"
-                    app:layout_constraintStart_toStartOf="parent" />
-            </androidx.constraintlayout.widget.ConstraintLayout>
-        </com.google.android.material.card.MaterialCardView>
-
-        <!-- Hydration Streak Card -->
-        <com.google.android.material.card.MaterialCardView
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_weight="1"
-            android:layout_marginStart="8dp"
-            app:cardCornerRadius="16dp"
-            app:cardElevation="4dp">
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            app:cardCornerRadius="24dp"
+            app:cardElevation="4dp"
+            app:cardBackgroundColor="@color/card_background"
+            app:layout_constraintTop_toBottomOf="@id/tv_greeting"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent">
 
             <androidx.constraintlayout.widget.ConstraintLayout
                 android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:padding="16dp">
+                android:layout_height="wrap_content"
+                android:padding="24dp">
 
-                <TextView
-                    android:id="@+id/tv_streak_label"
+                <com.google.android.material.progressindicator.CircularProgressIndicator
+                    android:id="@+id/progress_hydration"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="@string/label_hydration_streak"
-                    android:textColor="@color/text_primary"
-                    android:textStyle="bold"
+                    app:indicatorColor="@color/teal_primary"
+                    app:trackColor="@color/input_background"
+                    app:indicatorSize="230dp"
+                    app:trackThickness="18dp"
+                    app:layout_constraintTop_toTopOf="parent"
+                    app:layout_constraintBottom_toBottomOf="parent"
                     app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintTop_toTopOf="parent" />
+                    app:layout_constraintEnd_toEndOf="parent"
+                    android:max="2500"
+                    android:progress="1750" />
+
+                <!-- Droplet Icon -->
+                <ImageView
+                    android:id="@+id/iv_droplet"
+                    android:layout_width="22dp"
+                    android:layout_height="22dp"
+                    android:src="@drawable/droplet"
+                    app:tint="@color/teal_primary"
+                    app:layout_constraintTop_toTopOf="@id/progress_hydration"
+                    app:layout_constraintStart_toStartOf="@id/progress_hydration"
+                    app:layout_constraintEnd_toEndOf="@id/progress_hydration"
+                    android:layout_marginTop="-11dp" />
 
                 <LinearLayout
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="16dp"
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal"
-                    app:layout_constraintBottom_toBottomOf="parent"
-                    app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintTop_toBottomOf="@id/tv_streak_label">
+                    android:orientation="vertical"
+                    android:gravity="center"
+                    app:layout_constraintTop_toTopOf="@id/progress_hydration"
+                    app:layout_constraintBottom_toBottomOf="@id/progress_hydration"
+                    app:layout_constraintStart_toStartOf="@id/progress_hydration"
+                    app:layout_constraintEnd_toEndOf="@id/progress_hydration">
 
                     <TextView
-                        android:id="@+id/tv_streak_icon"
+                        android:id="@+id/tv_progress_current"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginEnd="8dp"
-                        android:text="🔥"
-                        android:textSize="24sp"
-                        android:visibility="gone" />
-
-                    <TextView
-                        android:id="@+id/tv_streak_days"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="@string/placeholder_streak_days"
                         android:textColor="@color/text_primary"
+                        android:textSize="42sp"
+                        android:textStyle="bold"
+                        android:text="1750 ml" />
+
+                    <TextView
+                        android:id="@+id/tv_progress_max"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textColor="@color/text_secondary"
                         android:textSize="20sp"
-                        android:textStyle="bold" />
+                        android:layout_marginTop="2dp"
+                        android:text="/ 2500 ml" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/label_daily_goal"
+                        android:textColor="@color/text_hint"
+                        android:textSize="14sp"
+                        android:layout_marginTop="6dp" />
                 </LinearLayout>
+
             </androidx.constraintlayout.widget.ConstraintLayout>
         </com.google.android.material.card.MaterialCardView>
-    </LinearLayout>
 
-</androidx.constraintlayout.widget.ConstraintLayout>
+        <!-- ── Quick Stats Row (Recent Sip & Streak) ── -->
+        <LinearLayout
+            android:id="@+id/layout_cards"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginTop="14dp"
+            app:layout_constraintTop_toBottomOf="@id/card_progress"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            android:weightSum="2">
+
+            <!-- Recent Sip Card -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/card_recent_sip"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:layout_marginEnd="6dp"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="4dp"
+                app:cardBackgroundColor="@color/card_background">
+
+                <androidx.constraintlayout.widget.ConstraintLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:padding="14dp">
+
+                    <TextView
+                        android:id="@+id/tv_recent_sip_label"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/label_recent_sip"
+                        android:textColor="@color/text_primary"
+                        android:textStyle="bold"
+                        android:textSize="13sp"
+                        app:layout_constraintTop_toTopOf="parent"
+                        app:layout_constraintStart_toStartOf="parent" />
+
+                    <TextView
+                        android:id="@+id/tv_recent_sip_time"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/placeholder_recent_sip_time"
+                        android:textColor="@color/text_hint"
+                        android:textSize="11sp"
+                        app:layout_constraintTop_toBottomOf="@id/tv_recent_sip_label"
+                        app:layout_constraintStart_toStartOf="parent" />
+
+                    <ImageView
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
+                        android:src="@drawable/water_bottle"
+                        app:tint="@color/teal_primary"
+                        app:layout_constraintTop_toTopOf="parent"
+                        app:layout_constraintEnd_toEndOf="parent" />
+
+                    <TextView
+                        android:id="@+id/tv_recent_sip_amount"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/placeholder_recent_sip_amount"
+                        android:textColor="@color/text_primary"
+                        android:textSize="18sp"
+                        android:textStyle="bold"
+                        android:layout_marginTop="14dp"
+                        app:layout_constraintTop_toBottomOf="@id/tv_recent_sip_time"
+                        app:layout_constraintBottom_toBottomOf="parent"
+                        app:layout_constraintStart_toStartOf="parent" />
+                </androidx.constraintlayout.widget.ConstraintLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- Hydration Streak Card -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/card_hydration_streak"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:layout_marginStart="6dp"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="4dp"
+                app:cardBackgroundColor="@color/card_background">
+
+                <androidx.constraintlayout.widget.ConstraintLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:padding="14dp">
+
+                    <TextView
+                        android:id="@+id/tv_streak_label"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/label_hydration_streak"
+                        android:textColor="@color/text_primary"
+                        android:textStyle="bold"
+                        android:textSize="13sp"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintTop_toTopOf="parent" />
+
+                    <TextView
+                        android:id="@+id/tv_streak_subtitle"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Consistency"
+                        android:textColor="@color/text_hint"
+                        android:textSize="11sp"
+                        app:layout_constraintTop_toBottomOf="@id/tv_streak_label"
+                        app:layout_constraintStart_toStartOf="parent" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="🔥"
+                        android:textSize="16sp"
+                        app:layout_constraintTop_toTopOf="parent"
+                        app:layout_constraintEnd_toEndOf="parent" />
+
+                    <LinearLayout
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="14dp"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintTop_toBottomOf="@id/tv_streak_subtitle"
+                        app:layout_constraintBottom_toBottomOf="parent">
+
+                        <TextView
+                            android:id="@+id/tv_streak_icon"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginEnd="6dp"
+                            android:text="🔥"
+                            android:textSize="18sp"
+                            android:visibility="gone" />
+
+                        <TextView
+                            android:id="@+id/tv_streak_days"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/placeholder_streak_days"
+                            android:textColor="@color/text_primary"
+                            android:textSize="18sp"
+                            android:textStyle="bold" />
+                    </LinearLayout>
+                </androidx.constraintlayout.widget.ConstraintLayout>
+            </com.google.android.material.card.MaterialCardView>
+        </LinearLayout>
+
+        <!-- ════════════════════════════════════════════════════════════════
+             DEVICE STATUS CARD
+             Shows real-time Smart Bottle telemetry:
+             - Water inside bottle in Liters (and ml)
+             - Device Battery %
+             - Humidity %
+             ════════════════════════════════════════════════════════════════ -->
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/card_device"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="14dp"
+            app:cardCornerRadius="20dp"
+            app:cardElevation="4dp"
+            app:cardBackgroundColor="@color/card_background"
+            app:layout_constraintTop_toBottomOf="@id/layout_cards"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <!-- Header: Device Name & Connection Badge -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical">
+
+                    <ImageView
+                        android:layout_width="22dp"
+                        android:layout_height="22dp"
+                        android:src="@drawable/water_bottle"
+                        app:tint="@color/teal_primary" />
+
+                    <TextView
+                        android:id="@+id/tv_device_name"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:layout_marginStart="8dp"
+                        android:text="@string/label_device_name"
+                        android:textColor="@color/text_primary"
+                        android:textSize="15sp"
+                        android:textStyle="bold" />
+
+                    <!-- Status Badge -->
+                    <LinearLayout
+                        android:id="@+id/layout_device_badge"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:background="@drawable/bg_device_badge"
+                        android:paddingStart="8dp"
+                        android:paddingEnd="8dp"
+                        android:paddingTop="3dp"
+                        android:paddingBottom="3dp">
+
+                        <View
+                            android:id="@+id/v_status_dot"
+                            android:layout_width="7dp"
+                            android:layout_height="7dp"
+                            android:background="@drawable/bg_circle_green" />
+
+                        <TextView
+                            android:id="@+id/tv_device_connection_status"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="5dp"
+                            android:text="@string/device_connected"
+                            android:textColor="@color/teal_primary"
+                            android:textSize="10sp"
+                            android:textStyle="bold" />
+                    </LinearLayout>
+                </LinearLayout>
+
+                <!-- 3 Telemetry Metrics (Water in Liters, Battery %, Humidity %) -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginTop="12dp"
+                    android:baselineAligned="false">
+
+                    <!-- 1. Water inside bottle (Liters) Tile -->
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1.1"
+                        android:layout_marginEnd="4dp"
+                        android:background="@drawable/bg_metric_tile"
+                        android:orientation="vertical"
+                        android:padding="10dp">
+
+                        <LinearLayout
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal"
+                            android:gravity="center_vertical">
+
+                            <ImageView
+                                android:layout_width="14dp"
+                                android:layout_height="14dp"
+                                android:src="@drawable/droplet"
+                                app:tint="@color/teal_primary" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginStart="4dp"
+                                android:text="@string/label_water_level"
+                                android:textColor="@color/text_secondary"
+                                android:textSize="10sp"
+                                android:textStyle="bold" />
+                        </LinearLayout>
+
+                        <TextView
+                            android:id="@+id/tv_device_water_liters"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="6dp"
+                            android:text="0.65 L"
+                            android:textColor="@color/text_primary"
+                            android:textSize="16sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:id="@+id/tv_device_water_ml"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:text="650 ml"
+                            android:textColor="@color/text_hint"
+                            android:textSize="10sp" />
+
+                        <ProgressBar
+                            android:id="@+id/pb_bottle_water_level"
+                            style="?android:attr/progressBarStyleHorizontal"
+                            android:layout_width="match_parent"
+                            android:layout_height="4dp"
+                            android:layout_marginTop="6dp"
+                            android:max="100"
+                            android:progress="65"
+                            android:progressTint="@color/teal_primary"
+                            android:progressBackgroundTint="@color/input_background" />
+                    </LinearLayout>
+
+                    <!-- 2. Device Battery Tile -->
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="0.95"
+                        android:layout_marginHorizontal="2dp"
+                        android:background="@drawable/bg_metric_tile"
+                        android:orientation="vertical"
+                        android:padding="10dp">
+
+                        <LinearLayout
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal"
+                            android:gravity="center_vertical">
+
+                            <ImageView
+                                android:id="@+id/iv_battery_icon"
+                                android:layout_width="14dp"
+                                android:layout_height="14dp"
+                                android:src="@drawable/ic_battery"
+                                app:tint="@color/strength_strong" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginStart="4dp"
+                                android:text="@string/label_battery"
+                                android:textColor="@color/text_secondary"
+                                android:textSize="10sp"
+                                android:textStyle="bold" />
+                        </LinearLayout>
+
+                        <TextView
+                            android:id="@+id/tv_device_battery"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="6dp"
+                            android:text="85%"
+                            android:textColor="@color/text_primary"
+                            android:textSize="16sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:id="@+id/tv_device_battery_status"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:text="@string/battery_status_good"
+                            android:textColor="@color/text_hint"
+                            android:textSize="10sp" />
+
+                        <ProgressBar
+                            android:id="@+id/pb_bottle_battery"
+                            style="?android:attr/progressBarStyleHorizontal"
+                            android:layout_width="match_parent"
+                            android:layout_height="4dp"
+                            android:layout_marginTop="6dp"
+                            android:max="100"
+                            android:progress="85"
+                            android:progressTint="@color/strength_strong"
+                            android:progressBackgroundTint="@color/input_background" />
+                    </LinearLayout>
+
+                    <!-- 3. Humidity Tile -->
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="0.95"
+                        android:layout_marginStart="4dp"
+                        android:background="@drawable/bg_metric_tile"
+                        android:orientation="vertical"
+                        android:padding="10dp">
+
+                        <LinearLayout
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal"
+                            android:gravity="center_vertical">
+
+                            <ImageView
+                                android:layout_width="14dp"
+                                android:layout_height="14dp"
+                                android:src="@drawable/ic_humidity"
+                                app:tint="@color/blue_accent" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginStart="4dp"
+                                android:text="@string/label_humidity"
+                                android:textColor="@color/text_secondary"
+                                android:textSize="10sp"
+                                android:textStyle="bold" />
+                        </LinearLayout>
+
+                        <TextView
+                            android:id="@+id/tv_device_humidity"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="6dp"
+                            android:text="55%"
+                            android:textColor="@color/text_primary"
+                            android:textSize="16sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:id="@+id/tv_device_humidity_status"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:text="@string/humidity_status_normal"
+                            android:textColor="@color/text_hint"
+                            android:textSize="10sp" />
+
+                        <ProgressBar
+                            android:id="@+id/pb_bottle_humidity"
+                            style="?android:attr/progressBarStyleHorizontal"
+                            android:layout_width="match_parent"
+                            android:layout_height="4dp"
+                            android:layout_marginTop="6dp"
+                            android:max="100"
+                            android:progress="55"
+                            android:progressTint="@color/blue_accent"
+                            android:progressBackgroundTint="@color/input_background" />
+                    </LinearLayout>
+                </LinearLayout>
+
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+</androidx.core.widget.NestedScrollView>

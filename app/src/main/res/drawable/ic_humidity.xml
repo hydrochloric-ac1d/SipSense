@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    ic_humidity.xml
+    Material Design humidity droplet icon for environmental sensor indicator.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M12,2.69l5.66,5.66a8,8 0,1 1,-11.31 0zM12,4.83L7.76,9.07a6,6 0,1 0,8.49 0zM10.5,12.5a1.5,1.5 0,1 0,3 0a1.5,1.5 0,1 0,-3 0z" />
+</vector>

@@ -1,0 +1,157 @@
+{
+  "users": {
+    "aI0MjdOIrQUqfEny9bkUasB6GwE2": {
+      "daily_totals": {
+        "2026-10-08": 307
+      },
+      "hydrationTarget": 1100,
+      "preferredUnit": "ml",
+      "sip_records": {
+        "-P3RUc8jKN7mmbYnq1wX": {
+          "amount": 14,
+          "timestamp": 1791479418218
+        },
+        "-P3RUeJD2mV5hci6mr8s": {
+          "amount": 18,
+          "timestamp": 1791479423229
+        },
+        "-P3RUfm7rFWl_R5TlMXr": {
+          "amount": 34,
+          "timestamp": 1791479428241
+        },
+        "-P3RUgW4gLjAcFWOdVf5": {
+          "amount": 22,
+          "timestamp": 1791479433241
+        },
+        "-P3RUhz5RHZDtH0Sc3lZ": {
+          "amount": 40,
+          "timestamp": 1791479438245
+        },
+        "-P3RUjRxejuBgrE32wFP": {
+          "amount": 29,
+          "timestamp": 1791479443259
+        },
+        "-P3RUkAvhsMVfMrqXPNe": {
+          "amount": 48,
+          "timestamp": 1791479448266
+        },
+        "-P3RUldnK3lgU6RQxlHY": {
+          "amount": 13,
+          "timestamp": 1791479453271
+        },
+        "-P3RW70VaGiX2lFifHIK": {
+          "amount": 41,
+          "timestamp": 1791479805361
+        },
+        "-P3RW7kxS2dH7PQHKk7_": {
+          "amount": 15,
+          "timestamp": 1791479810375
+        },
+        "-P3RW9DuhodLjIqBab8C": {
+          "amount": 40,
+          "timestamp": 1791479815381
+        },
+        "-P3RWw6D3bECM86yjgn2": {
+          "amount": 29,
+          "timestamp": 1791480019301
+        },
+        "-P3RWwqD7E7Cd3rMTolV": {
+          "amount": 23,
+          "timestamp": 1791480024298
+        },
+        "-P3RWyJDBjao71KRR2dA": {
+          "amount": 18,
+          "timestamp": 1791480029306
+        },
+        "-P3RY0JJIfFybp6iXuRO": {
+          "amount": 42,
+          "timestamp": 1791480303373
+        },
+        "-P3RY1mJM1OwYdyFhg_q": {
+          "amount": 17,
+          "timestamp": 1791480308373
+        },
+        "-P3RY2WOjTSjYDVTZaWO": {
+          "amount": 42,
+          "timestamp": 1791480313384
+        },
+        "-P3R_TQxNYK3mm3ZziEw": {
+          "amount": 36,
+          "timestamp": 1791480946992
+        },
+        "-P3R_Uu1vsoG4QGY38qL": {
+          "amount": 25,
+          "timestamp": 1791480951998
+        },
+        "-P3R_Vd0mwMaQk3sDJ5v": {
+          "amount": 45,
+          "timestamp": 1791480957009
+        },
+        "-P3R_X5s-JHf1fgMIYA_": {
+          "amount": 21,
+          "timestamp": 1791480962013
+        },
+        "-P3R_Xt8T06tH89A8A3U": {
+          "amount": 21,
+          "timestamp": 1791480962013
+        },
+        "-P3R_Z05P4HWohcqZUdo": {
+          "amount": 21,
+          "timestamp": 1791480967027
+        },
+        "-P3R_ZkBHsjxS1Rkigaz": {
+          "amount": 46,
+          "timestamp": 1791480972036
+        },
+        "-P3R__UBQjeCW2jh2mKx": {
+          "amount": 41,
+          "timestamp": 1791480977048
+        },
+        "-P3R_axEo4AOruvcOHBv": {
+          "amount": 36,
+          "timestamp": 1791480982063
+        },
+        "-P3R_c8S3eENNWmZoaO3": {
+          "amount": 10,
+          "timestamp": 1791480987063
+        },
+        "-P3RavlGvoHZ33GcCHDL": {
+          "amount": 29,
+          "timestamp": 1791481328214
+        },
+        "-P3RawVO1f0jQsCvkqG4": {
+          "amount": 40,
+          "timestamp": 1791481333226
+        },
+        "-P3Ray0jaS158r917Nmk": {
+          "amount": 29,
+          "timestamp": 1791481338237
+        },
+        "-P3RazUhfdTWl_28eJDw": {
+          "amount": 22,
+          "timestamp": 1791481343243
+        },
+        "-P3Rb-DfuC8yc2rLpXRX": {
+          "amount": 28,
+          "timestamp": 1791481348257
+        },
+        "-P3Rb0giUCIoL8KAM1cm": {
+          "amount": 42,
+          "timestamp": 1791481353264
+        },
+        "-P3Rb29jwr8e85bgQM2B": {
+          "amount": 34,
+          "timestamp": 1791481358279
+        },
+        "-P3Rb3vLPxOewKZvYC-M": {
+          "amount": 36,
+          "timestamp": 1791481368286
+        },
+        "-P3Rb5OPOX8jfH7fUvBf": {
+          "amount": 37,
+          "timestamp": 1791481373298
+        }
+      }
+    }
+  }
+}

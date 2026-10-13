@@ -10,7 +10,9 @@
     │  └─ ScrollView (fills screen, scrollable for extensive form)
     │     └─ Inner ConstraintLayout (content wrapper)
     │        ├─ ConstraintLayout: White rounded card
-    │        │  ├─ TextView + TextInputLayout: Full Name field
+    │        │  ├─ TextView + TextInputLayout: First Name field
+    │        │  ├─ TextView + TextInputLayout: Middle Name field (optional)
+    │        │  ├─ TextView + TextInputLayout: Last Name field
     │        │  ├─ TextView + TextInputLayout: Email field
     │        │  ├─ TextView + TextInputLayout: Password field
     │        │  ├─ Password Strength Section:
@@ -92,34 +94,116 @@
                 app:layout_constraintEnd_toEndOf="parent">
 
                 <!-- ──────────────────────────────────────────────────
-                     FULL NAME FIELD
+                     FIRST NAME FIELD
                      ────────────────────────────────────────────────── -->
                 <TextView
-                    android:id="@+id/tvFullNameLabel"
+                    android:id="@+id/tvFirstNameLabel"
                     style="@style/SipSense.FieldLabel"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="@string/label_full_name"
+                    android:text="First Name"
                     app:layout_constraintTop_toTopOf="parent"
                     app:layout_constraintStart_toStartOf="parent" />
 
                 <com.google.android.material.textfield.TextInputLayout
-                    android:id="@+id/tilFullName"
+                    android:id="@+id/tilFirstName"
+                    style="@style/SipSense.TextInputLayout"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/spacing_sm"
+                    android:layout_marginEnd="@dimen/spacing_sm"
+                    app:startIconDrawable="@drawable/ic_person"
+                    app:startIconTint="@color/text_hint"
+                    app:layout_constraintTop_toBottomOf="@id/tvFirstNameLabel"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintEnd_toStartOf="@id/tilMiddleName">
+
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/etFirstName"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:hint="First name"
+                        android:inputType="textPersonName"
+                        android:textColor="@color/text_primary"
+                        android:textColorHint="@color/text_hint"
+                        android:textSize="@dimen/text_body"
+                        android:paddingTop="16dp"
+                        android:paddingBottom="16dp"
+                        android:gravity="center_vertical"
+                        android:singleLine="true" />
+
+                </com.google.android.material.textfield.TextInputLayout>
+
+                <!-- ──────────────────────────────────────────────────
+                     MIDDLE NAME FIELD (Optional)
+                     ────────────────────────────────────────────────── -->
+                <TextView
+                    android:id="@+id/tvMiddleNameLabel"
+                    style="@style/SipSense.FieldLabel"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Middle Name"
+                    app:layout_constraintTop_toTopOf="parent"
+                    app:layout_constraintStart_toStartOf="@id/tilMiddleName" />
+
+                <com.google.android.material.textfield.TextInputLayout
+                    android:id="@+id/tilMiddleName"
                     style="@style/SipSense.TextInputLayout"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="@dimen/spacing_sm"
                     app:startIconDrawable="@drawable/ic_person"
                     app:startIconTint="@color/text_hint"
-                    app:layout_constraintTop_toBottomOf="@id/tvFullNameLabel"
+                    app:layout_constraintTop_toBottomOf="@id/tvMiddleNameLabel"
+                    app:layout_constraintStart_toEndOf="@id/tilFirstName"
+                    app:layout_constraintEnd_toEndOf="parent">
+
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/etMiddleName"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:hint="Middle name"
+                        android:inputType="textPersonName"
+                        android:textColor="@color/text_primary"
+                        android:textColorHint="@color/text_hint"
+                        android:textSize="@dimen/text_body"
+                        android:paddingTop="16dp"
+                        android:paddingBottom="16dp"
+                        android:gravity="center_vertical"
+                        android:singleLine="true" />
+
+                </com.google.android.material.textfield.TextInputLayout>
+
+                <!-- ──────────────────────────────────────────────────
+                     LAST NAME FIELD
+                     ────────────────────────────────────────────────── -->
+                <TextView
+                    android:id="@+id/tvLastNameLabel"
+                    style="@style/SipSense.FieldLabel"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Last Name"
+                    android:layout_marginTop="@dimen/spacing_sm"
+                    app:layout_constraintTop_toBottomOf="@id/tilFirstName"
+                    app:layout_constraintStart_toStartOf="parent" />
+
+                <com.google.android.material.textfield.TextInputLayout
+                    android:id="@+id/tilLastName"
+                    style="@style/SipSense.TextInputLayout"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/spacing_sm"
+                    app:startIconDrawable="@drawable/ic_person"
+                    app:startIconTint="@color/text_hint"
+                    app:layout_constraintTop_toBottomOf="@id/tvLastNameLabel"
                     app:layout_constraintStart_toStartOf="parent"
                     app:layout_constraintEnd_toEndOf="parent">
 
                     <com.google.android.material.textfield.TextInputEditText
-                        android:id="@+id/etFullName"
+                        android:id="@+id/etLastName"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:hint="@string/hint_full_name"
+                        android:hint="Last Name"
                         android:inputType="textPersonName"
                         android:textColor="@color/text_primary"
                         android:textColorHint="@color/text_hint"
@@ -141,7 +225,7 @@
                     android:layout_height="wrap_content"
                     android:text="@string/label_email"
                     android:layout_marginTop="@dimen/spacing_lg"
-                    app:layout_constraintTop_toBottomOf="@id/tilFullName"
+                    app:layout_constraintTop_toBottomOf="@id/tilLastName"
                     app:layout_constraintStart_toStartOf="parent" />
 
                 <com.google.android.material.textfield.TextInputLayout

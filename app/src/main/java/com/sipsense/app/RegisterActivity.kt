@@ -10,7 +10,8 @@ package com.sipsense.app
  * ══════════════════════════════════════════════════════════════════════════
  * FEATURES:
  * ──────────────────────────────────────────────────────────────────────────
- * 1. Full Name, Email, Password, and Confirm Password fields
+ * 1. First Name, Middle Name (optional), Last Name, Email, Password,
+ *    and Confirm Password fields
  * 2. Real-time password strength indicator:
  *    - 4-segment color-coded strength bar
  *    - 4 criteria checklist (length, case, number, symbol)
@@ -19,18 +20,6 @@ package com.sipsense.app
  * 4. Daily Hydration Target input (number with mL unit)
  * 5. Terms of Service checkbox with clickable links
  * 6. Comprehensive form validation on submit
- *
- * ══════════════════════════════════════════════════════════════════════════
- * PASSWORD STRENGTH SCORING:
- * ──────────────────────────────────────────────────────────────────────────
- * Score is calculated based on 4 independent criteria:
- * | Score | Criteria Met    | Label  | Bar Color | Segments Lit |
- * |-------|-----------------|--------|-----------|--------------|
- * | 0     | None            | --     | Grey      | 0/4          |
- * | 1     | 1 of 4          | Weak   | Red       | 1/4          |
- * | 2     | 2 of 4          | Fair   | Orange    | 2/4          |
- * | 3     | 3 of 4          | Good   | Teal      | 3/4          |
- * | 4     | All 4           | Strong | Green     | 4/4          |
  *
  * ══════════════════════════════════════════════════════════════════════════
  * LAYOUT: res/layout/activity_register.xml (ConstraintLayout-based)
@@ -75,10 +64,18 @@ class RegisterActivity : AppCompatActivity() {
     // VIEW REFERENCES
     // ═══════════════════════════════════════════════════════════════════
 
-    // ── Form Input Fields ────────────────────────────────────────────
-    /** Full Name field container and input */
-    private lateinit var tilFullName: TextInputLayout
-    private lateinit var etFullName: TextInputEditText
+    // ── Name Fields ──────────────────────────────────────────────────
+    /** First Name field container and input */
+    private lateinit var tilFirstName: TextInputLayout
+    private lateinit var etFirstName: TextInputEditText
+
+    /** Middle Name field container and input (optional) */
+    private lateinit var tilMiddleName: TextInputLayout
+    private lateinit var etMiddleName: TextInputEditText
+
+    /** Last Name field container and input */
+    private lateinit var tilLastName: TextInputLayout
+    private lateinit var etLastName: TextInputEditText
 
     /** Email field container and input */
     private lateinit var tilEmail: TextInputLayout
@@ -107,10 +104,10 @@ class RegisterActivity : AppCompatActivity() {
     private lateinit var strengthSegment4: View
 
     /** Password criteria checklist TextViews (○/● prefix toggled in code) */
-    private lateinit var tvCriteriaLength: TextView   // "○  8+ characters"
-    private lateinit var tvCriteriaCase: TextView     // "○  Upper & Lowercase"
-    private lateinit var tvCriteriaNumber: TextView   // "○  1+ number"
-    private lateinit var tvCriteriaSymbol: TextView   // "○  1+ symbol (!@#$)"
+    private lateinit var tvCriteriaLength: TextView
+    private lateinit var tvCriteriaCase: TextView
+    private lateinit var tvCriteriaNumber: TextView
+    private lateinit var tvCriteriaSymbol: TextView
 
     // ── Other Controls ───────────────────────────────────────────────
     /** Terms of Service agreement checkbox (must be checked to register) */
@@ -133,13 +130,6 @@ class RegisterActivity : AppCompatActivity() {
     // LIFECYCLE
     // ═══════════════════════════════════════════════════════════════════
 
-    /**
-     * Called when the activity is first created.
-     * Initializes all views, configures event listeners, and sets up
-     * the password strength monitoring system.
-     *
-     * @param savedInstanceState Bundle containing previously saved state (if any)
-     */
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_register)
@@ -162,14 +152,18 @@ class RegisterActivity : AppCompatActivity() {
     // VIEW INITIALIZATION
     // ═══════════════════════════════════════════════════════════════════
 
-    /**
-     * Binds all UI elements from the layout XML to their Kotlin references.
-     * Organized by section: form fields, strength indicator, controls.
-     */
     private fun initializeViews() {
-        // Full Name field
-        tilFullName = findViewById(R.id.tilFullName)
-        etFullName = findViewById(R.id.etFullName)
+        // First Name field
+        tilFirstName = findViewById(R.id.tilFirstName)
+        etFirstName = findViewById(R.id.etFirstName)
+
+        // Middle Name field (optional)
+        tilMiddleName = findViewById(R.id.tilMiddleName)
+        etMiddleName = findViewById(R.id.etMiddleName)
+
+        // Last Name field
+        tilLastName = findViewById(R.id.tilLastName)
+        etLastName = findViewById(R.id.etLastName)
 
         // Email field
         tilEmail = findViewById(R.id.tilEmail)
@@ -207,162 +201,76 @@ class RegisterActivity : AppCompatActivity() {
     }
 
     // ═══════════════════════════════════════════════════════════════════
-    // PASSWORD STRENGTH MONITORING
+    // PASSWORD STRENGTH MONITORING (unchanged)
     // ═══════════════════════════════════════════════════════════════════
 
-    /**
-     * Attaches a TextWatcher to the password input field that triggers
-     * real-time password strength evaluation on every keystroke.
-     *
-     * The TextWatcher calls [updatePasswordStrength] after each text change,
-     * which updates the strength bar, label, and criteria indicators.
-     */
     private fun setupPasswordStrengthWatcher() {
         etPassword.addTextChangedListener(object : TextWatcher {
-            // Not used – required by interface
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
-
-            // Not used – required by interface
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
 
-            /**
-             * Called after the password text has changed.
-             * Triggers a full password strength re-evaluation.
-             */
             override fun afterTextChanged(s: Editable?) {
                 updatePasswordStrength(s.toString())
             }
         })
     }
 
-    /**
-     * Evaluates password strength based on 4 independent criteria and
-     * updates all related UI elements accordingly.
-     *
-     * Criteria:
-     * 1. **Length**: Password is at least 8 characters long
-     * 2. **Case**: Contains both uppercase AND lowercase letters
-     * 3. **Number**: Contains at least one digit (0-9)
-     * 4. **Symbol**: Contains at least one special character (!@#$%^&*...)
-     *
-     * Each met criterion contributes 1 point to the score (0-4).
-     * The score determines the strength label, bar color, and lit segments.
-     *
-     * @param password The current password text to evaluate
-     */
     private fun updatePasswordStrength(password: String) {
         var score = 0
 
-        // ── Criterion 1: Minimum length of 8 characters ──
         val hasLength = password.length >= 8
         if (hasLength) score++
         updateCriteriaIndicator(tvCriteriaLength, hasLength, getString(R.string.criteria_length))
 
-        // ── Criterion 2: Contains both upper and lowercase letters ──
         val hasUppercase = password.any { it.isUpperCase() }
         val hasLowercase = password.any { it.isLowerCase() }
         val hasCase = hasUppercase && hasLowercase
         if (hasCase) score++
         updateCriteriaIndicator(tvCriteriaCase, hasCase, getString(R.string.criteria_case))
 
-        // ── Criterion 3: Contains at least one digit ──
         val hasNumber = password.any { it.isDigit() }
         if (hasNumber) score++
         updateCriteriaIndicator(tvCriteriaNumber, hasNumber, getString(R.string.criteria_number))
 
-        // ── Criterion 4: Contains at least one special character ──
         val hasSymbol = password.any { !it.isLetterOrDigit() }
         if (hasSymbol) score++
         updateCriteriaIndicator(tvCriteriaSymbol, hasSymbol, getString(R.string.criteria_symbol))
 
-        // Update the visual strength bar and text label
         updateStrengthBar(score)
         updateStrengthLabel(score)
     }
 
-    /**
-     * Updates a single criteria indicator's visual state.
-     *
-     * When the criterion is met:
-     * - Circle prefix changes from ○ (outline) to ● (filled)
-     * - Text color changes to teal (strength_good)
-     *
-     * When the criterion is NOT met:
-     * - Circle prefix shows ○ (outline)
-     * - Text color is grey (text_secondary)
-     *
-     * @param textView The criteria TextView to update
-     * @param isMet Whether the criterion is currently satisfied
-     * @param baseText The original criteria text from strings.xml (e.g., "○  8+ characters")
-     */
     private fun updateCriteriaIndicator(textView: TextView, isMet: Boolean, baseText: String) {
         if (isMet) {
-            // Replace outline circle with filled circle and apply teal color
             textView.text = baseText.replaceFirst("○", "●")
             textView.setTextColor(ContextCompat.getColor(this, R.color.strength_good))
         } else {
-            // Ensure outline circle is shown with grey color
             textView.text = baseText.replaceFirst("●", "○")
             textView.setTextColor(ContextCompat.getColor(this, R.color.text_secondary))
         }
     }
 
-    /**
-     * Updates the 4-segment password strength bar based on the current score.
-     *
-     * Segments are lit from left to right. All lit segments share the same
-     * color corresponding to the current strength level:
-     * - Score 0: All grey (inactive)
-     * - Score 1: 1 red segment, 3 grey
-     * - Score 2: 2 orange segments, 2 grey
-     * - Score 3: 3 teal segments, 1 grey
-     * - Score 4: 4 green segments (all lit)
-     *
-     * Uses backgroundTintList to change segment colors while preserving
-     * the rounded corner shape defined in bg_password_strength_segment.xml.
-     *
-     * @param score The number of criteria met (0-4)
-     */
     private fun updateStrengthBar(score: Int) {
-        // Collect all 4 segments into a list for indexed iteration
         val segments = listOf(strengthSegment1, strengthSegment2, strengthSegment3, strengthSegment4)
 
-        // Determine the color for lit segments based on score
         val activeColorRes = when (score) {
-            1 -> R.color.strength_weak      // Red – weak
-            2 -> R.color.strength_fair      // Orange – fair
-            3 -> R.color.strength_good      // Teal – good
-            4 -> R.color.strength_strong    // Green – strong
-            else -> R.color.strength_inactive // Grey – none met
+            1 -> R.color.strength_weak
+            2 -> R.color.strength_fair
+            3 -> R.color.strength_good
+            4 -> R.color.strength_strong
+            else -> R.color.strength_inactive
         }
 
-        // Inactive segment color (grey)
         val inactiveColorRes = R.color.strength_inactive
 
-        // Update each segment: lit if index < score, otherwise grey
         for (i in segments.indices) {
             val colorRes = if (i < score) activeColorRes else inactiveColorRes
             val color = ContextCompat.getColor(this, colorRes)
-
-            // Use backgroundTintList to preserve the drawable shape
             segments[i].backgroundTintList = ColorStateList.valueOf(color)
         }
     }
 
-    /**
-     * Updates the password strength text label based on the current score.
-     *
-     * Label values and their corresponding colors:
-     * - 0: "--" (grey) – no criteria met
-     * - 1: "Weak" (red)
-     * - 2: "Fair" (orange)
-     * - 3: "Good" (teal)
-     * - 4: "Strong" (green)
-     *
-     * @param score The number of criteria met (0-4)
-     */
     private fun updateStrengthLabel(score: Int) {
-        // Set the strength text
         tvStrengthValue.text = when (score) {
             1 -> getString(R.string.strength_weak)
             2 -> getString(R.string.strength_fair)
@@ -371,7 +279,6 @@ class RegisterActivity : AppCompatActivity() {
             else -> getString(R.string.strength_placeholder)
         }
 
-        // Set the text color to match the strength level
         val colorRes = when (score) {
             1 -> R.color.strength_weak
             2 -> R.color.strength_fair
@@ -383,23 +290,13 @@ class RegisterActivity : AppCompatActivity() {
     }
 
     // ═══════════════════════════════════════════════════════════════════
-    // TERMS OF SERVICE CHECKBOX
+    // TERMS OF SERVICE CHECKBOX (unchanged)
     // ═══════════════════════════════════════════════════════════════════
 
-    /**
-     * Configures the Terms of Service checkbox with clickable links.
-     *
-     * Builds a SpannableString:
-     * "I agree to the **Terms of Service** and **Privacy Policy**."
-     *
-     * Both "Terms of Service" and "Privacy Policy" are rendered as
-     * clickable, teal-colored links. Currently show toast placeholders.
-     */
     private fun setupTermsCheckbox() {
         val fullText = getString(R.string.terms_agreement)
         val spannable = SpannableString(fullText)
 
-        // "Terms of Service" clickable span
         val tosText = getString(R.string.terms_of_service)
         val tosStart = fullText.indexOf(tosText)
         if (tosStart >= 0) {
@@ -411,7 +308,6 @@ class RegisterActivity : AppCompatActivity() {
             )
         }
 
-        // "Privacy Policy" clickable span
         val ppText = getString(R.string.privacy_policy)
         val ppStart = fullText.indexOf(ppText)
         if (ppStart >= 0) {
@@ -423,25 +319,14 @@ class RegisterActivity : AppCompatActivity() {
             )
         }
 
-        // Apply the spannable text to the checkbox
         cbTerms.text = spannable
         cbTerms.movementMethod = LinkMovementMethod.getInstance()
         cbTerms.highlightColor = ContextCompat.getColor(this, android.R.color.transparent)
     }
 
-    /**
-     * Creates a ClickableSpan for terms/privacy links in the checkbox text.
-     *
-     * The link is styled with teal color and underline, and displays
-     * a toast with the link name when tapped.
-     *
-     * @param linkName The name of the link (for the toast message)
-     * @return A configured ClickableSpan instance
-     */
     private fun createLinkSpan(linkName: String): ClickableSpan {
         return object : ClickableSpan() {
             override fun onClick(widget: View) {
-                // TODO: Open Terms of Service or Privacy Policy page
                 Toast.makeText(
                     this@RegisterActivity,
                     "$linkName – Coming soon!",
@@ -464,42 +349,48 @@ class RegisterActivity : AppCompatActivity() {
     // CREATE ACCOUNT BUTTON
     // ═══════════════════════════════════════════════════════════════════
 
-    /**
-     * Configures the "Create SipSense Account" button with comprehensive
-     * form validation.
-     *
-     * Validation flow (stops at first failure):
-     * 1. Full Name – must not be empty
-     * 2. Email – must not be empty and must be valid format
-     * 3. Password – must not be empty and must be >= 8 characters
-     * 4. Confirm Password – must match the password field
-     * 5. Hydration Target – must not be empty and within valid range (500-10000 mL)
-     * 6. Terms of Service – checkbox must be checked
-     *
-     * If all validations pass, displays a success toast.
-     * TODO: Replace with actual registration API call.
-     */
     private fun setupCreateAccountButton() {
         btnCreateAccount.setOnClickListener {
             // ── Clear all previous error states ──
-            tilFullName.error = null
+            tilFirstName.error = null
+            tilMiddleName.error = null
+            tilLastName.error = null
             tilEmail.error = null
             tilPassword.error = null
             tilConfirmPassword.error = null
             tilHydration.error = null
 
             // ── Extract input values ──
-            val fullName = etFullName.text.toString().trim()
+            val firstName = etFirstName.text.toString().trim()
+            val middleName = etMiddleName.text.toString().trim()
+            val lastName = etLastName.text.toString().trim()
             val email = etEmail.text.toString().trim()
             val password = etPassword.text.toString()
             val confirmPassword = etConfirmPassword.text.toString()
             val hydrationText = etHydration.text.toString().trim()
 
-            // ── Validation 1: Full Name ──
-            if (fullName.isEmpty()) {
-                tilFullName.error = getString(R.string.error_name_empty)
-                etFullName.requestFocus()
+            // ── Validation 1a: First Name ──
+            if (firstName.isEmpty()) {
+                tilFirstName.error = getString(R.string.error_first_name_empty)
+                etFirstName.requestFocus()
                 return@setOnClickListener
+            }
+
+            // Middle name is optional — no validation
+
+            // ── Validation 1b: Last Name ──
+            if (lastName.isEmpty()) {
+                tilLastName.error = getString(R.string.error_last_name_empty)
+                etLastName.requestFocus()
+                return@setOnClickListener
+            }
+
+            // Combine into a single display full name.
+            // Middle name is only included if the user provided it.
+            val fullName = if (middleName.isEmpty()) {
+                "$firstName $lastName"
+            } else {
+                "$firstName $middleName $lastName"
             }
 
             // ── Validation 2: Email ──
@@ -559,21 +450,20 @@ class RegisterActivity : AppCompatActivity() {
             // ══════════════════════════════════════════════════════════
             // ALL VALIDATIONS PASSED – Register with Firebase
             // ══════════════════════════════════════════════════════════
-
-            // Disable button to prevent duplicate submissions
             btnCreateAccount.isEnabled = false
 
-            // Create a new user account with Firebase Authentication
             firebaseAuth.createUserWithEmailAndPassword(email, password)
                 .addOnCompleteListener(this) { task ->
                     if (task.isSuccessful) {
-                        // ── Registration successful ──
                         val user = firebaseAuth.currentUser
 
                         if (user != null) {
                             val uid = user.uid
 
                             // Build the user profile data object
+                            // NOTE: UserProfile currently only has `fullName`.
+                            // If you want to store the fields separately, update
+                            // UserProfile.kt to add firstName/middleName/lastName.
                             val userProfile = UserProfile(
                                 fullName = fullName,
                                 email = email,
@@ -581,29 +471,21 @@ class RegisterActivity : AppCompatActivity() {
                                 createdAt = System.currentTimeMillis()
                             )
 
-                            // Write the profile to Realtime Database at /users/{uid}
-                            // This operation is asynchronous and handles offline queuing automatically.
-                            // We don't block the UI waiting for the server callback.
                             val database = this.database
                             if (database != null) {
                                 database.child("users").child(uid).setValue(userProfile)
                                     .addOnFailureListener { e ->
-                                        // Log failure if it happens later (e.g. permission denied)
                                         e.printStackTrace()
                                     }
                             } else {
-                                // No Realtime Database is configured, so this profile cannot be
-                                // stored. FirebaseDatabaseProvider has already logged the fix.
                                 Log.e(
                                     "SipSenseDatabase",
                                     "Profile for the new account was not stored: no Realtime " +
-                                        "Database is configured for this build."
+                                            "Database is configured for this build."
                                 )
                             }
 
-                            // Store the full name on the Auth account itself so the
-                            // Profile screen can display it even without a database.
-                            // Wait for it to finish before navigateToLogin() signs out.
+                            // Save the display name on the Auth user
                             val profileUpdate = UserProfileChangeRequest.Builder()
                                 .setDisplayName(fullName)
                                 .build()
@@ -619,12 +501,9 @@ class RegisterActivity : AppCompatActivity() {
                                     navigateToLogin()
                                 }
                         } else {
-                            // User was null (rare edge case) – still navigate
                             navigateToLogin()
                         }
                     } else {
-                        // ── Registration failed ──
-                        // Display the Firebase error message (e.g., "email already in use")
                         Toast.makeText(
                             this,
                             "Registration failed: ${task.exception?.message}",
@@ -636,38 +515,24 @@ class RegisterActivity : AppCompatActivity() {
         }
     }
 
-    /**
-     * Signs out the current user, shows a success toast, and navigates
-     * to LoginActivity. Called after successful account creation.
-     */
     private fun navigateToLogin() {
-        // Show success feedback
         Toast.makeText(
             this,
             getString(R.string.msg_register_success),
             Toast.LENGTH_SHORT
         ).show()
 
-        // Sign out so user must log in with their new credentials
         firebaseAuth.signOut()
 
-        // Navigate to Login screen and close this activity
         val intent = Intent(this, LoginActivity::class.java)
         startActivity(intent)
         finish()
     }
 
     // ═══════════════════════════════════════════════════════════════════
-    // LOGIN NAVIGATION PROMPT
+    // LOGIN NAVIGATION PROMPT (unchanged)
     // ═══════════════════════════════════════════════════════════════════
 
-    /**
-     * Creates a SpannableString for the login navigation prompt:
-     * "Already have an account? **Log In**"
-     *
-     * The "Log In" portion is a clickable, teal-colored link that
-     * navigates back to LoginActivity.
-     */
     private fun setupLoginPrompt() {
         val prefix = getString(R.string.prompt_has_account)
         val linkText = getString(R.string.link_log_in)
@@ -679,19 +544,12 @@ class RegisterActivity : AppCompatActivity() {
 
         spannable.setSpan(
             object : ClickableSpan() {
-                /**
-                 * Called when "Log In" text is tapped.
-                 * Navigates to LoginActivity and closes RegisterActivity.
-                 */
                 override fun onClick(widget: View) {
                     val intent = Intent(this@RegisterActivity, LoginActivity::class.java)
                     startActivity(intent)
                     finish()
                 }
 
-                /**
-                 * Styles the "Log In" link with teal color, underline, and bold.
-                 */
                 override fun updateDrawState(ds: TextPaint) {
                     super.updateDrawState(ds)
                     ds.color = ContextCompat.getColor(
