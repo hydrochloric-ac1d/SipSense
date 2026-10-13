@@ -21,6 +21,7 @@ import org.json.JSONObject
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
+import java.util.TimeZone
 
 class DashboardFragment : Fragment() {
 
@@ -52,6 +53,7 @@ class DashboardFragment : Fragment() {
     
     private var profileListener: ValueEventListener? = null
     private var telemetryListener: ValueEventListener? = null
+    private var dailyTotalsListener: ValueEventListener? = null
 
     // ── Device & Hydration State ──
     private var isPolling = false
@@ -99,11 +101,15 @@ class DashboardFragment : Fragment() {
         setupGreeting()
         setupRecentSipTime()
         setupInitialDeviceStatus()
+
+        return view
+    }
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
         loadUserProfile()
         loadRecentSipFromFirebase()
         loadDeviceTelemetryFromFirebase()
-
-        return view
     }
     
     override fun onDestroyView() {
@@ -112,6 +118,7 @@ class DashboardFragment : Fragment() {
         if (uid != null) {
             profileListener?.let { database?.child("users")?.child(uid)?.removeEventListener(it) }
             telemetryListener?.let { database?.child("users")?.child(uid)?.child("device_telemetry")?.removeEventListener(it) }
+            dailyTotalsListener?.let { database?.child("users")?.child(uid)?.child("daily_totals")?.removeEventListener(it) }
         }
     }
 
@@ -165,50 +172,9 @@ class DashboardFragment : Fragment() {
                             currentBatteryLevel = battery
                             currentAmbientTemp = ambientTemp
 
-                            if (!isFirebaseRecentSipLoaded || !varFirebaseDailyTotalLoaded) {
-                                connection.disconnect()
-                                Thread.sleep(500)
-                                continue
-                            }
-                            
-                            val totalConsumed = dataObject.optInt("totalConsumedToday", 0)
-                            val sipAmount = dataObject.optInt("sipAmount", 0)
-                            val lastSipTimestampStr = dataObject.optString("lastSipTimestamp", "")
-                            
-                            var currentSipTimestampMs = 0L
-                            if (lastSipTimestampStr.isNotEmpty()) {
-                                try {
-                                    val parser = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.getDefault())
-                                    parser.timeZone = java.util.TimeZone.getTimeZone("UTC")
-                                    val date = parser.parse(lastSipTimestampStr)
-                                    if (date != null) {
-                                        currentSipTimestampMs = date.time
-                                    }
-                                } catch (e: Exception) {
-                                    e.printStackTrace()
-                                }
-                            }
-
-                            // Detect a genuinely new sip and save to Firebase
                             val uid = firebaseAuth.currentUser?.uid
-                            if (currentSipTimestampMs > lastSavedSipTimestampMs && sipAmount > 0) {
-                                lastSavedSipTimestampMs = currentSipTimestampMs
-                                currentDailyTotal += sipAmount
-                                
-                                if (uid != null && database != null) {
-                                    // 1. Save the individual sip record
-                                    val recordRef = database.child("users").child(uid).child("sip_records").push()
-                                    val newRecord = com.sipsense.app.model.SipRecord(sipAmount, currentSipTimestampMs)
-                                    recordRef.setValue(newRecord)
-                                    
-                                    // 2. Save the total daily sip record
-                                    val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
-                                    val dateKey = dateFormat.format(java.util.Date(currentSipTimestampMs))
-                                    database.child("users").child(uid).child("daily_totals").child(dateKey).setValue(currentDailyTotal)
-                                }
-                            }
 
-                            // Save device telemetry to Firebase for persistence
+                            // 1. Immediately update and persist device telemetry for the active user ID
                             if (uid != null && database != null) {
                                 val telemetryMap = mapOf(
                                     "waterLevel" to waterLevel,
@@ -220,16 +186,13 @@ class DashboardFragment : Fragment() {
                                     "lastUpdated" to System.currentTimeMillis()
                                 )
                                 database.child("users").child(uid).child("device_telemetry").setValue(telemetryMap)
+                                    .addOnFailureListener { e ->
+                                        android.util.Log.e("SipSenseDashboard", "Failed to persist telemetry for user $uid", e)
+                                    }
                             }
-                            
+
                             activity?.runOnUiThread {
                                 if (isAdded) {
-                                    updateProgressUI(currentDailyTotal)
-                                    
-                                    if (currentSipTimestampMs > 0) {
-                                        updateRecentSipUI(sipAmount, currentSipTimestampMs)
-                                    }
-
                                     updateDeviceStatusUI(
                                         waterLevel = waterLevel,
                                         bottleCapacity = bottleCapacity,
@@ -237,6 +200,64 @@ class DashboardFragment : Fragment() {
                                         ambientTemp = ambientTemp,
                                         isConnected = true
                                     )
+                                }
+                            }
+
+                            // 2. Process sip detection and daily hydration totals per user ID
+                            if (varFirebaseDailyTotalLoaded) {
+                                val sipAmount = dataObject.optInt("sipAmount", 0)
+                                val rawTimestamp = if (dataObject.isNull("lastSipTimestamp")) "" else dataObject.optString("lastSipTimestamp", "")
+                                
+                                var currentSipTimestampMs = 0L
+                                if (rawTimestamp.isNotBlank() && rawTimestamp != "null") {
+                                    currentSipTimestampMs = parseIsoTimestamp(rawTimestamp)
+                                }
+
+                                // If this is the user's first check with 0 recorded sips, avoid attributing stale sips
+                                if (lastSavedSipTimestampMs == 0L && currentSipTimestampMs > 0L) {
+                                    val now = System.currentTimeMillis()
+                                    if (now - currentSipTimestampMs > 15_000L) {
+                                        lastSavedSipTimestampMs = currentSipTimestampMs
+                                    }
+                                }
+
+                                // Detect genuinely new sip and save PER USER
+                                if (currentSipTimestampMs > lastSavedSipTimestampMs && sipAmount > 0) {
+                                    lastSavedSipTimestampMs = currentSipTimestampMs
+                                    currentDailyTotal += sipAmount
+                                    
+                                    if (uid != null && database != null) {
+                                        // 1. Save the individual sip record under /users/{uid}/sip_records
+                                        val recordRef = database.child("users").child(uid).child("sip_records").push()
+                                        val newRecord = com.sipsense.app.model.SipRecord(sipAmount, currentSipTimestampMs)
+                                        recordRef.setValue(newRecord)
+                                            .addOnSuccessListener {
+                                                android.util.Log.d("SipSenseDashboard", "Saved sip ($sipAmount ml) for user $uid")
+                                            }
+                                            .addOnFailureListener { e ->
+                                                android.util.Log.e("SipSenseDashboard", "Failed to save sip for user $uid", e)
+                                            }
+                                        
+                                        // 2. Save the total daily sip record under /users/{uid}/daily_totals/{dateKey}
+                                        val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+                                        val dateKey = dateFormat.format(java.util.Date(currentSipTimestampMs))
+                                        database.child("users").child(uid).child("daily_totals").child(dateKey).setValue(currentDailyTotal)
+                                            .addOnSuccessListener {
+                                                android.util.Log.d("SipSenseDashboard", "Updated daily total ($currentDailyTotal ml) for user $uid on $dateKey")
+                                            }
+                                            .addOnFailureListener { e ->
+                                                android.util.Log.e("SipSenseDashboard", "Failed to update daily total for user $uid", e)
+                                            }
+                                    }
+                                }
+
+                                activity?.runOnUiThread {
+                                    if (isAdded) {
+                                        updateProgressUI(currentDailyTotal)
+                                        if (currentSipTimestampMs > 0L && sipAmount > 0) {
+                                            updateRecentSipUI(sipAmount, currentSipTimestampMs)
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -258,6 +279,24 @@ class DashboardFragment : Fragment() {
                 Thread.sleep(3000)
             }
         }.start()
+    }
+
+    private fun parseIsoTimestamp(isoString: String): Long {
+        val patterns = arrayOf(
+            "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'",
+            "yyyy-MM-dd'T'HH:mm:ss'Z'",
+            "yyyy-MM-dd'T'HH:mm:ss.SSS",
+            "yyyy-MM-dd'T'HH:mm:ss"
+        )
+        for (pattern in patterns) {
+            try {
+                val parser = SimpleDateFormat(pattern, Locale.US)
+                parser.timeZone = java.util.TimeZone.getTimeZone("UTC")
+                val date = parser.parse(isoString)
+                if (date != null) return date.time
+            } catch (_: Exception) {}
+        }
+        return isoString.toLongOrNull() ?: 0L
     }
 
     private fun setupGreeting(firstName: String = "User") {
@@ -291,23 +330,29 @@ class DashboardFragment : Fragment() {
 
         profileListener = object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
-                if (!isAdded) return
-
                 val profile = snapshot.getValue(UserProfile::class.java) ?: return
                 
                 val name = profile.fullName.takeIf { it.isNotBlank() } ?: firstName
                 val shortName = name.substringBefore(" ").replaceFirstChar { it.uppercase() }
-                setupGreeting(shortName)
 
-                val target = profile.hydrationTarget
-                currentHydrationTarget = target
-                progressHydration.max = target
-                tvProgressMax.text = getString(R.string.progress_max_format_ml, target)
+                activity?.runOnUiThread {
+                    if (isAdded) {
+                        setupGreeting(shortName)
+                        val target = profile.hydrationTarget
+                        currentHydrationTarget = target
+                        progressHydration.max = target
+                        tvProgressMax.text = getString(R.string.progress_max_format_ml, target)
+                        updateProgressUI(currentDailyTotal)
+                    }
+                }
             }
 
             override fun onCancelled(error: DatabaseError) {
-                if (!isAdded) return
-                Toast.makeText(context, "Failed to load profile", Toast.LENGTH_SHORT).show()
+                activity?.runOnUiThread {
+                    if (isAdded) {
+                        Toast.makeText(context, "Failed to load profile", Toast.LENGTH_SHORT).show()
+                    }
+                }
             }
         }
         
@@ -315,7 +360,11 @@ class DashboardFragment : Fragment() {
     }
 
     private fun loadRecentSipFromFirebase() {
-        val uid = firebaseAuth.currentUser?.uid ?: return
+        val uid = firebaseAuth.currentUser?.uid ?: run {
+            isFirebaseRecentSipLoaded = true
+            varFirebaseDailyTotalLoaded = true
+            return
+        }
         
         // 1. Load Recent Sip
         database?.child("users")?.child(uid)?.child("sip_records")
@@ -323,56 +372,61 @@ class DashboardFragment : Fragment() {
             ?.limitToLast(1)
             ?.addListenerForSingleValueEvent(object : ValueEventListener {
                 override fun onDataChange(snapshot: DataSnapshot) {
-                    if (!isAdded) return
                     for (child in snapshot.children) {
                         val record = child.getValue(com.sipsense.app.model.SipRecord::class.java)
                         if (record != null) {
                             lastSavedSipTimestampMs = record.timestamp
-                            updateRecentSipUI(record.amount, record.timestamp)
+                            activity?.runOnUiThread {
+                                if (isAdded) {
+                                    updateRecentSipUI(record.amount, record.timestamp)
+                                }
+                            }
                         }
                     }
                     isFirebaseRecentSipLoaded = true
                 }
                 override fun onCancelled(error: DatabaseError) {
+                    android.util.Log.w("SipSenseDashboard", "Recent sip read cancelled: ${error.message}")
                     isFirebaseRecentSipLoaded = true
                 }
             })
             
         // 2. Load Daily Totals for Streak and Today's Progress
-        database?.child("users")?.child(uid)?.child("daily_totals")
-            ?.addValueEventListener(object : ValueEventListener {
-                override fun onDataChange(snapshot: DataSnapshot) {
-                    if (!isAdded) return
-                    val dailyTotals = mutableMapOf<String, Int>()
-                    for (child in snapshot.children) {
-                        val dateKey = child.key
-                        val total = child.getValue(Int::class.java)
-                        if (dateKey != null && total != null) {
-                            dailyTotals[dateKey] = total
-                        }
+        dailyTotalsListener = object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                val dailyTotals = mutableMapOf<String, Int>()
+                for (child in snapshot.children) {
+                    val dateKey = child.key
+                    val total = child.getValue(Int::class.java)
+                    if (dateKey != null && total != null) {
+                        dailyTotals[dateKey] = total
                     }
-                    
-                    val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
-                    val todayKey = dateFormat.format(java.util.Date())
-                    
-                    currentDailyTotal = dailyTotals[todayKey] ?: 0
-                    activity?.runOnUiThread {
+                }
+                
+                val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+                val todayKey = dateFormat.format(java.util.Date())
+                
+                currentDailyTotal = dailyTotals[todayKey] ?: 0
+                activity?.runOnUiThread {
+                    if (isAdded) {
                         updateProgressUI(currentDailyTotal)
                         calculateAndDisplayStreak(dailyTotals)
                     }
-                    varFirebaseDailyTotalLoaded = true
                 }
-                override fun onCancelled(error: DatabaseError) {
-                    varFirebaseDailyTotalLoaded = true
-                }
-            })
+                varFirebaseDailyTotalLoaded = true
+            }
+            override fun onCancelled(error: DatabaseError) {
+                android.util.Log.w("SipSenseDashboard", "Daily totals read cancelled: ${error.message}")
+                varFirebaseDailyTotalLoaded = true
+            }
+        }
+        database?.child("users")?.child(uid)?.child("daily_totals")?.addValueEventListener(dailyTotalsListener!!)
     }
 
     private fun loadDeviceTelemetryFromFirebase() {
         val uid = firebaseAuth.currentUser?.uid ?: return
         telemetryListener = object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
-                if (!isAdded) return
                 val waterLevel = snapshot.child("waterLevel").getValue(Int::class.java) ?: currentBottleWaterLevel
                 val bottleCapacity = snapshot.child("bottleCapacity").getValue(Int::class.java) ?: currentBottleCapacity
                 val battery = snapshot.child("batteryLevel").getValue(Int::class.java) ?: currentBatteryLevel

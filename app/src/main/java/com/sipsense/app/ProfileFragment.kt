@@ -200,7 +200,10 @@ class ProfileFragment : Fragment() {
         updateTargetIndicator(sliderHydration.value.roundToInt())
 
         // ── Override with the Realtime Database profile, if available ──
-        val database = this.database ?: return
+        val database = this.database ?: run {
+            Toast.makeText(context, "Failed to load profile", Toast.LENGTH_SHORT).show()
+            return
+        }
 
         database.child("users").child(uid)
             .addListenerForSingleValueEvent(object : ValueEventListener {

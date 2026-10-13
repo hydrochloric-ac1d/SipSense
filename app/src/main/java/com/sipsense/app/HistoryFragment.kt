@@ -56,6 +56,9 @@ class HistoryFragment : Fragment() {
     private val daysList = mutableListOf<HydrationDay>()
     private lateinit var adapter: HistoryAdapter
 
+    private var dailyTotalsListener: ValueEventListener? = null
+    private var sipRecordsListener: ValueEventListener? = null
+
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
@@ -82,6 +85,15 @@ class HistoryFragment : Fragment() {
         return view
     }
 
+    override fun onDestroyView() {
+        super.onDestroyView()
+        val uid = firebaseAuth.currentUser?.uid
+        if (uid != null) {
+            dailyTotalsListener?.let { database?.child("users")?.child(uid)?.child("daily_totals")?.removeEventListener(it) }
+            sipRecordsListener?.let { database?.child("users")?.child(uid)?.child("sip_records")?.removeEventListener(it) }
+        }
+    }
+
     // ═══════════════════════════════════════════════════════════════════
     // FIREBASE LOADERS
     // ═══════════════════════════════════════════════════════════════════
@@ -92,11 +104,14 @@ class HistoryFragment : Fragment() {
         database?.child("users")?.child(uid)
             ?.addListenerForSingleValueEvent(object : ValueEventListener {
                 override fun onDataChange(snapshot: DataSnapshot) {
-                    if (!isAdded) return
                     val profile = snapshot.getValue(UserProfile::class.java)
                     if (profile != null && profile.hydrationTarget > 0) {
                         targetMl = profile.hydrationTarget
-                        rebuildDayList()
+                        activity?.runOnUiThread {
+                            if (isAdded) {
+                                rebuildDayList()
+                            }
+                        }
                     }
                 }
 
@@ -107,47 +122,55 @@ class HistoryFragment : Fragment() {
     /** Loads /users/{uid}/daily_totals — one entry per date key. */
     private fun loadDailyTotals() {
         val uid = firebaseAuth.currentUser?.uid ?: return
-        database?.child("users")?.child(uid)?.child("daily_totals")
-            ?.addValueEventListener(object : ValueEventListener {
-                override fun onDataChange(snapshot: DataSnapshot) {
-                    if (!isAdded) return
-                    dailyTotals.clear()
-                    for (child in snapshot.children) {
-                        val key = child.key ?: continue
-                        val value = child.getValue(Int::class.java) ?: 0
-                        dailyTotals[key] = value
-                    }
-                    rebuildDayList()
+        dailyTotalsListener = object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                dailyTotals.clear()
+                for (child in snapshot.children) {
+                    val key = child.key ?: continue
+                    val value = child.getValue(Int::class.java) ?: 0
+                    dailyTotals[key] = value
                 }
+                activity?.runOnUiThread {
+                    if (isAdded) {
+                        rebuildDayList()
+                    }
+                }
+            }
 
-                override fun onCancelled(error: DatabaseError) {}
-            })
+            override fun onCancelled(error: DatabaseError) {}
+        }
+        database?.child("users")?.child(uid)?.child("daily_totals")
+            ?.addValueEventListener(dailyTotalsListener!!)
     }
 
     /** Loads /users/{uid}/sip_records — every individual sip ever logged. */
     private fun loadSipRecords() {
         val uid = firebaseAuth.currentUser?.uid ?: return
-        database?.child("users")?.child(uid)?.child("sip_records")
-            ?.addValueEventListener(object : ValueEventListener {
-                override fun onDataChange(snapshot: DataSnapshot) {
-                    if (!isAdded) return
-                    sipsByDay.clear()
-                    val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
-                    for (child in snapshot.children) {
-                        val record = child.getValue(SipRecord::class.java) ?: continue
-                        val dateKey = dateFormat.format(java.util.Date(record.timestamp))
-                        sipsByDay.getOrPut(dateKey) { mutableListOf() }
-                            .add(HydrationSip(record.amount, record.timestamp))
-                    }
-                    // Sort each day's sips newest first
-                    sipsByDay.values.forEach { list ->
-                        list.sortByDescending { it.timestampMs }
-                    }
-                    rebuildDayList()
+        sipRecordsListener = object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                sipsByDay.clear()
+                val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+                for (child in snapshot.children) {
+                    val record = child.getValue(SipRecord::class.java) ?: continue
+                    val dateKey = dateFormat.format(java.util.Date(record.timestamp))
+                    sipsByDay.getOrPut(dateKey) { mutableListOf() }
+                        .add(HydrationSip(record.amount, record.timestamp))
                 }
+                // Sort each day's sips newest first
+                sipsByDay.values.forEach { list ->
+                    list.sortByDescending { it.timestampMs }
+                }
+                activity?.runOnUiThread {
+                    if (isAdded) {
+                        rebuildDayList()
+                    }
+                }
+            }
 
-                override fun onCancelled(error: DatabaseError) {}
-            })
+            override fun onCancelled(error: DatabaseError) {}
+        }
+        database?.child("users")?.child(uid)?.child("sip_records")
+            ?.addValueEventListener(sipRecordsListener!!)
     }
 
     // ═══════════════════════════════════════════════════════════════════
