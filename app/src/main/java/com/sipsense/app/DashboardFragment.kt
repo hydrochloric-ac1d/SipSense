@@ -229,7 +229,11 @@ class DashboardFragment : Fragment() {
                                     if (uid != null && database != null) {
                                         // 1. Save the individual sip record under /users/{uid}/sip_records
                                         val recordRef = database.child("users").child(uid).child("sip_records").push()
-                                        val newRecord = com.sipsense.app.model.SipRecord(sipAmount, currentSipTimestampMs)
+                                        val newRecord = com.sipsense.app.model.SipRecord(
+                                            amount = sipAmount,
+                                            timestamp = currentSipTimestampMs,
+                                            ambientTemperature = ambientTemp
+                                        )
                                         recordRef.setValue(newRecord)
                                             .addOnSuccessListener {
                                                 android.util.Log.d("SipSenseDashboard", "Saved sip ($sipAmount ml) for user $uid")

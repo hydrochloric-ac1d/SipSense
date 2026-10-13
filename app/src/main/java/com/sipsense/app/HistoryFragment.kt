@@ -154,7 +154,7 @@ class HistoryFragment : Fragment() {
                     val record = child.getValue(SipRecord::class.java) ?: continue
                     val dateKey = dateFormat.format(java.util.Date(record.timestamp))
                     sipsByDay.getOrPut(dateKey) { mutableListOf() }
-                        .add(HydrationSip(record.amount, record.timestamp))
+                        .add(HydrationSip(record.amount, record.timestamp, record.ambientTemperature))
                 }
                 // Sort each day's sips newest first
                 sipsByDay.values.forEach { list ->

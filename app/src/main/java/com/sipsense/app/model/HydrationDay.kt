@@ -42,5 +42,8 @@ data class HydrationSip(
     val amountMl: Int,
 
     /** Timestamp of the sip (milliseconds since epoch). */
-    val timestampMs: Long
+    val timestampMs: Long,
+
+    /** Ambient temperature in °C recorded at the time of the sip. */
+    val ambientTemperature: Int = 0
 )

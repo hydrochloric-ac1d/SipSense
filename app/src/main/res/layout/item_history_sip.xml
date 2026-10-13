@@ -28,6 +28,34 @@
         android:textSize="14sp"
         tools:text="9:30 AM" />
 
+    <!-- Ambient temperature of sip -->
+    <LinearLayout
+        android:id="@+id/layout_sip_temp"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:layout_marginEnd="16dp"
+        android:visibility="gone"
+        tools:visibility="visible">
+
+        <ImageView
+            android:layout_width="14dp"
+            android:layout_height="14dp"
+            android:src="@drawable/ic_temperature"
+            app:tint="@color/text_secondary"
+            android:contentDescription="@null"
+            android:layout_marginEnd="3dp" />
+
+        <TextView
+            android:id="@+id/tv_sip_temp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="@color/text_secondary"
+            android:textSize="13sp"
+            tools:text="24°C" />
+    </LinearLayout>
+
     <!-- Amount of sip -->
     <TextView
         android:id="@+id/tv_sip_amount"

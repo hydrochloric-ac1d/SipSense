@@ -154,11 +154,20 @@ class SipsAdapter(
     class SipViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         private val tvTime: TextView = view.findViewById(R.id.tv_sip_time)
         private val tvAmount: TextView = view.findViewById(R.id.tv_sip_amount)
+        private val layoutTemp: View = view.findViewById(R.id.layout_sip_temp)
+        private val tvTemp: TextView = view.findViewById(R.id.tv_sip_temp)
 
         fun bind(sip: HydrationSip) {
             tvTime.text = SimpleDateFormat("h:mm a", Locale.getDefault())
                 .format(Date(sip.timestampMs))
             tvAmount.text = "${sip.amountMl} ml"
+
+            if (sip.ambientTemperature > 0) {
+                layoutTemp.visibility = View.VISIBLE
+                tvTemp.text = "${sip.ambientTemperature}°C"
+            } else {
+                layoutTemp.visibility = View.GONE
+            }
         }
     }
 }
