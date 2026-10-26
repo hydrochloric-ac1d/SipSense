@@ -221,4 +221,15 @@
     <string name="dev_mode_filter_gatt">GATT/System</string>
     <string name="dev_mode_terminal_empty">Waiting for ESP32 Bluetooth signals...\nTap [Send Ping (TX)] or [Simulate Sip (RX)] to test signal transmission.</string>
 
+    <!-- ════════════════════════════════════════════════════════════════
+         NOTIFICATIONS SCREEN
+         ════════════════════════════════════════════════════════════════ -->
+    <string name="notifications_title">Notifications</string>
+    <string name="notifications_mark_all_read">Mark all read</string>
+    <string name="notifications_unread_badge">%1$d new</string>
+    <string name="notifications_empty_title">No Notifications Yet</string>
+    <string name="notifications_empty_subtitle">You\'re all caught up! Hydration reminders and smart bottle alerts will appear here.</string>
+    <string name="notifications_marked_all_read_toast">All notifications marked as read</string>
+    <string name="notification_item_marked_read">Marked as read</string>
+
 </resources>

@@ -63,27 +63,28 @@ class BottleBaseLoadCellCalculationTest {
     }
 
     @Test
-    fun `simulation toggle calculates sip and updates volume when placed on base`() {
+    fun `toggle base status does not add water unless sensor weight changed`() {
         var isBottleAtRest = true
         var displayedWaterLevel = 650
+        var latestSensorWaterLevel = 650
         var totalConsumedToday = 0
 
         // User taps indicator to lift bottle
         isBottleAtRest = !isBottleAtRest
         assertFalse(isBottleAtRest)
 
-        // User taps indicator again to place back on base (simulation mode)
+        // User taps indicator again to place back on base without drinking (no sensor level change)
         isBottleAtRest = !isBottleAtRest
         assertTrue(isBottleAtRest)
 
-        val simulatedSip = 35
-        val newLevel = (displayedWaterLevel - simulatedSip).coerceAtLeast(0)
-        val actualSip = displayedWaterLevel - newLevel
-        displayedWaterLevel = newLevel
-        totalConsumedToday += actualSip
+        // Only calculate sip if sensor telemetry reported a difference
+        if (latestSensorWaterLevel != displayedWaterLevel) {
+            val sip = (displayedWaterLevel - latestSensorWaterLevel).coerceAtLeast(0)
+            totalConsumedToday += sip
+            displayedWaterLevel = latestSensorWaterLevel
+        }
 
-        assertEquals(615, displayedWaterLevel)
-        assertEquals(35, actualSip)
-        assertEquals(35, totalConsumedToday)
+        assertEquals(650, displayedWaterLevel)
+        assertEquals(0, totalConsumedToday)
     }
 }

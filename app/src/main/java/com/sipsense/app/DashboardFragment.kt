@@ -19,6 +19,7 @@ import com.sipsense.app.data.FirebaseDatabaseProvider
 import com.sipsense.app.model.UserProfile
 import org.json.JSONObject
 import androidx.activity.result.contract.ActivityResultContracts
+import com.sipsense.app.data.NotificationRepository
 import com.sipsense.app.data.SipSenseBleManager
 import java.text.SimpleDateFormat
 import java.util.Calendar
@@ -75,6 +76,9 @@ class DashboardFragment : Fragment() {
     private var currentBottleCapacity: Int = 1000
     private var currentBatteryLevel: Int = 88
     private var currentAmbientTemp: Int = 24
+    private var isDeviceConnected: Boolean = true
+
+    private fun isDeviceOnline(): Boolean = bleManager?.isConnected == true || isDeviceConnected
 
     // ── BLE Connection Manager ──
     private var bleManager: SipSenseBleManager? = null
@@ -102,10 +106,15 @@ class DashboardFragment : Fragment() {
             context = appContext,
             onConnectionStateChanged = { isConnected, deviceName ->
                 if (isAdded) {
+                    isDeviceConnected = isConnected
                     updateDeviceConnectionBadge(isConnected)
                     (activity as? MainActivity)?.updateWifiStatus(isConnected)
                     if (isConnected && deviceName != null) {
                         tvDeviceName.text = deviceName
+                    }
+                    val currentUid = firebaseAuth.currentUser?.uid
+                    if (currentUid != null) {
+                        NotificationRepository.evaluateConnectionAlert(currentUid, isConnected)
                     }
                 }
             },
@@ -212,43 +221,37 @@ class DashboardFragment : Fragment() {
             bottleCapacity = currentBottleCapacity,
             batteryLevel = currentBatteryLevel,
             ambientTemp = currentAmbientTemp,
-            isConnected = false
+            isConnected = isDeviceOnline()
         )
     }
 
     /**
-     * Toggles the bottle's resting state on the base platform for simulation purposes.
-     * Specification:
-     * "The system shall calculate fluid volume in real-time by subtracting the updated
-     * bottle weight from the prior full reference weight using the Load Cell and HX711
-     * amplifier whenever the bottle rests on the base."
+     * Toggles the bottle's resting state on the base platform.
+     * When lifted: measurement pauses and water level display is held steady.
+     * When placed at rest on base: calculates fluid volume if telemetry changed while off-base.
+     * Does NOT fabricate artificial sips.
      */
     private fun toggleBottleRestState() {
         isBottleAtRest = !isBottleAtRest
         updateBaseRestIndicatorUI(isBottleAtRest)
 
+        val now = System.currentTimeMillis()
+        val uid = firebaseAuth.currentUser?.uid
+
         if (isBottleAtRest) {
             // Bottle has returned to rest on the base:
-            // Calculate fluid volume and update the water level display!
-            val now = System.currentTimeMillis()
+            // Calculate fluid volume ONLY if sensor telemetry actually changed while lifted
             if (latestSensorWaterLevel != currentBottleWaterLevel) {
-                // Telemetry changed while bottle was lifted
                 val sipConsumed = (currentBottleWaterLevel - latestSensorWaterLevel).coerceAtLeast(0)
                 currentBottleWaterLevel = latestSensorWaterLevel
                 if (sipConsumed > 0) {
                     recordSipForUser(sipConsumed, now, currentAmbientTemp)
                 }
-            } else {
-                // Manual simulation mode (e.g. backend inactive or offline):
-                // Simulate taking a 35 ml sip and updating volume once placed on base!
-                val simulatedSip = 35
-                val newLevel = (currentBottleWaterLevel - simulatedSip).coerceAtLeast(0)
-                val actualSip = currentBottleWaterLevel - newLevel
-                currentBottleWaterLevel = newLevel
-                latestSensorWaterLevel = newLevel
-                if (actualSip > 0) {
-                    recordSipForUser(actualSip, now, currentAmbientTemp)
-                }
+            }
+
+            // Persist the at-rest status to Firebase telemetry
+            if (uid != null && database != null) {
+                database.child("users").child(uid).child("device_telemetry").child("isBottleAtRest").setValue(true)
             }
 
             // Immediately refresh the water level display now that the bottle is resting
@@ -257,19 +260,23 @@ class DashboardFragment : Fragment() {
                 bottleCapacity = currentBottleCapacity,
                 batteryLevel = currentBatteryLevel,
                 ambientTemp = currentAmbientTemp,
-                isConnected = true
+                isConnected = isDeviceOnline()
             )
 
             val msg = getString(R.string.msg_bottle_placed_on_base, currentBottleWaterLevel)
             Toast.makeText(requireContext(), msg, Toast.LENGTH_SHORT).show()
         } else {
             // Bottle lifted from base: measurement paused, displayed water level held steady
+            if (uid != null && database != null) {
+                database.child("users").child(uid).child("device_telemetry").child("isBottleAtRest").setValue(false)
+            }
+
             updateDeviceStatusUI(
                 waterLevel = currentBottleWaterLevel,
                 bottleCapacity = currentBottleCapacity,
                 batteryLevel = currentBatteryLevel,
                 ambientTemp = currentAmbientTemp,
-                isConnected = true
+                isConnected = isDeviceOnline()
             )
             Toast.makeText(requireContext(), getString(R.string.msg_bottle_lifted), Toast.LENGTH_SHORT).show()
         }
@@ -338,6 +345,21 @@ class DashboardFragment : Fragment() {
                 updateRecentSipUI(sipAmount, timestampMs)
             }
         }
+
+        // Trigger daily goal reached notification if achieved
+        val currentUid = firebaseAuth.currentUser?.uid
+        if (currentUid != null) {
+            NotificationRepository.evaluateTelemetryForAlerts(
+                userId = currentUid,
+                waterLevel = currentBottleWaterLevel,
+                bottleCapacity = currentBottleCapacity,
+                batteryLevel = currentBatteryLevel,
+                ambientTemp = currentAmbientTemp,
+                dailyTotal = currentDailyTotal,
+                dailyTarget = currentHydrationTarget,
+                isAtRest = isBottleAtRest
+            )
+        }
     }
 
     /**
@@ -392,6 +414,18 @@ class DashboardFragment : Fragment() {
                 .addOnFailureListener { e ->
                     android.util.Log.e("SipSenseDashboard", "Failed to persist telemetry for user $uid", e)
                 }
+
+            // Evaluate smart alerts for water refill, low battery, high ambient temp, etc.
+            NotificationRepository.evaluateTelemetryForAlerts(
+                userId = uid,
+                waterLevel = currentBottleWaterLevel,
+                bottleCapacity = bottleCapacity,
+                batteryLevel = battery,
+                ambientTemp = ambientTemp,
+                dailyTotal = currentDailyTotal,
+                dailyTarget = currentHydrationTarget,
+                isAtRest = isBottleAtRest
+            )
         }
 
         activity?.runOnUiThread {
@@ -458,22 +492,10 @@ class DashboardFragment : Fragment() {
                         if (dataObject != null) {
                             processTelemetryData(dataObject)
                         }
-                    } else {
-                        activity?.runOnUiThread {
-                            if (isAdded && bleManager?.isConnected != true) {
-                                updateDeviceConnectionBadge(isConnected = false)
-                                (activity as? MainActivity)?.updateWifiStatus(false)
-                            }
-                        }
                     }
                     connection.disconnect()
-                } catch (e: Exception) {
-                    activity?.runOnUiThread {
-                        if (isAdded && bleManager?.isConnected != true) {
-                            updateDeviceConnectionBadge(isConnected = false)
-                            (activity as? MainActivity)?.updateWifiStatus(false)
-                        }
-                    }
+                } catch (_: Exception) {
+                    // Silent fallback: HTTP backend polling is an optional fallback and does not override connection state
                 }
                 Thread.sleep(3000)
             }
@@ -638,6 +660,16 @@ class DashboardFragment : Fragment() {
                 currentBatteryLevel = battery
                 currentAmbientTemp = ambientTemp
 
+                if (snapshot.hasChild("isBottleAtRest")) {
+                    val atRest = snapshot.child("isBottleAtRest").getValue(Boolean::class.java) ?: isBottleAtRest
+                    isBottleAtRest = atRest
+                    activity?.runOnUiThread {
+                        if (isAdded) {
+                            updateBaseRestIndicatorUI(isBottleAtRest)
+                        }
+                    }
+                }
+
                 if (isBottleAtRest) {
                     currentBottleWaterLevel = waterLevel
                 }
@@ -649,7 +681,7 @@ class DashboardFragment : Fragment() {
                             bottleCapacity = bottleCapacity,
                             batteryLevel = battery,
                             ambientTemp = ambientTemp,
-                            isConnected = bleManager?.isConnected == true
+                            isConnected = isDeviceOnline()
                         )
                     }
                 }

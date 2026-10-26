@@ -8,13 +8,34 @@ import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.sipsense.app.model.NotificationListItem
 
+/**
+ * NotificationsAdapter.kt
+ *
+ * RecyclerView adapter for displaying grouped notifications
+ * (Header sections such as TODAY, YESTERDAY, THIS WEEK, and Notification cards).
+ *
+ * Supports real-time updates from Firebase Realtime Database,
+ * visual unread accents, category-specific icons, and click handling.
+ *
+ * @project SipSense - Smart Bottle Ecosystem
+ * @version 1.1
+ */
 class NotificationsAdapter(
-    private val items: List<NotificationListItem>
+    private var items: List<NotificationListItem> = emptyList(),
+    private val onNotificationClick: ((NotificationListItem.Notification) -> Unit)? = null
 ) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
 
     companion object {
         private const val TYPE_HEADER = 0
         private const val TYPE_NOTIFICATION = 1
+    }
+
+    /**
+     * Updates adapter dataset and notifies observer for refreshing.
+     */
+    fun updateItems(newItems: List<NotificationListItem>) {
+        this.items = newItems
+        notifyDataSetChanged()
     }
 
     override fun getItemViewType(position: Int): Int {
@@ -46,6 +67,7 @@ class NotificationsAdapter(
                     item.isUnread = false
                     notifyItemChanged(holder.adapterPosition)
                 }
+                onNotificationClick?.invoke(item)
             }
         }
     }
@@ -72,13 +94,13 @@ class NotificationsAdapter(
             tvTitle.text = item.title
             tvMessage.text = item.message
             tvTime.text = item.timeAgo
-            
+
             if (item.iconResId != null) {
                 ivIcon.setImageResource(item.iconResId)
             } else {
                 ivIcon.setImageResource(R.drawable.ic_bell)
             }
-            
+
             val context = itemView.context
             if (item.isUnread) {
                 vAccent.visibility = View.VISIBLE
