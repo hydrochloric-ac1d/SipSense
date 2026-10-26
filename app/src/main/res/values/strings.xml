@@ -198,4 +198,27 @@
     <string name="msg_register_success">Account created successfully!</string>
     <string name="msg_forgot_password">Forgot Password feature coming soon!</string>
 
+    <!-- ════════════════════════════════════════════════════════════════
+         ESP32 DEVELOPER MODE (RESTRICTED TO testuser1@sipsense.com)
+         ════════════════════════════════════════════════════════════════ -->
+    <string name="dev_mode_title">ESP32 Developer Mode</string>
+    <string name="dev_mode_subtitle">Send/Receive Signal Terminal &amp; Hardware Profile</string>
+    <string name="dev_mode_authorized_badge">AUTHORIZED: testuser1@sipsense.com</string>
+    <string name="dev_mode_read_only_badge">READ-ONLY HARDWARE PROFILE • EDITS RESTRICTED</string>
+    <string name="dev_mode_unlocked_toast">Developer Mode unlocked! Opening ESP32 Terminal...</string>
+    <string name="dev_mode_steps_toast">You are %1$d steps away from Developer Mode.</string>
+    <string name="dev_mode_step_toast">You are 1 step away from Developer Mode.</string>
+    <string name="dev_mode_restricted_toast">Access Restricted: Developer Mode is only available for testuser1@sipsense.com</string>
+    <string name="dev_mode_tab_terminal">Signals Terminal</string>
+    <string name="dev_mode_tab_details">ESP32 Details (Read-Only)</string>
+    <string name="dev_mode_btn_send_ping">Send Ping (TX)</string>
+    <string name="dev_mode_btn_simulate_sip">Simulate Sip (RX)</string>
+    <string name="dev_mode_btn_clear">Clear</string>
+    <string name="dev_mode_btn_copy">Copy Logs</string>
+    <string name="dev_mode_filter_all">All Signals</string>
+    <string name="dev_mode_filter_tx">TX (Send)</string>
+    <string name="dev_mode_filter_rx">RX (Receive)</string>
+    <string name="dev_mode_filter_gatt">GATT/System</string>
+    <string name="dev_mode_terminal_empty">Waiting for ESP32 Bluetooth signals...\nTap [Send Ping (TX)] or [Simulate Sip (RX)] to test signal transmission.</string>
+
 </resources>

@@ -77,4 +77,22 @@
     <color name="status_bar">#153D47</color>          <!-- Dark teal status bar -->
     <color name="nav_unselected">#9E9E9E</color>      <!-- Grey for unselected nav items -->
 
+    <!-- ════════════════════════════════════════════════════════════════
+         BOTTLE LIFTED / BASE STATUS COLORS
+         ════════════════════════════════════════════════════════════════ -->
+    <color name="status_lifted_orange">#F59E0B</color>     <!-- Vibrant orange for lifted bottle -->
+    <color name="status_lifted_orange_bg">#FEF3C7</color>  <!-- Light amber container bg -->
+
+    <!-- ════════════════════════════════════════════════════════════════
+         DEVELOPER MODE & TERMINAL COLORS
+         ════════════════════════════════════════════════════════════════ -->
+    <color name="terminal_bg">#0B0F19</color>             <!-- Deep black/slate terminal background -->
+    <color name="terminal_surface">#111827</color>        <!-- Dark card surface -->
+    <color name="terminal_border">#1F2937</color>         <!-- Border for terminal window -->
+    <color name="signal_tx">#38BDF8</color>               <!-- Cyan / sky blue for outgoing TX signals -->
+    <color name="signal_rx">#4ADE80</color>               <!-- Emerald green for incoming RX signals -->
+    <color name="signal_gatt">#FBBF24</color>             <!-- Amber for GATT operation signals -->
+    <color name="signal_error">#F87171</color>            <!-- Red/Coral for signal errors -->
+    <color name="signal_info">#94A3B8</color>             <!-- Slate gray for signal info -->
+
 </resources>

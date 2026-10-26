@@ -59,11 +59,21 @@ class MainActivity : AppCompatActivity() {
     /** Bottom navigation bar with 4 tabs */
     private lateinit var bottomNavigation: BottomNavigationView
 
+    /** SipSense header logo icon for secret developer mode access */
+    private lateinit var ivHeaderLogo: ImageView
+
     /** WiFi status icon in the header bar */
     private lateinit var ivWifiIcon: ImageView
 
     /** WiFi status text label ("CONNECTED" / "DISCONNECTED") */
     private lateinit var tvWifiStatus: TextView
+
+    /** Shared Bluetooth BLE Manager instance */
+    var bleManager: com.sipsense.app.data.SipSenseBleManager? = null
+
+    /** Tap counter and timestamp for developer mode secret unlock (Samsung style: 5 taps) */
+    private var logoTapCount = 0
+    private var lastLogoTapTime = 0L
 
     // ═══════════════════════════════════════════════════════════════════
     // LIFECYCLE
@@ -90,8 +100,12 @@ class MainActivity : AppCompatActivity() {
 
         // ── Initialize views ──
         bottomNavigation = findViewById(R.id.bottom_navigation)
+        ivHeaderLogo = findViewById(R.id.iv_header_logo)
         ivWifiIcon = findViewById(R.id.iv_wifi_icon)
         tvWifiStatus = findViewById(R.id.tv_wifi_status)
+
+        // ── Set up secret developer mode on header logo (5 taps for testuser1@sipsense.com) ──
+        setupHeaderLogoDeveloperMode()
 
         // ── Set up bottom navigation listener ──
         setupBottomNavigation()
@@ -103,6 +117,54 @@ class MainActivity : AppCompatActivity() {
         if (savedInstanceState == null) {
             loadFragment(DashboardFragment())
         }
+    }
+
+    /**
+     * Sets up the tap gesture listener on the header logo.
+     * Tapping 5 times activates Developer Mode, exclusively for testuser1@sipsense.com.
+     */
+    private fun setupHeaderLogoDeveloperMode() {
+        ivHeaderLogo.setOnClickListener {
+            val currentUser = FirebaseAuth.getInstance().currentUser
+            val email = currentUser?.email
+
+            // Strictly restricted: only testuser1@sipsense.com can access
+            if (!email.equals("testuser1@sipsense.com", ignoreCase = true)) {
+                return@setOnClickListener
+            }
+
+            val now = System.currentTimeMillis()
+            if (now - lastLogoTapTime > 2000L) {
+                logoTapCount = 0
+            }
+            lastLogoTapTime = now
+            logoTapCount++
+
+            if (logoTapCount in 2..4) {
+                val remaining = 5 - logoTapCount
+                val msg = if (remaining == 1) {
+                    getString(R.string.dev_mode_step_toast)
+                } else {
+                    getString(R.string.dev_mode_steps_toast, remaining)
+                }
+                android.widget.Toast.makeText(this, msg, android.widget.Toast.LENGTH_SHORT).show()
+            } else if (logoTapCount >= 5) {
+                logoTapCount = 0
+                android.widget.Toast.makeText(
+                    this,
+                    getString(R.string.dev_mode_unlocked_toast),
+                    android.widget.Toast.LENGTH_SHORT
+                ).show()
+                openDeveloperMode()
+            }
+        }
+    }
+
+    /**
+     * Opens the DeveloperModeFragment into the fragment container.
+     */
+    fun openDeveloperMode() {
+        loadFragment(DeveloperModeFragment(), addToBackStack = true)
     }
 
     // ═══════════════════════════════════════════════════════════════════
@@ -145,15 +207,18 @@ class MainActivity : AppCompatActivity() {
      * Replaces the current fragment in the container with the given fragment.
      *
      * Uses FragmentTransaction.replace() to swap the entire contents
-     * of the fragment container. No back stack is maintained for
-     * top-level navigation destinations.
+     * of the fragment container.
      *
      * @param fragment The fragment to display in the container
+     * @param addToBackStack Whether to add this transaction to the fragment back stack
      */
-    private fun loadFragment(fragment: Fragment) {
-        supportFragmentManager.beginTransaction()
+    fun loadFragment(fragment: Fragment, addToBackStack: Boolean = false) {
+        val transaction = supportFragmentManager.beginTransaction()
             .replace(R.id.fragment_container, fragment)
-            .commit()
+        if (addToBackStack) {
+            transaction.addToBackStack(null)
+        }
+        transaction.commit()
     }
 
     // ═══════════════════════════════════════════════════════════════════

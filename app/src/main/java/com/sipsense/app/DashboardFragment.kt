@@ -51,14 +51,8 @@ class DashboardFragment : Fragment() {
     private lateinit var pbBottleTemp: ProgressBar
 
     // ── Bottle Base Rest Views (HX711 Load Cell) ──
-    private lateinit var layoutBaseRestStatus: View
     private lateinit var layoutBaseIconContainer: View
     private lateinit var ivBaseRestIcon: ImageView
-    private lateinit var tvBaseRestTitle: TextView
-    private lateinit var tvBaseRestSubtitle: TextView
-    private lateinit var layoutBaseRestBadge: View
-    private lateinit var vBaseRestDot: View
-    private lateinit var tvBaseRestBadge: TextView
 
     private val firebaseAuth = FirebaseAuth.getInstance()
     private val database = FirebaseDatabaseProvider.reference()
@@ -97,6 +91,11 @@ class DashboardFragment : Fragment() {
     }
 
     private fun initBleManager() {
+        val mainAct = activity as? MainActivity
+        if (mainAct?.bleManager != null) {
+            bleManager = mainAct.bleManager
+            return
+        }
         if (bleManager != null) return
         val appContext = context?.applicationContext ?: return
         bleManager = SipSenseBleManager(
@@ -117,6 +116,7 @@ class DashboardFragment : Fragment() {
                 android.util.Log.d("SipSenseDashboard", "BLE: $msg")
             }
         )
+        mainAct?.bleManager = bleManager
     }
 
     override fun onCreateView(
@@ -149,17 +149,11 @@ class DashboardFragment : Fragment() {
         tvDeviceTempStatus = view.findViewById(R.id.tv_device_temp_status)
         pbBottleTemp = view.findViewById(R.id.pb_bottle_temp)
 
-        // Bottle base rest indicator views (interactive simulation)
-        layoutBaseRestStatus = view.findViewById(R.id.layout_base_rest_status)
+        // Bottle base rest indicator view beside tv_device_name (interactive simulation)
         layoutBaseIconContainer = view.findViewById(R.id.layout_base_icon_container)
         ivBaseRestIcon = view.findViewById(R.id.iv_base_rest_icon)
-        tvBaseRestTitle = view.findViewById(R.id.tv_base_rest_title)
-        tvBaseRestSubtitle = view.findViewById(R.id.tv_base_rest_subtitle)
-        layoutBaseRestBadge = view.findViewById(R.id.layout_base_rest_badge)
-        vBaseRestDot = view.findViewById(R.id.v_base_rest_dot)
-        tvBaseRestBadge = view.findViewById(R.id.tv_base_rest_badge)
 
-        layoutBaseRestStatus.setOnClickListener {
+        layoutBaseIconContainer.setOnClickListener {
             toggleBottleRestState()
         }
 
@@ -179,9 +173,12 @@ class DashboardFragment : Fragment() {
     
     override fun onDestroyView() {
         super.onDestroyView()
-        bleManager?.disconnect()
-        bleManager = null
         val uid = firebaseAuth.currentUser?.uid
+        if (activity?.isFinishing == true || uid == null) {
+            bleManager?.disconnect()
+            bleManager = null
+            (activity as? MainActivity)?.bleManager = null
+        }
         if (uid != null) {
             profileListener?.let { database?.child("users")?.child(uid)?.removeEventListener(it) }
             telemetryListener?.let { database?.child("users")?.child(uid)?.child("device_telemetry")?.removeEventListener(it) }
@@ -280,31 +277,21 @@ class DashboardFragment : Fragment() {
 
     /**
      * Updates the visual indicator for bottle resting on base vs lifted.
+     * When lifted: uses layout_base_icon_container beside tv_device_name, colored orange.
+     * When at rest: uses teal theme.
      */
     private fun updateBaseRestIndicatorUI(isAtRest: Boolean) {
         if (!isAdded) return
         if (isAtRest) {
-            layoutBaseRestStatus.setBackgroundResource(R.drawable.bg_base_rest_card_at_rest)
             layoutBaseIconContainer.setBackgroundResource(R.drawable.bg_circle_light_teal)
             ivBaseRestIcon.setImageResource(R.drawable.ic_base_rest)
             ivBaseRestIcon.imageTintList = ContextCompat.getColorStateList(requireContext(), R.color.teal_primary)
-            tvBaseRestTitle.text = getString(R.string.bottle_status_at_rest)
-            tvBaseRestSubtitle.text = getString(R.string.bottle_rest_desc_active)
-            layoutBaseRestBadge.setBackgroundResource(R.drawable.bg_pill_at_rest)
-            vBaseRestDot.setBackgroundResource(R.drawable.bg_circle_green)
-            tvBaseRestBadge.text = getString(R.string.badge_at_rest)
-            tvBaseRestBadge.setTextColor(ContextCompat.getColor(requireContext(), R.color.teal_primary))
+            layoutBaseIconContainer.contentDescription = getString(R.string.bottle_status_at_rest)
         } else {
-            layoutBaseRestStatus.setBackgroundResource(R.drawable.bg_base_rest_card_lifted)
             layoutBaseIconContainer.setBackgroundResource(R.drawable.bg_circle_light_amber)
             ivBaseRestIcon.setImageResource(R.drawable.ic_base_lifted)
-            ivBaseRestIcon.imageTintList = ContextCompat.getColorStateList(requireContext(), R.color.strength_fair)
-            tvBaseRestTitle.text = getString(R.string.bottle_status_lifted)
-            tvBaseRestSubtitle.text = getString(R.string.bottle_rest_desc_paused)
-            layoutBaseRestBadge.setBackgroundResource(R.drawable.bg_pill_lifted)
-            vBaseRestDot.setBackgroundResource(R.drawable.bg_circle_amber)
-            tvBaseRestBadge.text = getString(R.string.badge_lifted)
-            tvBaseRestBadge.setTextColor(ContextCompat.getColor(requireContext(), R.color.strength_fair))
+            ivBaseRestIcon.imageTintList = ContextCompat.getColorStateList(requireContext(), R.color.status_lifted_orange)
+            layoutBaseIconContainer.contentDescription = getString(R.string.bottle_status_lifted)
         }
     }
 

@@ -293,11 +293,24 @@
                     android:orientation="horizontal"
                     android:gravity="center_vertical">
 
-                    <ImageView
-                        android:layout_width="22dp"
-                        android:layout_height="22dp"
-                        android:src="@drawable/water_bottle"
-                        app:tint="@color/teal_primary" />
+                    <!-- Bottle Base Rest Status Icon Container (HX711 Load Cell Indicator) -->
+                    <FrameLayout
+                        android:id="@+id/layout_base_icon_container"
+                        android:layout_width="32dp"
+                        android:layout_height="32dp"
+                        android:background="@drawable/bg_circle_light_teal"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:foreground="?attr/selectableItemBackgroundBorderless">
+
+                        <ImageView
+                            android:id="@+id/iv_base_rest_icon"
+                            android:layout_width="18dp"
+                            android:layout_height="18dp"
+                            android:layout_gravity="center"
+                            android:src="@drawable/ic_base_rest"
+                            app:tint="@color/teal_primary" />
+                    </FrameLayout>
 
                     <TextView
                         android:id="@+id/tv_device_name"
@@ -337,98 +350,6 @@
                             android:text="@string/device_connected"
                             android:textColor="@color/teal_primary"
                             android:textSize="10sp"
-                            android:textStyle="bold" />
-                    </LinearLayout>
-                </LinearLayout>
-
-                <!-- Interactive Bottle Base Rest Status Indicator (HX711 Load Cell) -->
-                <LinearLayout
-                    android:id="@+id/layout_base_rest_status"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:layout_marginTop="10dp"
-                    android:background="@drawable/bg_base_rest_card_at_rest"
-                    android:clickable="true"
-                    android:focusable="true"
-                    android:foreground="?attr/selectableItemBackground"
-                    android:gravity="center_vertical"
-                    android:paddingStart="12dp"
-                    android:paddingEnd="12dp"
-                    android:paddingTop="9dp"
-                    android:paddingBottom="9dp">
-
-                    <!-- Icon Container -->
-                    <FrameLayout
-                        android:id="@+id/layout_base_icon_container"
-                        android:layout_width="32dp"
-                        android:layout_height="32dp"
-                        android:background="@drawable/bg_circle_light_teal">
-
-                        <ImageView
-                            android:id="@+id/iv_base_rest_icon"
-                            android:layout_width="18dp"
-                            android:layout_height="18dp"
-                            android:layout_gravity="center"
-                            android:src="@drawable/ic_base_rest"
-                            app:tint="@color/teal_primary" />
-                    </FrameLayout>
-
-                    <!-- Status Text Info -->
-                    <LinearLayout
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:layout_marginStart="10dp"
-                        android:layout_marginEnd="8dp"
-                        android:orientation="vertical">
-
-                        <TextView
-                            android:id="@+id/tv_base_rest_title"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="@string/bottle_status_at_rest"
-                            android:textColor="@color/text_primary"
-                            android:textSize="12sp"
-                            android:textStyle="bold" />
-
-                        <TextView
-                            android:id="@+id/tv_base_rest_subtitle"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="1dp"
-                            android:text="@string/bottle_rest_desc_active"
-                            android:textColor="@color/text_secondary"
-                            android:textSize="9.5sp" />
-                    </LinearLayout>
-
-                    <!-- Rest Badge / Pill -->
-                    <LinearLayout
-                        android:id="@+id/layout_base_rest_badge"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:orientation="horizontal"
-                        android:gravity="center_vertical"
-                        android:background="@drawable/bg_pill_at_rest"
-                        android:paddingStart="8dp"
-                        android:paddingEnd="8dp"
-                        android:paddingTop="4dp"
-                        android:paddingBottom="4dp">
-
-                        <View
-                            android:id="@+id/v_base_rest_dot"
-                            android:layout_width="6dp"
-                            android:layout_height="6dp"
-                            android:background="@drawable/bg_circle_green" />
-
-                        <TextView
-                            android:id="@+id/tv_base_rest_badge"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_marginStart="5dp"
-                            android:text="@string/badge_at_rest"
-                            android:textColor="@color/teal_primary"
-                            android:textSize="9sp"
                             android:textStyle="bold" />
                     </LinearLayout>
                 </LinearLayout>

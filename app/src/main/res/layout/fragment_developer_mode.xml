@@ -1,0 +1,814 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#0A252D">
+
+    <!-- ════════════════════════════════════════════════════════════════
+         TOP HEADER BAR
+         ════════════════════════════════════════════════════════════════ -->
+    <LinearLayout
+        android:id="@+id/dev_header_bar"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:paddingTop="12dp"
+        android:paddingBottom="12dp"
+        android:background="#133E47"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <ImageView
+            android:id="@+id/btn_dev_back"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:padding="6dp"
+            android:src="@drawable/ic_arrow_back"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Back"
+            app:tint="#FFFFFF" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="8dp"
+            android:orientation="vertical">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/dev_mode_title"
+                android:textColor="#FFFFFF"
+                android:textSize="18sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/dev_mode_authorized_badge"
+                android:textColor="#4ADE80"
+                android:textSize="10.5sp"
+                android:textStyle="bold"
+                android:letterSpacing="0.04" />
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/tv_dev_status_pill"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="@drawable/bg_pill_at_rest"
+            android:text="ONLINE"
+            android:textColor="@color/teal_primary"
+            android:textSize="10sp"
+            android:textStyle="bold"
+            android:paddingStart="8dp"
+            android:paddingEnd="8dp"
+            android:paddingTop="3dp"
+            android:paddingBottom="3dp" />
+    </LinearLayout>
+
+    <!-- ════════════════════════════════════════════════════════════════
+         TAB SWITCHER (Signals Terminal vs ESP32 Details)
+         ════════════════════════════════════════════════════════════════ -->
+    <LinearLayout
+        android:id="@+id/layout_tab_selector"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:paddingTop="10dp"
+        android:paddingBottom="10dp"
+        android:background="#0E3038"
+        app:layout_constraintTop_toBottomOf="@id/dev_header_bar"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <TextView
+            android:id="@+id/tab_signals_terminal"
+            android:layout_width="0dp"
+            android:layout_height="36dp"
+            android:layout_weight="1"
+            android:layout_marginEnd="6dp"
+            android:gravity="center"
+            android:text="@string/dev_mode_tab_terminal"
+            android:textColor="#FFFFFF"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            android:background="@drawable/bg_chip_selected" />
+
+        <TextView
+            android:id="@+id/tab_esp32_details"
+            android:layout_width="0dp"
+            android:layout_height="36dp"
+            android:layout_weight="1"
+            android:layout_marginStart="6dp"
+            android:gravity="center"
+            android:text="@string/dev_mode_tab_details"
+            android:textColor="#94A3B8"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            android:background="@drawable/bg_chip_unselected" />
+    </LinearLayout>
+
+    <!-- ════════════════════════════════════════════════════════════════
+         CONTENT VIEW: TAB 1 (SIGNALS TERMINAL)
+         ════════════════════════════════════════════════════════════════ -->
+    <LinearLayout
+        android:id="@+id/layout_terminal_tab"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:orientation="vertical"
+        android:padding="12dp"
+        android:visibility="visible"
+        app:layout_constraintTop_toBottomOf="@id/layout_tab_selector"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <!-- Action Buttons Bar -->
+        <HorizontalScrollView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:scrollbars="none"
+            android:layout_marginBottom="8dp">
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+
+                <!-- Scan BLE -->
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_scan_ble"
+                    android:layout_width="wrap_content"
+                    android:layout_height="38dp"
+                    android:text="Scan BLE"
+                    android:textSize="11sp"
+                    android:textStyle="bold"
+                    android:textColor="#FFFFFF"
+                    app:backgroundTint="#0D9488"
+                    app:cornerRadius="18dp"
+                    android:layout_marginEnd="6dp"
+                    android:paddingStart="12dp"
+                    android:paddingEnd="12dp" />
+
+                <!-- Send Ping (TX) -->
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_send_ping"
+                    android:layout_width="wrap_content"
+                    android:layout_height="38dp"
+                    android:text="@string/dev_mode_btn_send_ping"
+                    android:textSize="11sp"
+                    android:textStyle="bold"
+                    android:textColor="#FFFFFF"
+                    app:backgroundTint="#0284C7"
+                    app:cornerRadius="18dp"
+                    android:layout_marginEnd="6dp"
+                    android:paddingStart="12dp"
+                    android:paddingEnd="12dp" />
+
+                <!-- Simulate Sip (RX) -->
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_simulate_sip"
+                    android:layout_width="wrap_content"
+                    android:layout_height="38dp"
+                    android:text="@string/dev_mode_btn_simulate_sip"
+                    android:textSize="11sp"
+                    android:textStyle="bold"
+                    android:textColor="#FFFFFF"
+                    app:backgroundTint="#059669"
+                    app:cornerRadius="18dp"
+                    android:layout_marginEnd="6dp"
+                    android:paddingStart="12dp"
+                    android:paddingEnd="12dp" />
+
+                <!-- Clear Terminal -->
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_clear_terminal"
+                    android:layout_width="wrap_content"
+                    android:layout_height="38dp"
+                    android:text="@string/dev_mode_btn_clear"
+                    android:textSize="11sp"
+                    android:textStyle="bold"
+                    android:textColor="#FFFFFF"
+                    app:backgroundTint="#334155"
+                    app:cornerRadius="18dp"
+                    android:layout_marginEnd="6dp"
+                    android:paddingStart="12dp"
+                    android:paddingEnd="12dp" />
+
+                <!-- Copy Logs -->
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_copy_logs"
+                    android:layout_width="wrap_content"
+                    android:layout_height="38dp"
+                    android:text="@string/dev_mode_btn_copy"
+                    android:textSize="11sp"
+                    android:textStyle="bold"
+                    android:textColor="#FFFFFF"
+                    app:backgroundTint="#334155"
+                    app:cornerRadius="18dp"
+                    android:paddingStart="12dp"
+                    android:paddingEnd="12dp" />
+            </LinearLayout>
+        </HorizontalScrollView>
+
+        <!-- Signal Filter Row & Counter -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="8dp">
+
+            <TextView
+                android:id="@+id/filter_all"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="ALL"
+                android:textColor="#FFFFFF"
+                android:textSize="10sp"
+                android:textStyle="bold"
+                android:background="@drawable/bg_chip_selected"
+                android:paddingStart="8dp"
+                android:paddingEnd="8dp"
+                android:paddingTop="3dp"
+                android:paddingBottom="3dp"
+                android:layout_marginEnd="4dp" />
+
+            <TextView
+                android:id="@+id/filter_tx"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="TX"
+                android:textColor="#94A3B8"
+                android:textSize="10sp"
+                android:textStyle="bold"
+                android:background="@drawable/bg_chip_unselected"
+                android:paddingStart="8dp"
+                android:paddingEnd="8dp"
+                android:paddingTop="3dp"
+                android:paddingBottom="3dp"
+                android:layout_marginEnd="4dp" />
+
+            <TextView
+                android:id="@+id/filter_rx"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="RX"
+                android:textColor="#94A3B8"
+                android:textSize="10sp"
+                android:textStyle="bold"
+                android:background="@drawable/bg_chip_unselected"
+                android:paddingStart="8dp"
+                android:paddingEnd="8dp"
+                android:paddingTop="3dp"
+                android:paddingBottom="3dp"
+                android:layout_marginEnd="4dp" />
+
+            <View
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:layout_weight="1" />
+
+            <TextView
+                android:id="@+id/tv_signal_counter"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="TX: 0 | RX: 0"
+                android:textColor="#38BDF8"
+                android:textSize="10sp"
+                android:textStyle="bold"
+                android:fontFamily="monospace" />
+        </LinearLayout>
+
+        <!-- Terminal Console Frame -->
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:background="@drawable/bg_dev_terminal"
+            android:padding="10dp">
+
+            <ScrollView
+                android:id="@+id/scroll_terminal"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:fillViewport="true"
+                android:scrollbars="vertical">
+
+                <TextView
+                    android:id="@+id/tv_terminal_output"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="monospace"
+                    android:lineSpacingExtra="3dp"
+                    android:text="@string/dev_mode_terminal_empty"
+                    android:textColor="#E2E8F0"
+                    android:textIsSelectable="true"
+                    android:textSize="11sp" />
+            </ScrollView>
+        </FrameLayout>
+    </LinearLayout>
+
+    <!-- ════════════════════════════════════════════════════════════════
+         CONTENT VIEW: TAB 2 (ESP32 DETAILS - READ ONLY)
+         ════════════════════════════════════════════════════════════════ -->
+    <ScrollView
+        android:id="@+id/layout_details_tab"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:padding="16dp"
+        android:visibility="gone"
+        app:layout_constraintTop_toBottomOf="@id/layout_tab_selector"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <!-- Read-Only Banner -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:background="#1E293B"
+                android:padding="10dp"
+                android:layout_marginBottom="14dp">
+
+                <ImageView
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:src="@drawable/ic_lock"
+                    app:tint="#FBBF24" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:text="@string/dev_mode_read_only_badge"
+                    android:textColor="#FBBF24"
+                    android:textSize="11sp"
+                    android:textStyle="bold"
+                    android:letterSpacing="0.04" />
+            </LinearLayout>
+
+            <!-- Card 1: Identity & Firmware Specifications -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:background="@drawable/bg_dev_card"
+                android:padding="16dp"
+                android:layout_marginBottom="14dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="DEVICE IDENTIFICATION"
+                    android:textColor="@color/teal_dark"
+                    android:textSize="13sp"
+                    android:textStyle="bold"
+                    android:letterSpacing="0.05"
+                    android:layout_marginBottom="12dp" />
+
+                <!-- Device Name -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginBottom="8dp">
+                    <TextView
+                        android:layout_width="120dp"
+                        android:layout_height="wrap_content"
+                        android:text="Device Name:"
+                        android:textColor="#64748B"
+                        android:textSize="12sp" />
+                    <TextView
+                        android:id="@+id/tv_detail_device_name"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="SipSense-Bottle"
+                        android:textColor="#0F172A"
+                        android:textSize="12sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+
+                <!-- Serial Number -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginBottom="8dp">
+                    <TextView
+                        android:layout_width="120dp"
+                        android:layout_height="wrap_content"
+                        android:text="Serial Number:"
+                        android:textColor="#64748B"
+                        android:textSize="12sp" />
+                    <TextView
+                        android:id="@+id/tv_detail_serial_number"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="ESP32-SIP-9482147"
+                        android:textColor="#0284C7"
+                        android:textSize="12sp"
+                        android:textStyle="bold"
+                        android:fontFamily="monospace" />
+                </LinearLayout>
+
+                <!-- Firmware Version -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginBottom="8dp">
+                    <TextView
+                        android:layout_width="120dp"
+                        android:layout_height="wrap_content"
+                        android:text="Firmware Ver:"
+                        android:textColor="#64748B"
+                        android:textSize="12sp" />
+                    <TextView
+                        android:id="@+id/tv_detail_firmware_ver"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="v1.2.0-ble-prod"
+                        android:textColor="#059669"
+                        android:textSize="12sp"
+                        android:textStyle="bold"
+                        android:fontFamily="monospace" />
+                </LinearLayout>
+
+                <!-- Flash Memory Code -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginBottom="8dp">
+                    <TextView
+                        android:layout_width="120dp"
+                        android:layout_height="wrap_content"
+                        android:text="Flash Code / IC:"
+                        android:textColor="#64748B"
+                        android:textSize="12sp" />
+                    <TextView
+                        android:id="@+id/tv_detail_flash_code"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="0x164020 (Winbond 4MB SPI)"
+                        android:textColor="#0F172A"
+                        android:textSize="12sp"
+                        android:fontFamily="monospace" />
+                </LinearLayout>
+
+                <!-- Silicon Model -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginBottom="8dp">
+                    <TextView
+                        android:layout_width="120dp"
+                        android:layout_height="wrap_content"
+                        android:text="Chip Model:"
+                        android:textColor="#64748B"
+                        android:textSize="12sp" />
+                    <TextView
+                        android:id="@+id/tv_detail_chip_model"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="ESP32-D0WDQ6 (Rev 1)"
+                        android:textColor="#0F172A"
+                        android:textSize="12sp" />
+                </LinearLayout>
+
+                <!-- Core Architecture -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal">
+                    <TextView
+                        android:layout_width="120dp"
+                        android:layout_height="wrap_content"
+                        android:text="CPU Core:"
+                        android:textColor="#64748B"
+                        android:textSize="12sp" />
+                    <TextView
+                        android:id="@+id/tv_detail_cpu_arch"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="Xtensa® Dual-Core LX6 @ 240MHz"
+                        android:textColor="#0F172A"
+                        android:textSize="12sp" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- Card 2: Bluetooth GATT Interface -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:background="@drawable/bg_dev_card"
+                android:padding="16dp"
+                android:layout_marginBottom="14dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="BLUETOOTH GATT SPECIFICATIONS"
+                    android:textColor="@color/teal_dark"
+                    android:textSize="13sp"
+                    android:textStyle="bold"
+                    android:letterSpacing="0.05"
+                    android:layout_marginBottom="12dp" />
+
+                <!-- MAC Address -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginBottom="8dp">
+                    <TextView
+                        android:layout_width="120dp"
+                        android:layout_height="wrap_content"
+                        android:text="MAC Address:"
+                        android:textColor="#64748B"
+                        android:textSize="12sp" />
+                    <TextView
+                        android:id="@+id/tv_detail_mac_address"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="C8:2E:18:74:9A:32"
+                        android:textColor="#0F172A"
+                        android:textSize="12sp"
+                        android:textStyle="bold"
+                        android:fontFamily="monospace" />
+                </LinearLayout>
+
+                <!-- Service UUID -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginBottom="8dp">
+                    <TextView
+                        android:layout_width="120dp"
+                        android:layout_height="wrap_content"
+                        android:text="Service UUID:"
+                        android:textColor="#64748B"
+                        android:textSize="12sp" />
+                    <TextView
+                        android:id="@+id/tv_detail_service_uuid"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="4fafc201-1fb5-459e-8fcc-c5c9c331914b"
+                        android:textColor="#0F172A"
+                        android:textSize="11sp"
+                        android:fontFamily="monospace" />
+                </LinearLayout>
+
+                <!-- Telemetry Characteristic UUID -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginBottom="8dp">
+                    <TextView
+                        android:layout_width="120dp"
+                        android:layout_height="wrap_content"
+                        android:text="Char UUID:"
+                        android:textColor="#64748B"
+                        android:textSize="12sp" />
+                    <TextView
+                        android:id="@+id/tv_detail_char_uuid"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="beb5483e-36e1-4688-b7f5-ea07361b26a8"
+                        android:textColor="#0F172A"
+                        android:textSize="11sp"
+                        android:fontFamily="monospace" />
+                </LinearLayout>
+
+                <!-- CCCD UUID -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginBottom="8dp">
+                    <TextView
+                        android:layout_width="120dp"
+                        android:layout_height="wrap_content"
+                        android:text="CCCD UUID:"
+                        android:textColor="#64748B"
+                        android:textSize="12sp" />
+                    <TextView
+                        android:id="@+id/tv_detail_cccd_uuid"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="00002902-0000-1000-8000-00805f9b34fb"
+                        android:textColor="#0F172A"
+                        android:textSize="11sp"
+                        android:fontFamily="monospace" />
+                </LinearLayout>
+
+                <!-- Negotiated MTU -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginBottom="8dp">
+                    <TextView
+                        android:layout_width="120dp"
+                        android:layout_height="wrap_content"
+                        android:text="MTU Size:"
+                        android:textColor="#64748B"
+                        android:textSize="12sp" />
+                    <TextView
+                        android:id="@+id/tv_detail_mtu_size"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="512 Bytes"
+                        android:textColor="#0F172A"
+                        android:textSize="12sp" />
+                </LinearLayout>
+
+                <!-- Connection State -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginBottom="8dp">
+                    <TextView
+                        android:layout_width="120dp"
+                        android:layout_height="wrap_content"
+                        android:text="State:"
+                        android:textColor="#64748B"
+                        android:textSize="12sp" />
+                    <TextView
+                        android:id="@+id/tv_detail_connection_state"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="CONNECTED / READY"
+                        android:textColor="@color/teal_primary"
+                        android:textSize="12sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+
+                <!-- Signal RSSI -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal">
+                    <TextView
+                        android:layout_width="120dp"
+                        android:layout_height="wrap_content"
+                        android:text="Signal RSSI:"
+                        android:textColor="#64748B"
+                        android:textSize="12sp" />
+                    <TextView
+                        android:id="@+id/tv_detail_rssi"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="-64 dBm"
+                        android:textColor="#0F172A"
+                        android:textSize="12sp" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- Card 3: Sensor Hardware Interfaces & Pinout -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:background="@drawable/bg_dev_card"
+                android:padding="16dp"
+                android:layout_marginBottom="24dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="HARDWARE SENSOR INTERFACES"
+                    android:textColor="@color/teal_dark"
+                    android:textSize="13sp"
+                    android:textStyle="bold"
+                    android:letterSpacing="0.05"
+                    android:layout_marginBottom="12dp" />
+
+                <!-- HX711 Load Cell -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginBottom="8dp">
+                    <TextView
+                        android:layout_width="120dp"
+                        android:layout_height="wrap_content"
+                        android:text="HX711 Load Cell:"
+                        android:textColor="#64748B"
+                        android:textSize="12sp" />
+                    <TextView
+                        android:id="@+id/tv_detail_hx711"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="DT: GPIO 21, SCK: GPIO 22 (24-bit ADC)"
+                        android:textColor="#0F172A"
+                        android:textSize="11.5sp" />
+                </LinearLayout>
+
+                <!-- DHT22 Temp/Humidity -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginBottom="8dp">
+                    <TextView
+                        android:layout_width="120dp"
+                        android:layout_height="wrap_content"
+                        android:text="DHT22 Sensor:"
+                        android:textColor="#64748B"
+                        android:textSize="12sp" />
+                    <TextView
+                        android:id="@+id/tv_detail_dht22"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="DATA: GPIO 19 (1-Wire Protocol)"
+                        android:textColor="#0F172A"
+                        android:textSize="11.5sp" />
+                </LinearLayout>
+
+                <!-- Battery Voltage Divider -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginBottom="8dp">
+                    <TextView
+                        android:layout_width="120dp"
+                        android:layout_height="wrap_content"
+                        android:text="Battery Divider:"
+                        android:textColor="#64748B"
+                        android:textSize="12sp" />
+                    <TextView
+                        android:id="@+id/tv_detail_battery_adc"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="ADC1_CH7: GPIO 34 (12-bit ADC)"
+                        android:textColor="#0F172A"
+                        android:textSize="11.5sp" />
+                </LinearLayout>
+
+                <!-- Status LED -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal">
+                    <TextView
+                        android:layout_width="120dp"
+                        android:layout_height="wrap_content"
+                        android:text="Status LED:"
+                        android:textColor="#64748B"
+                        android:textSize="12sp" />
+                    <TextView
+                        android:id="@+id/tv_detail_status_led"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="GPIO 2 (Blue Built-in LED)"
+                        android:textColor="#0F172A"
+                        android:textSize="11.5sp" />
+                </LinearLayout>
+            </LinearLayout>
+
+        </LinearLayout>
+    </ScrollView>
+
+</androidx.constraintlayout.widget.ConstraintLayout>
