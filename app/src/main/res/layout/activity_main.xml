@@ -90,13 +90,14 @@
             android:paddingTop="@dimen/spacing_sm"
             android:paddingBottom="@dimen/spacing_sm">
 
-            <!-- WiFi icon -->
+            <!-- Bluetooth status icon -->
             <ImageView
                 android:id="@+id/iv_wifi_icon"
                 android:layout_width="18dp"
                 android:layout_height="18dp"
-                android:src="@drawable/wifi"
-                android:contentDescription="@string/wifi_connected"
+                android:src="@drawable/ic_bluetooth"
+                android:contentDescription="@string/wifi_disconnected"
+                app:tint="@color/nav_unselected"
                 android:scaleType="fitCenter" />
 
             <!-- Connection status label -->
@@ -105,8 +106,8 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="@dimen/spacing_xs"
-                android:text="@string/wifi_connected"
-                android:textColor="@color/text_white"
+                android:text="@string/wifi_disconnected"
+                android:textColor="@color/nav_unselected"
                 android:textSize="@dimen/text_badge"
                 android:textStyle="bold"
                 android:letterSpacing="0.05" />

@@ -96,8 +96,8 @@ class MainActivity : AppCompatActivity() {
         // ── Set up bottom navigation listener ──
         setupBottomNavigation()
 
-        // ── Set default WiFi status to connected ──
-        updateWifiStatus(true)
+        // ── Set default device connection status to DISCONNECTED until live/connected ──
+        updateConnectionStatus(false)
 
         // ── Load the default fragment (Dashboard) on first launch ──
         if (savedInstanceState == null) {
@@ -157,38 +157,40 @@ class MainActivity : AppCompatActivity() {
     }
 
     // ═══════════════════════════════════════════════════════════════════
-    // WIFI STATUS MANAGEMENT
+    // CONNECTION STATUS MANAGEMENT (Bluetooth / IoT Device)
     // ═══════════════════════════════════════════════════════════════════
 
     /**
-     * Updates the WiFi connection status indicator in the header bar.
+     * Updates the Bluetooth/IoT device connection status indicator in the header bar.
      *
-     * When connected:
-     * - Displays "CONNECTED" text
-     * - WiFi icon is tinted white (normal)
+     * When connected (BLE active or simulation live):
+     * - Displays "CONNECTED" text in white
+     * - Bluetooth icon is tinted white
      *
      * When disconnected:
-     * - Displays "DISCONNECTED" text
-     * - WiFi icon is tinted with a muted grey overlay
+     * - Displays "DISCONNECTED" text in muted grey
+     * - Bluetooth icon is tinted in muted grey
      *
-     * This method can be called from anywhere in the activity or from
-     * child fragments via (activity as MainActivity).updateWifiStatus(...)
-     *
-     * @param isConnected true if WiFi/IoT device is connected, false otherwise
+     * @param isConnected true if Bluetooth/IoT device is actively connected or simulation live
      */
-    fun updateWifiStatus(isConnected: Boolean) {
+    fun updateConnectionStatus(isConnected: Boolean) {
         if (isConnected) {
             tvWifiStatus.text = getString(R.string.wifi_connected)
+            tvWifiStatus.setTextColor(ContextCompat.getColor(this, R.color.text_white))
             ivWifiIcon.contentDescription = getString(R.string.wifi_connected)
             ivWifiIcon.setColorFilter(
                 ContextCompat.getColor(this, R.color.text_white)
             )
         } else {
             tvWifiStatus.text = getString(R.string.wifi_disconnected)
+            tvWifiStatus.setTextColor(ContextCompat.getColor(this, R.color.nav_unselected))
             ivWifiIcon.contentDescription = getString(R.string.wifi_disconnected)
             ivWifiIcon.setColorFilter(
                 ContextCompat.getColor(this, R.color.nav_unselected)
             )
         }
     }
+
+    /** Alias for backwards compatibility with existing fragments */
+    fun updateWifiStatus(isConnected: Boolean) = updateConnectionStatus(isConnected)
 }

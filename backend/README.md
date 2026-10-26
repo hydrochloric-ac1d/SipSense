@@ -1,64 +1,52 @@
 # SipSense Backend & ESP32 Simulation Guide
 
-This folder contains a fully functional local simulator for the SipSense IoT ecosystem. Since the physical ESP32 (Type-C CP2102) hardware is not yet available, this simulator allows you to develop and test the Android application as if the smart bottle were actually connected and sending live data.
+This folder contains the communication infrastructure and simulators for the SipSense IoT ecosystem.
 
-## Architecture
-
-The simulation consists of two parts communicating over a live, public MQTT broker (`broker.hivemq.com`):
-
-1. **`esp32-simulator.js` (The Smart Bottle)**
-   Acts as the physical ESP32 device. It continuously generates mock telemetry data (water level, sip amounts, total consumed) and publishes it to an MQTT topic every 5 seconds.
-2. **`server.js` (The Cloud Backend)**
-   Acts as our backend API. It subscribes to the MQTT broker to receive the live data from the bottle and exposes a standard REST API (`http://localhost:3000`) for the Android app to consume.
-
-## Prerequisites
-
-- **Node.js** must be installed.
-- Dependencies (`mqtt`, `express`, `cors`) are already installed in the `backend/node_modules` directory.
+SipSense supports two modes of operation:
+1. **Bluetooth Low Energy (BLE) Mode (Recommended for physical ESP32 & portable usage)**: Connects the smart bottle directly to the Android mobile device without needing Wi-Fi or PC servers.
+2. **Wi-Fi / MQTT Simulator Mode (Designed for local desktop & Android Emulator testing)**: Uses a Node.js simulator communicating over an MQTT broker and Express REST API.
 
 ---
 
-## How to Run the Simulation
+## 🔵 Mode 1: Bluetooth Low Energy (BLE) Mode
 
-You must run both the backend server and the simulator simultaneously in two separate terminal windows.
+The smart bottle operates as a BLE GATT Server advertising as **`SipSense-Bottle`**. The Android mobile app connects directly over Bluetooth radio and syncs data to Firebase.
 
-### Terminal 1: Start the Backend API
+### Firmware & Simulation File
+- Arduino sketch location: [`backend/SipSense_BLE_Simulator.ino`](file:///c:/Users/Margareth%20Lim/Documents/GitHub/SipSense/backend/SipSense_BLE_Simulator.ino) (also in `firmware/SipSense_BLE_Simulator/SipSense_BLE_Simulator.ino`).
 
-Open a terminal at the root of the `SipSense` project and run:
+### Protocol Specifications
+- **Device Name:** `SipSense-Bottle`
+- **Primary Service UUID:** `4fafc201-1fb5-459e-8fcc-c5c9c331914b`
+- **Telemetry Characteristic UUID:** `beb5483e-36e1-4688-b7f5-ea07361b26a8` (Read + Notify)
+- **CCCD Descriptor:** `00002902-0000-1000-8000-00805f9b34fb`
 
+### How to Run BLE Mode:
+1. Open [`SipSense_BLE_Simulator.ino`](file:///c:/Users/Margareth%20Lim/Documents/GitHub/SipSense/backend/SipSense_BLE_Simulator.ino) in Arduino IDE.
+2. Select your board (`ESP32 Dev Module`) and COM port.
+3. Flash the sketch to your ESP32.
+4. Launch the SipSense Android app on your phone. Grant Bluetooth permissions when prompted. The app will automatically discover and connect to your bottle!
+
+---
+
+## 🌐 Mode 2: Legacy Wi-Fi / Local REST API Simulator
+
+If you are developing in the Android Studio Emulator on a PC without physical hardware or Bluetooth passthrough:
+
+### Files:
+1. **`esp32-simulator.js` (The Smart Bottle)**
+   Acts as the physical ESP32 device. It publishes mock telemetry data to HiveMQ (`broker.hivemq.com`).
+2. **`server.js` (The Cloud Backend)**
+   Subscribes to the MQTT topic and exposes `http://localhost:3000/api/hydration` (mapped to `http://10.0.2.2:3000` in the Android Emulator).
+
+### How to Run:
+In two separate terminals:
 ```bash
+# Terminal 1: Start REST API
 cd backend
 node server.js
-```
-*Expected Output: You should see it connect to the MQTT broker and state that the REST API is running on port 3000.*
 
-### Terminal 2: Start the ESP32 Smart Bottle Simulator
-
-Open a **new** terminal window at the root of the `SipSense` project and run:
-
-```bash
+# Terminal 2: Start Mock Bottle
 cd backend
 node esp32-simulator.js
 ```
-*Expected Output: You should see it connect to the broker and start publishing JSON data every 5 seconds indicating simulated "sips" being taken.*
-
----
-
-## How to Test the Integration
-
-With both terminals running, you can test if the backend is successfully receiving the simulated ESP32 data.
-
-1. Open your web browser.
-2. Navigate to: [http://localhost:3000/api/hydration](http://localhost:3000/api/hydration)
-3. You will see a JSON response containing the current bottle status. 
-4. **Refresh the page** every 5-10 seconds. You should see the `waterLevel` decreasing and the `totalConsumedToday` increasing, proving that the live data pipeline is working!
-
----
-
-## Next Steps: Connecting the Android App
-
-Once the simulator is running and you can see data in your browser, the next step is to update the SipSense Android app to fetch this data to display in the UI.
-
-To do this, you will need to use an HTTP client in your Android code (like **Retrofit** or **Ktor**) to make a `GET` request to `http://10.0.2.2:3000/api/hydration`. 
-
-*(Note: `10.0.2.2` is the special IP address the Android Emulator uses to access your computer's `localhost`.)*

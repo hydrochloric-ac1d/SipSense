@@ -18,6 +18,8 @@ import com.google.firebase.database.ValueEventListener
 import com.sipsense.app.data.FirebaseDatabaseProvider
 import com.sipsense.app.model.UserProfile
 import org.json.JSONObject
+import androidx.activity.result.contract.ActivityResultContracts
+import com.sipsense.app.data.SipSenseBleManager
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
@@ -80,6 +82,43 @@ class DashboardFragment : Fragment() {
     private var currentBatteryLevel: Int = 88
     private var currentAmbientTemp: Int = 24
 
+    // ── BLE Connection Manager ──
+    private var bleManager: SipSenseBleManager? = null
+
+    private val blePermissionsLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        val allGranted = permissions.entries.all { it.value }
+        if (allGranted) {
+            bleManager?.startScan()
+        } else {
+            android.util.Log.w("SipSenseDashboard", "BLE permissions denied by user.")
+        }
+    }
+
+    private fun initBleManager() {
+        if (bleManager != null) return
+        val appContext = context?.applicationContext ?: return
+        bleManager = SipSenseBleManager(
+            context = appContext,
+            onConnectionStateChanged = { isConnected, deviceName ->
+                if (isAdded) {
+                    updateDeviceConnectionBadge(isConnected)
+                    (activity as? MainActivity)?.updateWifiStatus(isConnected)
+                    if (isConnected && deviceName != null) {
+                        tvDeviceName.text = deviceName
+                    }
+                }
+            },
+            onTelemetryReceived = { telemetryJson ->
+                processTelemetryData(telemetryJson)
+            },
+            onLogMessage = { msg ->
+                android.util.Log.d("SipSenseDashboard", "BLE: $msg")
+            }
+        )
+    }
+
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
@@ -140,6 +179,8 @@ class DashboardFragment : Fragment() {
     
     override fun onDestroyView() {
         super.onDestroyView()
+        bleManager?.disconnect()
+        bleManager = null
         val uid = firebaseAuth.currentUser?.uid
         if (uid != null) {
             profileListener?.let { database?.child("users")?.child(uid)?.removeEventListener(it) }
@@ -151,12 +192,20 @@ class DashboardFragment : Fragment() {
     override fun onResume() {
         super.onResume()
         isPolling = true
+        initBleManager()
+        val currentContext = context
+        if (currentContext != null && SipSenseBleManager.hasPermissions(currentContext)) {
+            bleManager?.startScan()
+        } else {
+            blePermissionsLauncher.launch(SipSenseBleManager.getRequiredPermissions())
+        }
         startPollingBackend()
     }
 
     override fun onPause() {
         super.onPause()
         isPolling = false
+        bleManager?.stopScan()
     }
 
     private fun setupInitialDeviceStatus() {
@@ -166,7 +215,7 @@ class DashboardFragment : Fragment() {
             bottleCapacity = currentBottleCapacity,
             batteryLevel = currentBatteryLevel,
             ambientTemp = currentAmbientTemp,
-            isConnected = true
+            isConnected = false
         )
     }
 
@@ -304,10 +353,110 @@ class DashboardFragment : Fragment() {
         }
     }
 
+    /**
+     * Processes incoming telemetry data (from BLE notifications or HTTP fallback)
+     * and updates the UI, Firebase database, and sip tracking logs.
+     */
+    private fun processTelemetryData(dataObject: JSONObject) {
+        val waterLevel = dataObject.optInt("waterLevel", latestSensorWaterLevel)
+        val bottleCapacity = dataObject.optInt("bottleCapacity", currentBottleCapacity)
+        val battery = dataObject.optInt("batteryLevel", currentBatteryLevel)
+        val ambientTemp = dataObject.optInt(
+            "ambientTemperature",
+            dataObject.optInt("temperature", currentAmbientTemp)
+        )
+
+        latestSensorWaterLevel = waterLevel
+        currentBottleCapacity = bottleCapacity
+        currentBatteryLevel = battery
+        currentAmbientTemp = ambientTemp
+
+        // Check if device reports bottle base rest state (HX711 / switch)
+        if (dataObject.has("isBottleAtRest")) {
+            isBottleAtRest = dataObject.optBoolean("isBottleAtRest", isBottleAtRest)
+            activity?.runOnUiThread {
+                if (isAdded) {
+                    updateBaseRestIndicatorUI(isBottleAtRest)
+                }
+            }
+        }
+
+        // Water level should ONLY update display if the bottle is at rest on the base
+        if (isBottleAtRest) {
+            currentBottleWaterLevel = waterLevel
+        }
+
+        val uid = firebaseAuth.currentUser?.uid
+
+        // 1. Immediately update and persist device telemetry for the active user ID
+        if (uid != null && database != null) {
+            val telemetryMap = mapOf(
+                "waterLevel" to currentBottleWaterLevel,
+                "rawSensorWaterLevel" to latestSensorWaterLevel,
+                "bottleCapacity" to bottleCapacity,
+                "batteryLevel" to battery,
+                "ambientTemperature" to ambientTemp,
+                "temperature" to ambientTemp,
+                "humidity" to dataObject.optInt("humidity", 55),
+                "isBottleAtRest" to isBottleAtRest,
+                "lastUpdated" to System.currentTimeMillis()
+            )
+            database.child("users").child(uid).child("device_telemetry").setValue(telemetryMap)
+                .addOnFailureListener { e ->
+                    android.util.Log.e("SipSenseDashboard", "Failed to persist telemetry for user $uid", e)
+                }
+        }
+
+        activity?.runOnUiThread {
+            if (isAdded) {
+                updateDeviceStatusUI(
+                    waterLevel = currentBottleWaterLevel,
+                    bottleCapacity = bottleCapacity,
+                    batteryLevel = battery,
+                    ambientTemp = ambientTemp,
+                    isConnected = true
+                )
+                (activity as? MainActivity)?.updateWifiStatus(true)
+            }
+        }
+
+        // 2. Process sip detection and daily hydration totals per user ID ONLY when resting on base
+        if (varFirebaseDailyTotalLoaded && isBottleAtRest) {
+            val sipAmount = dataObject.optInt("sipAmount", 0)
+            val rawTimestamp = if (dataObject.isNull("lastSipTimestamp")) "" else dataObject.optString("lastSipTimestamp", "")
+
+            var currentSipTimestampMs = 0L
+            if (rawTimestamp.isNotBlank() && rawTimestamp != "null") {
+                currentSipTimestampMs = parseIsoTimestamp(rawTimestamp)
+            } else {
+                currentSipTimestampMs = System.currentTimeMillis()
+            }
+
+            // If this is the user's first check with 0 recorded sips, avoid attributing stale sips
+            if (lastSavedSipTimestampMs == 0L && currentSipTimestampMs > 0L) {
+                val now = System.currentTimeMillis()
+                if (now - currentSipTimestampMs > 15_000L) {
+                    lastSavedSipTimestampMs = currentSipTimestampMs
+                }
+            }
+
+            // Detect genuinely new sip and save PER USER
+            if (currentSipTimestampMs > lastSavedSipTimestampMs && sipAmount > 0) {
+                recordSipForUser(sipAmount, currentSipTimestampMs, ambientTemp)
+            }
+        }
+    }
+
     private fun startPollingBackend() {
         Thread {
             while (isPolling) {
                 try {
+                    // If BLE is already actively connected, we do not need to poll HTTP
+                    if (bleManager?.isConnected == true) {
+                        Thread.sleep(3000)
+                        continue
+                    }
+
                     val url = java.net.URL("http://10.0.2.2:3000/api/hydration")
                     val connection = url.openConnection() as java.net.HttpURLConnection
                     connection.requestMethod = "GET"
@@ -320,93 +469,22 @@ class DashboardFragment : Fragment() {
                         val dataObject = jsonObject.optJSONObject("data")
                         
                         if (dataObject != null) {
-                            val waterLevel = dataObject.optInt("waterLevel", latestSensorWaterLevel)
-                            val bottleCapacity = dataObject.optInt("bottleCapacity", currentBottleCapacity)
-                            val battery = dataObject.optInt("batteryLevel", currentBatteryLevel)
-                            val ambientTemp = dataObject.optInt(
-                                "ambientTemperature",
-                                dataObject.optInt("temperature", currentAmbientTemp)
-                            )
-
-                            latestSensorWaterLevel = waterLevel
-                            currentBottleCapacity = bottleCapacity
-                            currentBatteryLevel = battery
-                            currentAmbientTemp = ambientTemp
-
-                            // Water level should ONLY update display if the bottle is at rest on the base
-                            if (isBottleAtRest) {
-                                currentBottleWaterLevel = waterLevel
-                            }
-
-                            val uid = firebaseAuth.currentUser?.uid
-
-                            // 1. Immediately update and persist device telemetry for the active user ID
-                            if (uid != null && database != null) {
-                                val telemetryMap = mapOf(
-                                    "waterLevel" to currentBottleWaterLevel,
-                                    "rawSensorWaterLevel" to latestSensorWaterLevel,
-                                    "bottleCapacity" to bottleCapacity,
-                                    "batteryLevel" to battery,
-                                    "ambientTemperature" to ambientTemp,
-                                    "temperature" to ambientTemp,
-                                    "humidity" to dataObject.optInt("humidity", 55),
-                                    "isBottleAtRest" to isBottleAtRest,
-                                    "lastUpdated" to System.currentTimeMillis()
-                                )
-                                database.child("users").child(uid).child("device_telemetry").setValue(telemetryMap)
-                                    .addOnFailureListener { e ->
-                                        android.util.Log.e("SipSenseDashboard", "Failed to persist telemetry for user $uid", e)
-                                    }
-                            }
-
-                            activity?.runOnUiThread {
-                                if (isAdded) {
-                                    updateDeviceStatusUI(
-                                        waterLevel = currentBottleWaterLevel,
-                                        bottleCapacity = bottleCapacity,
-                                        batteryLevel = battery,
-                                        ambientTemp = ambientTemp,
-                                        isConnected = true
-                                    )
-                                }
-                            }
-
-                            // 2. Process sip detection and daily hydration totals per user ID ONLY when resting on base
-                            if (varFirebaseDailyTotalLoaded && isBottleAtRest) {
-                                val sipAmount = dataObject.optInt("sipAmount", 0)
-                                val rawTimestamp = if (dataObject.isNull("lastSipTimestamp")) "" else dataObject.optString("lastSipTimestamp", "")
-                                
-                                var currentSipTimestampMs = 0L
-                                if (rawTimestamp.isNotBlank() && rawTimestamp != "null") {
-                                    currentSipTimestampMs = parseIsoTimestamp(rawTimestamp)
-                                }
-
-                                // If this is the user's first check with 0 recorded sips, avoid attributing stale sips
-                                if (lastSavedSipTimestampMs == 0L && currentSipTimestampMs > 0L) {
-                                    val now = System.currentTimeMillis()
-                                    if (now - currentSipTimestampMs > 15_000L) {
-                                        lastSavedSipTimestampMs = currentSipTimestampMs
-                                    }
-                                }
-
-                                // Detect genuinely new sip and save PER USER
-                                if (currentSipTimestampMs > lastSavedSipTimestampMs && sipAmount > 0) {
-                                    recordSipForUser(sipAmount, currentSipTimestampMs, ambientTemp)
-                                }
-                            }
+                            processTelemetryData(dataObject)
                         }
                     } else {
                         activity?.runOnUiThread {
-                            if (isAdded) {
+                            if (isAdded && bleManager?.isConnected != true) {
                                 updateDeviceConnectionBadge(isConnected = false)
+                                (activity as? MainActivity)?.updateWifiStatus(false)
                             }
                         }
                     }
                     connection.disconnect()
                 } catch (e: Exception) {
                     activity?.runOnUiThread {
-                        if (isAdded) {
+                        if (isAdded && bleManager?.isConnected != true) {
                             updateDeviceConnectionBadge(isConnected = false)
+                            (activity as? MainActivity)?.updateWifiStatus(false)
                         }
                     }
                 }
@@ -584,7 +662,7 @@ class DashboardFragment : Fragment() {
                             bottleCapacity = bottleCapacity,
                             batteryLevel = battery,
                             ambientTemp = ambientTemp,
-                            isConnected = true
+                            isConnected = bleManager?.isConnected == true
                         )
                     }
                 }
