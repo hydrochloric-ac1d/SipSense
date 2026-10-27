@@ -157,10 +157,11 @@
                         android:padding="12dp">
 
                         <ImageView
+                            android:id="@+id/iv_device_tab_water_icon"
                             android:layout_width="16dp"
                             android:layout_height="16dp"
                             android:src="@drawable/droplet"
-                            app:tint="@color/teal_primary" />
+                            app:tint="@color/text_secondary" />
 
                         <TextView
                             android:layout_width="wrap_content"
@@ -175,8 +176,8 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="4dp"
-                            android:text="0.65 L"
-                            android:textColor="@color/text_primary"
+                            android:text="--"
+                            android:textColor="@color/text_secondary"
                             android:textSize="17sp"
                             android:textStyle="bold" />
 
@@ -184,7 +185,7 @@
                             android:id="@+id/tv_device_tab_water_ml"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="650 ml"
+                            android:text="--"
                             android:textColor="@color/text_hint"
                             android:textSize="10sp" />
                     </LinearLayout>
@@ -200,10 +201,11 @@
                         android:padding="12dp">
 
                         <ImageView
+                            android:id="@+id/iv_device_tab_battery_icon"
                             android:layout_width="16dp"
                             android:layout_height="16dp"
                             android:src="@drawable/ic_battery"
-                            app:tint="@color/strength_strong" />
+                            app:tint="@color/text_secondary" />
 
                         <TextView
                             android:layout_width="wrap_content"
@@ -218,15 +220,16 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="4dp"
-                            android:text="85%"
-                            android:textColor="@color/text_primary"
+                            android:text="--"
+                            android:textColor="@color/text_secondary"
                             android:textSize="17sp"
                             android:textStyle="bold" />
 
                         <TextView
+                            android:id="@+id/tv_device_tab_battery_status"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="@string/battery_status_good"
+                            android:text="@string/ambient_temp_status_waiting"
                             android:textColor="@color/text_hint"
                             android:textSize="10sp" />
                     </LinearLayout>
@@ -242,6 +245,7 @@
                         android:padding="12dp">
 
                         <ImageView
+                            android:id="@+id/iv_device_tab_temp_icon"
                             android:layout_width="16dp"
                             android:layout_height="16dp"
                             android:src="@drawable/ic_temperature"
@@ -260,7 +264,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="4dp"
-                            android:text="24°C"
+                            android:text="--"
                             android:textColor="@color/text_primary"
                             android:textSize="17sp"
                             android:textStyle="bold" />
@@ -269,7 +273,7 @@
                             android:id="@+id/tv_device_tab_temp_status"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="@string/ambient_temp_status_normal"
+                            android:text="@string/ambient_temp_status_waiting"
                             android:textColor="@color/text_hint"
                             android:textSize="10sp" />
                     </LinearLayout>

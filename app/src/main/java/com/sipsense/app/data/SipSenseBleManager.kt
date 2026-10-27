@@ -39,10 +39,15 @@ import org.json.JSONObject
  */
 class SipSenseBleManager(
     private val context: Context,
-    private val onConnectionStateChanged: (isConnected: Boolean, deviceName: String?) -> Unit,
-    private val onTelemetryReceived: (telemetryJson: JSONObject) -> Unit,
-    private val onLogMessage: (message: String) -> Unit = {}
+    onConnectionStateChanged: (isConnected: Boolean, deviceName: String?) -> Unit,
+    onTelemetryReceived: (telemetryJson: JSONObject) -> Unit,
+    onLogMessage: (message: String) -> Unit = {}
 ) {
+
+    /** Mutable listener callbacks so active fragments can rebind on resume */
+    var onConnectionStateChanged: ((isConnected: Boolean, deviceName: String?) -> Unit)? = onConnectionStateChanged
+    var onTelemetryReceived: ((telemetryJson: JSONObject) -> Unit)? = onTelemetryReceived
+    var onLogMessage: ((message: String) -> Unit) = onLogMessage
 
     companion object {
         private const val TAG = "SipSenseBle"
@@ -85,6 +90,9 @@ class SipSenseBleManager(
     private var isScanning = false
     private var connectedDeviceName: String? = null
 
+    /** Automatically keeps looking for the ESP32 bottle whenever disconnected */
+    var shouldAutoScan: Boolean = true
+
     val isBluetoothEnabled: Boolean
         get() = bluetoothAdapter?.isEnabled == true
 
@@ -94,21 +102,22 @@ class SipSenseBleManager(
     val isScanningActive: Boolean
         get() = isScanning
 
+    private val scanRestartHandler = Handler(Looper.getMainLooper())
+    private val scanRestartRunnable = Runnable {
+        if (!isConnected && shouldAutoScan) {
+            Log.d(TAG, "Auto-reconnect scan cycle starting...")
+            startScan()
+        }
+    }
+
     private val scanTimeoutHandler = Handler(Looper.getMainLooper())
     private val scanTimeoutRunnable = Runnable {
         if (isScanning) {
-            Log.i(TAG, "BLE scan timed out after 10s without finding ${BleConstants.DEVICE_NAME}.")
-            stopScan()
-            Esp32SignalHub.logInfo(
-                "BLE_SCAN",
-                "Scan timed out after 10s: '${BleConstants.DEVICE_NAME}' not found nearby. Status set to STANDBY."
-            )
-            Esp32SignalHub.updateDeviceInfo { info ->
-                if (info.connectionState == "SCANNING") {
-                    info.copy(connectionState = "STANDBY")
-                } else {
-                    info
-                }
+            Log.i(TAG, "BLE scan cycle finished without finding device. Scheduling auto-reconnect cycle...")
+            stopScan(cancelAutoRetry = false)
+            if (!isConnected && shouldAutoScan) {
+                scanRestartHandler.removeCallbacks(scanRestartRunnable)
+                scanRestartHandler.postDelayed(scanRestartRunnable, 1200L)
             }
         }
     }
@@ -117,6 +126,9 @@ class SipSenseBleManager(
 
     @SuppressLint("MissingPermission")
     fun startScan() {
+        shouldAutoScan = true
+        scanRestartHandler.removeCallbacks(scanRestartRunnable)
+
         if (!hasPermissions(context)) {
             Log.w(TAG, "Cannot start BLE scan: permissions not granted.")
             onLogMessage("Bluetooth permissions not granted.")
@@ -140,22 +152,14 @@ class SipSenseBleManager(
             return
         }
 
+        // Open filter so advertisements are not dropped by vendor-specific filter bugs.
+        // We match explicitly in onScanResult for 100% reliable detection.
         val filters = mutableListOf<ScanFilter>()
-        // Filter by Service UUID
-        filters.add(
-            ScanFilter.Builder()
-                .setServiceUuid(ParcelUuid(BleConstants.SERVICE_UUID))
-                .build()
-        )
-        // Also filter by device name for maximum compatibility
-        filters.add(
-            ScanFilter.Builder()
-                .setDeviceName(BleConstants.DEVICE_NAME)
-                .build()
-        )
+        filters.add(ScanFilter.Builder().build())
 
         val settings = ScanSettings.Builder()
             .setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY)
+            .setReportDelay(0)
             .build()
 
         isScanning = true
@@ -163,19 +167,23 @@ class SipSenseBleManager(
         Log.i(TAG, "Starting BLE scan for ${BleConstants.DEVICE_NAME}...")
         Esp32SignalHub.logTx(
             "BLE_SCAN",
-            "CMD: bleScanner.startScan() [Filter Service: ${BleConstants.SERVICE_UUID}, Name: ${BleConstants.DEVICE_NAME}]"
+            "CMD: bleScanner.startScan() [Target: ${BleConstants.DEVICE_NAME}, Service: ${BleConstants.SERVICE_UUID}]"
         )
         Esp32SignalHub.updateDeviceInfo { it.copy(connectionState = "SCANNING") }
 
-        // Automatically stop scanning after 10 seconds if device is not in range
+        // Automatically cycle scan every 12 seconds so phone stays searching while bottle turns on
         scanTimeoutHandler.removeCallbacks(scanTimeoutRunnable)
-        scanTimeoutHandler.postDelayed(scanTimeoutRunnable, 10000L)
+        scanTimeoutHandler.postDelayed(scanTimeoutRunnable, 12000L)
 
         bleScanner?.startScan(filters, settings, scanCallback)
     }
 
     @SuppressLint("MissingPermission")
-    fun stopScan() {
+    fun stopScan(cancelAutoRetry: Boolean = false) {
+        if (cancelAutoRetry) {
+            shouldAutoScan = false
+            scanRestartHandler.removeCallbacks(scanRestartRunnable)
+        }
         scanTimeoutHandler.removeCallbacks(scanTimeoutRunnable)
         if (!isScanning) return
         isScanning = false
@@ -200,27 +208,37 @@ class SipSenseBleManager(
     private val scanCallback = object : ScanCallback() {
         @SuppressLint("MissingPermission")
         override fun onScanResult(callbackType: Int, result: ScanResult?) {
-            scanTimeoutHandler.removeCallbacks(scanTimeoutRunnable)
             val device = result?.device ?: return
-            val name = result.scanRecord?.deviceName ?: device.name ?: "Unknown Device"
-            val rssiVal = result.rssi
+            val scanRecord = result.scanRecord
+            val name = scanRecord?.deviceName ?: device.name ?: ""
+            val serviceUuids = scanRecord?.serviceUuids
+            val hasTargetUuid = serviceUuids?.any { it.uuid == BleConstants.SERVICE_UUID } == true
+            val isTargetName = name.contains("SipSense", ignoreCase = true) || name.equals(BleConstants.DEVICE_NAME, ignoreCase = true)
 
-            Log.i(TAG, "Discovered device: $name (${device.address})")
+            // If not our SipSense bottle peripheral, skip
+            if (!hasTargetUuid && !isTargetName) return
+
+            scanTimeoutHandler.removeCallbacks(scanTimeoutRunnable)
+            scanRestartHandler.removeCallbacks(scanRestartRunnable)
+            val rssiVal = result.rssi
+            val displayName = if (name.isNotBlank()) name else BleConstants.DEVICE_NAME
+
+            Log.i(TAG, "Discovered device: $displayName (${device.address})")
             Esp32SignalHub.logRx(
                 "SCAN_RESULT",
-                "ADV: Discovered '$name' (${device.address}) RSSI=$rssiVal dBm"
+                "ADV: Discovered '$displayName' (${device.address}) RSSI=$rssiVal dBm"
             )
             Esp32SignalHub.updateDeviceInfo { info ->
                 info.copy(
-                    deviceName = name,
+                    deviceName = displayName,
                     macAddress = device.address,
                     rssi = rssiVal,
                     connectionState = "CONNECTING"
                 )
             }
 
-            // Stop scanning and connect
-            stopScan()
+            // Stop scanning and connect immediately
+            stopScan(cancelAutoRetry = false)
             connect(device)
         }
 
@@ -230,6 +248,12 @@ class SipSenseBleManager(
             onLogMessage("Scan failed (error $errorCode)")
             Esp32SignalHub.logError("BLE_SCAN", "ERR: Scan failed with error code $errorCode")
             Esp32SignalHub.updateDeviceInfo { it.copy(connectionState = "SCAN_FAILED") }
+
+            // Retry scan after 2 seconds if still in auto-scan mode
+            if (!isConnected && shouldAutoScan) {
+                scanRestartHandler.removeCallbacks(scanRestartRunnable)
+                scanRestartHandler.postDelayed(scanRestartRunnable, 2000L)
+            }
         }
     }
 
@@ -341,6 +365,12 @@ class SipSenseBleManager(
                 gatt.close()
                 bluetoothGatt = null
                 notifyConnectionState(false, null)
+
+                // Immediately schedule auto-reconnect scan so when ESP32 powers back on, phone connects in real time
+                if (shouldAutoScan) {
+                    scanRestartHandler.removeCallbacks(scanRestartRunnable)
+                    scanRestartHandler.postDelayed(scanRestartRunnable, 1000L)
+                }
             }
         }
 
@@ -421,6 +451,12 @@ class SipSenseBleManager(
                 "GATT_CCCD",
                 "EVT: onDescriptorWrite (UUID=${descriptor.uuid}, status=$statusStr)"
             )
+            if (status == BluetoothGatt.GATT_SUCCESS) {
+                // Immediately perform a characteristic read so initial sensor telemetry updates UI without waiting for notify timer
+                mainHandler.postDelayed({
+                    requestTelemetryRead()
+                }, 100L)
+            }
         }
 
         // For Android 12 and lower
@@ -477,7 +513,7 @@ class SipSenseBleManager(
             val jsonObject = JSONObject(jsonString)
 
             mainHandler.post {
-                onTelemetryReceived(jsonObject)
+                onTelemetryReceived?.invoke(jsonObject)
             }
         } catch (e: Exception) {
             Log.e(TAG, "Failed to parse incoming BLE telemetry bytes as JSON", e)
@@ -487,7 +523,7 @@ class SipSenseBleManager(
 
     private fun notifyConnectionState(isConnected: Boolean, deviceName: String?) {
         mainHandler.post {
-            onConnectionStateChanged(isConnected, deviceName)
+            onConnectionStateChanged?.invoke(isConnected, deviceName)
         }
     }
 }

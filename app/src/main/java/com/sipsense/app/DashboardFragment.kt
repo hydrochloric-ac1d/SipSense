@@ -21,6 +21,7 @@ import org.json.JSONObject
 import androidx.activity.result.contract.ActivityResultContracts
 import com.sipsense.app.data.NotificationRepository
 import com.sipsense.app.data.SipSenseBleManager
+import com.sipsense.app.data.Esp32SignalHub
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
@@ -40,6 +41,7 @@ class DashboardFragment : Fragment() {
     private lateinit var tvDeviceName: TextView
     private lateinit var tvDeviceConnectionStatus: TextView
     private lateinit var vStatusDot: View
+    private lateinit var ivDeviceWaterIcon: ImageView
     private lateinit var tvDeviceWaterLiters: TextView
     private lateinit var tvDeviceWaterMl: TextView
     private lateinit var pbBottleWaterLevel: ProgressBar
@@ -47,6 +49,7 @@ class DashboardFragment : Fragment() {
     private lateinit var tvDeviceBatteryStatus: TextView
     private lateinit var pbBottleBattery: ProgressBar
     private lateinit var ivBatteryIcon: ImageView
+    private lateinit var ivTempIcon: ImageView
     private lateinit var tvDeviceAmbientTemp: TextView
     private lateinit var tvDeviceTempStatus: TextView
     private lateinit var pbBottleTemp: ProgressBar
@@ -75,8 +78,9 @@ class DashboardFragment : Fragment() {
     private var latestSensorWaterLevel: Int = 650
     private var currentBottleCapacity: Int = 1000
     private var currentBatteryLevel: Int = 88
-    private var currentAmbientTemp: Int = 24
-    private var isDeviceConnected: Boolean = true
+    private var currentAmbientTemp: Int? = null
+    private var isTempReadFailed: Boolean = false
+    private var isDeviceConnected: Boolean = false
 
     private fun isDeviceOnline(): Boolean = bleManager?.isConnected == true || isDeviceConnected
 
@@ -96,15 +100,10 @@ class DashboardFragment : Fragment() {
 
     private fun initBleManager() {
         val mainAct = activity as? MainActivity
-        if (mainAct?.bleManager != null) {
-            bleManager = mainAct.bleManager
-            return
-        }
-        if (bleManager != null) return
         val appContext = context?.applicationContext ?: return
-        bleManager = SipSenseBleManager(
-            context = appContext,
-            onConnectionStateChanged = { isConnected, deviceName ->
+
+        val connCallback: (Boolean, String?) -> Unit = { isConnected, deviceName ->
+            activity?.runOnUiThread {
                 if (isAdded) {
                     isDeviceConnected = isConnected
                     updateDeviceConnectionBadge(isConnected)
@@ -112,15 +111,55 @@ class DashboardFragment : Fragment() {
                     if (isConnected && deviceName != null) {
                         tvDeviceName.text = deviceName
                     }
+                    if (!isConnected) {
+                        currentAmbientTemp = null
+                        isTempReadFailed = false
+                    }
+                    updateDeviceStatusUI(
+                        waterLevel = currentBottleWaterLevel,
+                        bottleCapacity = currentBottleCapacity,
+                        batteryLevel = currentBatteryLevel,
+                        ambientTemp = if (isConnected) currentAmbientTemp else null,
+                        isReadFailed = if (isConnected) isTempReadFailed else false,
+                        isConnected = isConnected
+                    )
                     val currentUid = firebaseAuth.currentUser?.uid
                     if (currentUid != null) {
                         NotificationRepository.evaluateConnectionAlert(currentUid, isConnected)
+                        if (!isConnected && database != null) {
+                            database.child("users").child(currentUid).child("device_telemetry").child("ambientTemperature").removeValue()
+                            database.child("users").child(currentUid).child("device_telemetry").child("temperature").removeValue()
+                            database.child("users").child(currentUid).child("device_telemetry").child("waterLevel").removeValue()
+                            database.child("users").child(currentUid).child("device_telemetry").child("batteryLevel").removeValue()
+                        }
                     }
                 }
-            },
-            onTelemetryReceived = { telemetryJson ->
-                processTelemetryData(telemetryJson)
-            },
+            }
+        }
+
+        val telemetryCallback: (JSONObject) -> Unit = { telemetryJson ->
+            activity?.runOnUiThread {
+                if (isAdded) {
+                    processTelemetryData(telemetryJson)
+                }
+            }
+        }
+
+        if (mainAct?.bleManager != null) {
+            bleManager = mainAct.bleManager
+            bleManager?.onConnectionStateChanged = connCallback
+            bleManager?.onTelemetryReceived = telemetryCallback
+            val isConn = bleManager?.isConnected == true
+            isDeviceConnected = isConn
+            updateDeviceConnectionBadge(isConn)
+            mainAct.updateWifiStatus(isConn)
+            return
+        }
+
+        bleManager = SipSenseBleManager(
+            context = appContext,
+            onConnectionStateChanged = connCallback,
+            onTelemetryReceived = telemetryCallback,
             onLogMessage = { msg ->
                 android.util.Log.d("SipSenseDashboard", "BLE: $msg")
             }
@@ -147,6 +186,7 @@ class DashboardFragment : Fragment() {
         tvDeviceName = view.findViewById(R.id.tv_device_name)
         tvDeviceConnectionStatus = view.findViewById(R.id.tv_device_connection_status)
         vStatusDot = view.findViewById(R.id.v_status_dot)
+        ivDeviceWaterIcon = view.findViewById(R.id.iv_device_water_icon)
         tvDeviceWaterLiters = view.findViewById(R.id.tv_device_water_liters)
         tvDeviceWaterMl = view.findViewById(R.id.tv_device_water_ml)
         pbBottleWaterLevel = view.findViewById(R.id.pb_bottle_water_level)
@@ -154,6 +194,7 @@ class DashboardFragment : Fragment() {
         tvDeviceBatteryStatus = view.findViewById(R.id.tv_device_battery_status)
         pbBottleBattery = view.findViewById(R.id.pb_bottle_battery)
         ivBatteryIcon = view.findViewById(R.id.iv_battery_icon)
+        ivTempIcon = view.findViewById(R.id.iv_temp_icon)
         tvDeviceAmbientTemp = view.findViewById(R.id.tv_device_ambient_temp)
         tvDeviceTempStatus = view.findViewById(R.id.tv_device_temp_status)
         pbBottleTemp = view.findViewById(R.id.pb_bottle_temp)
@@ -211,7 +252,7 @@ class DashboardFragment : Fragment() {
     override fun onPause() {
         super.onPause()
         isPolling = false
-        bleManager?.stopScan()
+        bleManager?.stopScan(cancelAutoRetry = true)
     }
 
     private fun setupInitialDeviceStatus() {
@@ -221,6 +262,7 @@ class DashboardFragment : Fragment() {
             bottleCapacity = currentBottleCapacity,
             batteryLevel = currentBatteryLevel,
             ambientTemp = currentAmbientTemp,
+            isReadFailed = isTempReadFailed,
             isConnected = isDeviceOnline()
         )
     }
@@ -245,7 +287,7 @@ class DashboardFragment : Fragment() {
                 val sipConsumed = (currentBottleWaterLevel - latestSensorWaterLevel).coerceAtLeast(0)
                 currentBottleWaterLevel = latestSensorWaterLevel
                 if (sipConsumed > 0) {
-                    recordSipForUser(sipConsumed, now, currentAmbientTemp)
+                    recordSipForUser(sipConsumed, now, currentAmbientTemp ?: 0)
                 }
             }
 
@@ -260,6 +302,7 @@ class DashboardFragment : Fragment() {
                 bottleCapacity = currentBottleCapacity,
                 batteryLevel = currentBatteryLevel,
                 ambientTemp = currentAmbientTemp,
+                isReadFailed = isTempReadFailed,
                 isConnected = isDeviceOnline()
             )
 
@@ -276,6 +319,7 @@ class DashboardFragment : Fragment() {
                 bottleCapacity = currentBottleCapacity,
                 batteryLevel = currentBatteryLevel,
                 ambientTemp = currentAmbientTemp,
+                isReadFailed = isTempReadFailed,
                 isConnected = isDeviceOnline()
             )
             Toast.makeText(requireContext(), getString(R.string.msg_bottle_lifted), Toast.LENGTH_SHORT).show()
@@ -354,7 +398,7 @@ class DashboardFragment : Fragment() {
                 waterLevel = currentBottleWaterLevel,
                 bottleCapacity = currentBottleCapacity,
                 batteryLevel = currentBatteryLevel,
-                ambientTemp = currentAmbientTemp,
+                ambientTemp = currentAmbientTemp ?: 0,
                 dailyTotal = currentDailyTotal,
                 dailyTarget = currentHydrationTarget,
                 isAtRest = isBottleAtRest
@@ -370,15 +414,47 @@ class DashboardFragment : Fragment() {
         val waterLevel = dataObject.optInt("waterLevel", latestSensorWaterLevel)
         val bottleCapacity = dataObject.optInt("bottleCapacity", currentBottleCapacity)
         val battery = dataObject.optInt("batteryLevel", currentBatteryLevel)
-        val ambientTemp = dataObject.optInt(
-            "ambientTemperature",
-            dataObject.optInt("temperature", currentAmbientTemp)
-        )
+
+        // Check if ESP32 reported a sensor read failure
+        val isReadFailed = dataObject.optString("status").equals("Read Failed", ignoreCase = true)
+            || dataObject.optString("tempSensorStatus").equals("Read Failed", ignoreCase = true)
+            || dataObject.optString("error").contains("Read Failed", ignoreCase = true)
+            || dataObject.optBoolean("readFailed", false)
+            || dataObject.optBoolean("isReadFailed", false)
+
+        if (isReadFailed) {
+            isTempReadFailed = true
+            currentAmbientTemp = null
+            Esp32SignalHub.logError("DHT11", "❌ [SENSOR ERROR] DHT11 Read Failed signal received from ESP32")
+            android.util.Log.e("SipSenseDashboard", "DHT11 Sensor Read Failed signal received from ESP32")
+        } else {
+            val hasTemp = (dataObject.has("ambientTemperature") && !dataObject.isNull("ambientTemperature"))
+                || (dataObject.has("temperature") && !dataObject.isNull("temperature"))
+            if (hasTemp) {
+                val ambientTemp = dataObject.optInt(
+                    "ambientTemperature",
+                    dataObject.optInt("temperature", Int.MIN_VALUE)
+                )
+                if (ambientTemp != Int.MIN_VALUE) {
+                    isTempReadFailed = false
+                    currentAmbientTemp = ambientTemp
+
+                    // Log temperature readings to the terminal
+                    val tempCStr = if (dataObject.has("temperatureC")) {
+                        String.format(Locale.US, "%.1f°C", dataObject.optDouble("temperatureC"))
+                    } else {
+                        "${ambientTemp}°C"
+                    }
+                    val humStr = if (dataObject.has("humidity")) " | Humidity: ${dataObject.optInt("humidity")}%" else ""
+                    Esp32SignalHub.logRx("TEMP", "🌡️ Temperature Reading: $tempCStr$humStr", rawPayload = dataObject.toString())
+                    android.util.Log.i("SipSenseDashboard", "🌡️ Temperature Reading: $tempCStr$humStr")
+                }
+            }
+        }
 
         latestSensorWaterLevel = waterLevel
         currentBottleCapacity = bottleCapacity
         currentBatteryLevel = battery
-        currentAmbientTemp = ambientTemp
 
         // Check if device reports bottle base rest state (HX711 / switch)
         if (dataObject.has("isBottleAtRest")) {
@@ -399,33 +475,44 @@ class DashboardFragment : Fragment() {
 
         // 1. Immediately update and persist device telemetry for the active user ID
         if (uid != null && database != null) {
-            val telemetryMap = mapOf(
+            val telemetryMap = mutableMapOf<String, Any>(
                 "waterLevel" to currentBottleWaterLevel,
                 "rawSensorWaterLevel" to latestSensorWaterLevel,
                 "bottleCapacity" to bottleCapacity,
                 "batteryLevel" to battery,
-                "ambientTemperature" to ambientTemp,
-                "temperature" to ambientTemp,
                 "humidity" to dataObject.optInt("humidity", 55),
                 "isBottleAtRest" to isBottleAtRest,
+                "tempSensorStatus" to if (isTempReadFailed) "Read Failed" else "OK",
+                "readFailed" to isTempReadFailed,
                 "lastUpdated" to System.currentTimeMillis()
             )
+            if (!isTempReadFailed && currentAmbientTemp != null) {
+                telemetryMap["ambientTemperature"] = currentAmbientTemp!!
+                telemetryMap["temperature"] = currentAmbientTemp!!
+            }
             database.child("users").child(uid).child("device_telemetry").setValue(telemetryMap)
                 .addOnFailureListener { e ->
                     android.util.Log.e("SipSenseDashboard", "Failed to persist telemetry for user $uid", e)
                 }
 
+            if (isTempReadFailed) {
+                database.child("users").child(uid).child("device_telemetry").child("ambientTemperature").removeValue()
+                database.child("users").child(uid).child("device_telemetry").child("temperature").removeValue()
+            }
+
             // Evaluate smart alerts for water refill, low battery, high ambient temp, etc.
-            NotificationRepository.evaluateTelemetryForAlerts(
-                userId = uid,
-                waterLevel = currentBottleWaterLevel,
-                bottleCapacity = bottleCapacity,
-                batteryLevel = battery,
-                ambientTemp = ambientTemp,
-                dailyTotal = currentDailyTotal,
-                dailyTarget = currentHydrationTarget,
-                isAtRest = isBottleAtRest
-            )
+            if (currentAmbientTemp != null) {
+                NotificationRepository.evaluateTelemetryForAlerts(
+                    userId = uid,
+                    waterLevel = currentBottleWaterLevel,
+                    bottleCapacity = bottleCapacity,
+                    batteryLevel = battery,
+                    ambientTemp = currentAmbientTemp!!,
+                    dailyTotal = currentDailyTotal,
+                    dailyTarget = currentHydrationTarget,
+                    isAtRest = isBottleAtRest
+                )
+            }
         }
 
         activity?.runOnUiThread {
@@ -434,7 +521,8 @@ class DashboardFragment : Fragment() {
                     waterLevel = currentBottleWaterLevel,
                     bottleCapacity = bottleCapacity,
                     batteryLevel = battery,
-                    ambientTemp = ambientTemp,
+                    ambientTemp = currentAmbientTemp,
+                    isReadFailed = isTempReadFailed,
                     isConnected = true
                 )
                 (activity as? MainActivity)?.updateWifiStatus(true)
@@ -463,7 +551,7 @@ class DashboardFragment : Fragment() {
 
             // Detect genuinely new sip and save PER USER
             if (currentSipTimestampMs > lastSavedSipTimestampMs && sipAmount > 0) {
-                recordSipForUser(sipAmount, currentSipTimestampMs, ambientTemp)
+                recordSipForUser(sipAmount, currentSipTimestampMs, currentAmbientTemp ?: 0)
             }
         }
     }
@@ -651,14 +739,28 @@ class DashboardFragment : Fragment() {
                 val waterLevel = snapshot.child("waterLevel").getValue(Int::class.java) ?: currentBottleWaterLevel
                 val bottleCapacity = snapshot.child("bottleCapacity").getValue(Int::class.java) ?: currentBottleCapacity
                 val battery = snapshot.child("batteryLevel").getValue(Int::class.java) ?: currentBatteryLevel
-                val ambientTemp = snapshot.child("ambientTemperature").getValue(Int::class.java)
-                    ?: snapshot.child("temperature").getValue(Int::class.java)
-                    ?: currentAmbientTemp
+                val isOnline = isDeviceOnline()
+                val isFailed = snapshot.child("tempSensorStatus").getValue(String::class.java).equals("Read Failed", ignoreCase = true)
+                    || snapshot.child("status").getValue(String::class.java).equals("Read Failed", ignoreCase = true)
+                    || snapshot.child("readFailed").getValue(Boolean::class.java) == true
+
+                val ambientTemp = if (isFailed || !isOnline) {
+                    null
+                } else {
+                    snapshot.child("ambientTemperature").getValue(Int::class.java)
+                        ?: snapshot.child("temperature").getValue(Int::class.java)
+                }
 
                 latestSensorWaterLevel = waterLevel
                 currentBottleCapacity = bottleCapacity
                 currentBatteryLevel = battery
                 currentAmbientTemp = ambientTemp
+                isTempReadFailed = isFailed
+
+                if (isFailed && database != null) {
+                    database.child("users").child(uid).child("device_telemetry").child("ambientTemperature").removeValue()
+                    database.child("users").child(uid).child("device_telemetry").child("temperature").removeValue()
+                }
 
                 if (snapshot.hasChild("isBottleAtRest")) {
                     val atRest = snapshot.child("isBottleAtRest").getValue(Boolean::class.java) ?: isBottleAtRest
@@ -680,7 +782,8 @@ class DashboardFragment : Fragment() {
                             waterLevel = currentBottleWaterLevel,
                             bottleCapacity = bottleCapacity,
                             batteryLevel = battery,
-                            ambientTemp = ambientTemp,
+                            ambientTemp = currentAmbientTemp,
+                            isReadFailed = isTempReadFailed,
                             isConnected = isDeviceOnline()
                         )
                     }
@@ -781,48 +884,108 @@ class DashboardFragment : Fragment() {
         waterLevel: Int,
         bottleCapacity: Int,
         batteryLevel: Int,
-        ambientTemp: Int,
+        ambientTemp: Int?,
+        isReadFailed: Boolean = false,
         isConnected: Boolean
     ) {
         if (!isAdded) return
 
         // ── 1. Water inside bottle formatted in Liters ──
-        val safeCapacity = if (bottleCapacity > 0) bottleCapacity else 1000
-        val safeWaterLevel = waterLevel.coerceAtLeast(0)
-        val liters = safeWaterLevel / 1000.0
-        tvDeviceWaterLiters.text = String.format(Locale.US, "%.2f L", liters)
-        tvDeviceWaterMl.text = if (isBottleAtRest) {
-            "$safeWaterLevel ml / $safeCapacity ml"
+        if (!isConnected) {
+            ivDeviceWaterIcon.imageTintList = ContextCompat.getColorStateList(requireContext(), R.color.text_secondary)
+            tvDeviceWaterLiters.text = "--"
+            tvDeviceWaterLiters.setTextColor(ContextCompat.getColor(requireContext(), R.color.text_secondary))
+            tvDeviceWaterMl.text = "--"
+            tvDeviceWaterMl.setTextColor(ContextCompat.getColor(requireContext(), R.color.text_hint))
+            pbBottleWaterLevel.progress = 0
+            pbBottleWaterLevel.progressTintList = ContextCompat.getColorStateList(requireContext(), R.color.text_secondary)
         } else {
-            "$safeWaterLevel ml (Paused)"
+            ivDeviceWaterIcon.imageTintList = ContextCompat.getColorStateList(requireContext(), R.color.teal_primary)
+            val safeCapacity = if (bottleCapacity > 0) bottleCapacity else 1000
+            val safeWaterLevel = waterLevel.coerceAtLeast(0)
+            val liters = safeWaterLevel / 1000.0
+            tvDeviceWaterLiters.text = String.format(Locale.US, "%.2f L", liters)
+            tvDeviceWaterLiters.setTextColor(ContextCompat.getColor(requireContext(), R.color.text_primary))
+            tvDeviceWaterMl.text = if (isBottleAtRest) {
+                "$safeWaterLevel ml / $safeCapacity ml"
+            } else {
+                "$safeWaterLevel ml (Paused)"
+            }
+            tvDeviceWaterMl.setTextColor(ContextCompat.getColor(requireContext(), R.color.text_hint))
+            val waterPercent = ((safeWaterLevel.toFloat() / safeCapacity) * 100).toInt().coerceIn(0, 100)
+            pbBottleWaterLevel.progress = waterPercent
+            pbBottleWaterLevel.progressTintList = ContextCompat.getColorStateList(requireContext(), R.color.teal_primary)
         }
-        val waterPercent = ((safeWaterLevel.toFloat() / safeCapacity) * 100).toInt().coerceIn(0, 100)
-        pbBottleWaterLevel.progress = waterPercent
 
         // ── 2. Battery of the device ──
-        val safeBattery = batteryLevel.coerceIn(0, 100)
-        tvDeviceBattery.text = "$safeBattery%"
-        pbBottleBattery.progress = safeBattery
-        if (safeBattery <= 20) {
-            tvDeviceBatteryStatus.text = getString(R.string.battery_status_low)
-            tvDeviceBatteryStatus.setTextColor(ContextCompat.getColor(requireContext(), R.color.strength_weak))
-            ivBatteryIcon.imageTintList = ContextCompat.getColorStateList(requireContext(), R.color.strength_weak)
-            pbBottleBattery.progressTintList = ContextCompat.getColorStateList(requireContext(), R.color.strength_weak)
-        } else {
-            tvDeviceBatteryStatus.text = getString(R.string.battery_status_good)
+        if (!isConnected) {
+            ivBatteryIcon.imageTintList = ContextCompat.getColorStateList(requireContext(), R.color.text_secondary)
+            tvDeviceBattery.text = "--"
+            tvDeviceBattery.setTextColor(ContextCompat.getColor(requireContext(), R.color.text_secondary))
+            tvDeviceBatteryStatus.text = getString(R.string.ambient_temp_status_waiting)
             tvDeviceBatteryStatus.setTextColor(ContextCompat.getColor(requireContext(), R.color.text_hint))
-            ivBatteryIcon.imageTintList = ContextCompat.getColorStateList(requireContext(), R.color.strength_strong)
-            pbBottleBattery.progressTintList = ContextCompat.getColorStateList(requireContext(), R.color.strength_strong)
+            pbBottleBattery.progress = 0
+            pbBottleBattery.progressTintList = ContextCompat.getColorStateList(requireContext(), R.color.text_secondary)
+        } else {
+            val safeBattery = batteryLevel.coerceIn(0, 100)
+            tvDeviceBattery.text = "$safeBattery%"
+            tvDeviceBattery.setTextColor(ContextCompat.getColor(requireContext(), R.color.text_primary))
+            pbBottleBattery.progress = safeBattery
+            if (safeBattery <= 20) {
+                tvDeviceBatteryStatus.text = getString(R.string.battery_status_low)
+                tvDeviceBatteryStatus.setTextColor(ContextCompat.getColor(requireContext(), R.color.strength_weak))
+                ivBatteryIcon.imageTintList = ContextCompat.getColorStateList(requireContext(), R.color.strength_weak)
+                pbBottleBattery.progressTintList = ContextCompat.getColorStateList(requireContext(), R.color.strength_weak)
+            } else {
+                tvDeviceBatteryStatus.text = getString(R.string.battery_status_good)
+                tvDeviceBatteryStatus.setTextColor(ContextCompat.getColor(requireContext(), R.color.text_hint))
+                ivBatteryIcon.imageTintList = ContextCompat.getColorStateList(requireContext(), R.color.strength_strong)
+                pbBottleBattery.progressTintList = ContextCompat.getColorStateList(requireContext(), R.color.strength_strong)
+            }
         }
 
         // ── 3. Ambient Room Temperature ──
-        val safeTemp = ambientTemp.coerceIn(0, 50)
-        tvDeviceAmbientTemp.text = "$safeTemp°C"
-        pbBottleTemp.progress = safeTemp
-        tvDeviceTempStatus.text = when {
-            safeTemp < 20 -> getString(R.string.ambient_temp_status_cool)
-            safeTemp > 28 -> getString(R.string.ambient_temp_status_warm)
-            else -> getString(R.string.ambient_temp_status_normal)
+        if (!isConnected) {
+            ivTempIcon.setImageResource(R.drawable.ic_temperature)
+            ivTempIcon.imageTintList = ContextCompat.getColorStateList(requireContext(), R.color.text_secondary)
+            tvDeviceAmbientTemp.text = "--"
+            tvDeviceAmbientTemp.setTextColor(ContextCompat.getColor(requireContext(), R.color.text_secondary))
+            tvDeviceTempStatus.text = getString(R.string.ambient_temp_status_waiting)
+            tvDeviceTempStatus.setTextColor(ContextCompat.getColor(requireContext(), R.color.text_hint))
+            pbBottleTemp.progress = 0
+            pbBottleTemp.progressTintList = ContextCompat.getColorStateList(requireContext(), R.color.text_secondary)
+        } else if (isReadFailed) {
+            ivTempIcon.setImageResource(R.drawable.ic_error)
+            ivTempIcon.imageTintList = ContextCompat.getColorStateList(requireContext(), R.color.strength_weak)
+            tvDeviceAmbientTemp.text = "--"
+            tvDeviceAmbientTemp.setTextColor(ContextCompat.getColor(requireContext(), R.color.strength_weak))
+            tvDeviceTempStatus.text = getString(R.string.ambient_temp_status_error)
+            tvDeviceTempStatus.setTextColor(ContextCompat.getColor(requireContext(), R.color.strength_weak))
+            pbBottleTemp.progress = 0
+            pbBottleTemp.progressTintList = ContextCompat.getColorStateList(requireContext(), R.color.strength_weak)
+        } else if (ambientTemp == null) {
+            ivTempIcon.setImageResource(R.drawable.ic_temperature)
+            ivTempIcon.imageTintList = ContextCompat.getColorStateList(requireContext(), R.color.strength_fair)
+            tvDeviceAmbientTemp.text = "--"
+            tvDeviceAmbientTemp.setTextColor(ContextCompat.getColor(requireContext(), R.color.text_primary))
+            tvDeviceTempStatus.text = getString(R.string.ambient_temp_status_waiting)
+            tvDeviceTempStatus.setTextColor(ContextCompat.getColor(requireContext(), R.color.text_hint))
+            pbBottleTemp.progress = 0
+            pbBottleTemp.progressTintList = ContextCompat.getColorStateList(requireContext(), R.color.strength_fair)
+        } else {
+            ivTempIcon.setImageResource(R.drawable.ic_temperature)
+            ivTempIcon.imageTintList = ContextCompat.getColorStateList(requireContext(), R.color.strength_fair)
+            val safeTemp = ambientTemp.coerceIn(0, 50)
+            tvDeviceAmbientTemp.text = "$safeTemp°C"
+            tvDeviceAmbientTemp.setTextColor(ContextCompat.getColor(requireContext(), R.color.text_primary))
+            pbBottleTemp.progress = safeTemp
+            pbBottleTemp.progressTintList = ContextCompat.getColorStateList(requireContext(), R.color.strength_fair)
+            tvDeviceTempStatus.text = when {
+                safeTemp < 20 -> getString(R.string.ambient_temp_status_cool)
+                safeTemp > 28 -> getString(R.string.ambient_temp_status_warm)
+                else -> getString(R.string.ambient_temp_status_normal)
+            }
+            tvDeviceTempStatus.setTextColor(ContextCompat.getColor(requireContext(), R.color.text_hint))
         }
 
         // ── Connection Status ──

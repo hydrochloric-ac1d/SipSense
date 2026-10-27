@@ -67,6 +67,8 @@
     <string name="ambient_temp_status_normal">Room Temp</string>
     <string name="ambient_temp_status_cool">Cool</string>
     <string name="ambient_temp_status_warm">Warm</string>
+    <string name="ambient_temp_status_waiting">Awaiting Sensor</string>
+    <string name="ambient_temp_status_error">Read Failed</string>
     <string name="bottle_status_at_rest">Bottle at Rest on Base</string>
     <string name="bottle_status_lifted">Bottle Lifted (Off Base)</string>
     <string name="bottle_rest_desc_active">Load Cell (HX711) active • Tap to simulate lift</string>

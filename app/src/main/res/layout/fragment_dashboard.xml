@@ -379,10 +379,11 @@
                             android:gravity="center_vertical">
 
                             <ImageView
+                                android:id="@+id/iv_device_water_icon"
                                 android:layout_width="14dp"
                                 android:layout_height="14dp"
                                 android:src="@drawable/droplet"
-                                app:tint="@color/teal_primary" />
+                                app:tint="@color/text_secondary" />
 
                             <TextView
                                 android:layout_width="wrap_content"
@@ -401,8 +402,8 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="6dp"
-                            android:text="0.65 L"
-                            android:textColor="@color/text_primary"
+                            android:text="--"
+                            android:textColor="@color/text_secondary"
                             android:textSize="16sp"
                             android:textStyle="bold"
                             android:singleLine="true" />
@@ -412,7 +413,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="2dp"
-                            android:text="650 ml / 1000 ml"
+                            android:text="--"
                             android:textColor="@color/text_hint"
                             android:textSize="10sp"
                             android:singleLine="true"
@@ -426,8 +427,8 @@
                             android:layout_height="4dp"
                             android:layout_marginTop="8dp"
                             android:max="100"
-                            android:progress="65"
-                            android:progressTint="@color/teal_primary"
+                            android:progress="0"
+                            android:progressTint="@color/text_secondary"
                             android:progressBackgroundTint="@color/input_background" />
                     </LinearLayout>
 
@@ -453,7 +454,7 @@
                                 android:layout_width="14dp"
                                 android:layout_height="14dp"
                                 android:src="@drawable/ic_battery"
-                                app:tint="@color/strength_strong" />
+                                app:tint="@color/text_secondary" />
 
                             <TextView
                                 android:layout_width="wrap_content"
@@ -472,8 +473,8 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="6dp"
-                            android:text="85%"
-                            android:textColor="@color/text_primary"
+                            android:text="--"
+                            android:textColor="@color/text_secondary"
                             android:textSize="16sp"
                             android:textStyle="bold"
                             android:singleLine="true" />
@@ -483,7 +484,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="2dp"
-                            android:text="@string/battery_status_good"
+                            android:text="@string/ambient_temp_status_waiting"
                             android:textColor="@color/text_hint"
                             android:textSize="10sp"
                             android:singleLine="true"
@@ -497,8 +498,8 @@
                             android:layout_height="4dp"
                             android:layout_marginTop="8dp"
                             android:max="100"
-                            android:progress="85"
-                            android:progressTint="@color/strength_strong"
+                            android:progress="0"
+                            android:progressTint="@color/text_secondary"
                             android:progressBackgroundTint="@color/input_background" />
                     </LinearLayout>
 
@@ -543,7 +544,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="6dp"
-                            android:text="24°C"
+                            android:text="--"
                             android:textColor="@color/text_primary"
                             android:textSize="16sp"
                             android:textStyle="bold"
@@ -554,7 +555,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="2dp"
-                            android:text="@string/ambient_temp_status_normal"
+                            android:text="@string/ambient_temp_status_waiting"
                             android:textColor="@color/text_hint"
                             android:textSize="10sp"
                             android:singleLine="true"
@@ -568,7 +569,7 @@
                             android:layout_height="4dp"
                             android:layout_marginTop="8dp"
                             android:max="50"
-                            android:progress="24"
+                            android:progress="0"
                             android:progressTint="@color/strength_fair"
                             android:progressBackgroundTint="@color/input_background" />
                     </LinearLayout>
