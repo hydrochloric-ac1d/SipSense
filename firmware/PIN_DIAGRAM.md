@@ -6,8 +6,10 @@
 |---|---|---|
 | **A** | [`SipSense_DHT11_BLE`](SipSense_DHT11_BLE/SipSense_DHT11_BLE.ino) | Reads temperature/humidity and sends them to the SipSense app over BLE |
 | **B** | [`SipSense_HX711_Calibration`](SipSense_HX711_Calibration/SipSense_HX711_Calibration.ino) | Interactive load-cell calibration over the Serial Monitor; saves the result to flash |
+| **C** | [`SipSense_DHT11_HX711_BLE`](SipSense_DHT11_HX711_BLE/SipSense_DHT11_HX711_BLE.ino) | Combined code with interactive Serial commands and Developer Mode Terminal output |
+| **D** | [`SipSense_Hardware_BLE`](SipSense_Hardware_BLE/SipSense_Hardware_BLE.ino) | **Pure Hardware (Zero Simulation):** Real DHT11 + Real HX711 with physical load-cell sip calculation |
 
-> **Wire everything once.** Both sketches use the same pins, so you can flash either one without rewiring.
+> **Wire everything once.** All sketches use the exact same pins, so you can flash any of them without rewiring.
 > The pins also match the existing [`SipSense_BLE_Simulator`](SipSense_BLE_Simulator/SipSense_BLE_Simulator.ino).
 
 ---
@@ -361,18 +363,52 @@ For example, if it shows 505 g for a 500 g weight: `new factor = old × 505 / 50
 
 ---
 
-## 9. Troubleshooting
+---
+
+## 9. Sketch C: Combined DHT11 + HX711 Firmware
+
+**File:** [`SipSense_DHT11_HX711_BLE.ino`](SipSense_DHT11_HX711_BLE/SipSense_DHT11_HX711_BLE.ino)
+
+### What it does
+
+- Combines both **DHT11** (ambient temperature & humidity on GPIO 19) and **HX711** (load-cell weight / water level on GPIO 21 & 22).
+- Restores the saved calibration factor and zero offset automatically from flash NVS.
+- Advertises as `SipSense-Bottle` and sends combined JSON telemetry packets over BLE every 2 seconds.
+- Streams live readings directly to the SipSense Android app:
+  - **Dashboard & Devices cards:** Updates live ambient temperature (°C) and live water in bottle (L / mL).
+  - **Developer Mode Signals Terminal:** Outputs both `[TEMP]` and `[HX711]` log entries in real-time.
+- Also supports the interactive Serial Monitor commands (`t` to tare, `c` to calibrate, `i` to print status) over USB.
+
+### How to Flash & Run
+
+1. Open `SipSense_DHT11_HX711_BLE.ino` in Arduino IDE.
+2. Select **Tools → Board → ESP32 Dev Module**.
+3. Select **Tools → Partition Scheme → Huge APP (3MB No OTA / 1MB SPIFFS)**.
+4. Click **Upload** (<kbd>Ctrl</kbd> + <kbd>U</kbd>).
+5. Open the **SipSense app** on your Android phone:
+   - The app will automatically connect to `SipSense-Bottle`.
+   - **Dashboard:** Watch the live Water in Bottle and Ambient Temperature cards update in real-time.
+   - **Developer Mode:** Tap the SipSense logo in the top-left 5 times (authorized user: `testuser1@sipsense.com`) to open the **Signals Terminal**.
+   - Watch the live `[HX711]` and `[TEMP]` signals stream in:
+     ```
+     [RX ◀] [TEMP]  🌡️ Temperature Reading: 25.2°C | Humidity: 58%
+     [RX ◀] [HX711] ⚖️ Scale Reading: 450.0 g (450 ml) | Calibrated | Raw: 189420 | At Rest
+     ```
+
+---
+
+## 10. Troubleshooting
 
 | Symptom | Likely cause / fix |
 |---|---|
 | No COM port in Arduino IDE | Charge-only USB-C cable, or the CH340/CP210x driver is missing |
 | `Failed to connect to ESP32: Wrong boot mode` | Hold **BOOT** during `Connecting…`. Check that nothing is wired to GPIO 0/2/12/15 |
-| `Sketch too big` (Sketch A) | Tools → Partition Scheme → **Huge APP** |
+| `Sketch too big` (Sketch A or C) | Tools → Partition Scheme → **Huge APP** |
 | `[DHT11] Read failed` every time | DATA isn't on GPIO 19, a bare sensor is missing its 10 kΩ pull-up, or VCC/GND are swapped |
 | Temperature reads 2–3 °C high | Sensor is too close to the ESP32 or regulator. Move it away on longer wires |
 | App can't find `SipSense-Bottle` | Bluetooth/Location permissions are off, or another phone or nRF Connect is already connected (only one connection at a time) |
-| App connects but temperature doesn't change | Check the Serial Monitor for `Sent ->`. Open the Dashboard tab, which is where telemetry is processed |
-| Temperature displays `--` | Expected behavior when ESP32 is turned off / disconnected (shows `Awaiting Sensor`), or if DHT11 sensor read failed (shows warning error icon + `Read Failed`) |
+| App connects but values don't change | Check the Serial Monitor for `Sent ->`. Open the Dashboard tab, which is where telemetry is processed |
+| Values display `--` | Expected behavior when ESP32 is turned off / disconnected (shows `Awaiting Sensor`), or if sensor read failed |
 | `[HX711] Not responding!` | DT/SCK swapped or loose, or the HX711 has no 3V3/GND |
 | Weight jumps around / drifts | Load cell not mounted rigidly, cables touching the platform, or wires too long. Twist the four load-cell wires together and re-tare |
 | Reading goes negative when weight is added | A+/A− swapped. Either swap White/Green, or keep the negative factor (it still works) |
@@ -380,8 +416,7 @@ For example, if it shows 505 g for a 500 g weight: `new factor = old × 505 / 50
 
 ---
 
-## 10. Next Steps (Phase 2: battery)
+## 11. Next Steps (Phase 2: battery)
 
 - Add the LiPo + charger/boost module and a **voltage divider into GPIO 34** (already reserved).
-- Merge both sketches into one SipSense firmware. It will read `hx_factor`/`hx_offset` from NVS, convert grams to
-  `waterLevel` (mL), detect sips, and send the full JSON payload the app already supports.
+- When battery hardware is ready, map the ADC readings into `batteryLevel` in the firmware.

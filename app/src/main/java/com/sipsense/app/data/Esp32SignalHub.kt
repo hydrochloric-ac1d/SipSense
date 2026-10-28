@@ -254,11 +254,22 @@ object Esp32SignalHub {
 
         mainHandler.postDelayed({
             val telemetryJson = "{\"waterLevel\":630,\"bottleCapacity\":1000,\"batteryLevel\":87," +
-                    "\"ambientTemperature\":24,\"temperature\":24,\"humidity\":55,\"sipAmount\":20," +
+                    "\"ambientTemperature\":24,\"temperature\":24,\"humidity\":55,\"weightGrams\":630.0," +
+                    "\"rawCounts\":265210,\"isCalibrated\":true,\"hx711Status\":\"OK\",\"sipAmount\":20," +
                     "\"totalConsumedToday\":70,\"isBottleAtRest\":true}"
             logRx(
                 "NOTIFY_TELEMETRY",
                 "RX: Live telemetry JSON packet received (${telemetryJson.length} bytes)",
+                rawPayload = telemetryJson
+            )
+            logRx(
+                "TEMP",
+                "🌡️ Temperature Reading: 24.0°C | Humidity: 55%",
+                rawPayload = telemetryJson
+            )
+            logRx(
+                "HX711",
+                "⚖️ Scale Reading: 630.0 g (630 ml) | Calibrated | Raw: 265210 | At Rest",
                 rawPayload = telemetryJson
             )
         }, 320)
@@ -276,11 +287,17 @@ object Esp32SignalHub {
 
         mainHandler.postDelayed({
             val telemetryJson = "{\"waterLevel\":595,\"bottleCapacity\":1000,\"batteryLevel\":87," +
-                    "\"ambientTemperature\":25,\"temperature\":25,\"humidity\":54,\"sipAmount\":$amountMl," +
+                    "\"ambientTemperature\":25,\"temperature\":25,\"humidity\":54,\"weightGrams\":595.0," +
+                    "\"rawCounts\":250480,\"isCalibrated\":true,\"hx711Status\":\"OK\",\"sipAmount\":$amountMl," +
                     "\"totalConsumedToday\":105,\"isBottleAtRest\":true}"
             logRx(
                 "NOTIFY_TELEMETRY",
                 "RX: SIP EVENT - Dispatched $amountMl ml sip telemetry notification (${telemetryJson.length} bytes)",
+                rawPayload = telemetryJson
+            )
+            logRx(
+                "HX711",
+                "⚖️ Scale Reading: 595.0 g (595 ml) | Calibrated | Sip detected: -$amountMl ml",
                 rawPayload = telemetryJson
             )
         }, 200)

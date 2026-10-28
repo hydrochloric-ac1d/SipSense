@@ -452,6 +452,48 @@ class DashboardFragment : Fragment() {
             }
         }
 
+        // Log HX711 load cell / scale readings to the developer mode terminal
+        val isHx711Failed = dataObject.optString("hx711Status").equals("Read Failed", ignoreCase = true)
+            || dataObject.optBoolean("hx711ReadFailed", false)
+            || (dataObject.has("hx711Error") && dataObject.optString("hx711Error").isNotBlank())
+
+        if (isHx711Failed) {
+            Esp32SignalHub.logError("HX711", "❌ [SENSOR ERROR] HX711 Load Cell Read Failed signal from ESP32")
+            android.util.Log.e("SipSenseDashboard", "HX711 Sensor Read Failed signal received from ESP32")
+        } else {
+            val hasWeight = dataObject.has("weightGrams")
+                || dataObject.has("weight")
+                || dataObject.has("rawCounts")
+                || (dataObject.has("waterLevel") && !dataObject.isNull("waterLevel"))
+
+            if (hasWeight) {
+                val weightGrams = if (dataObject.has("weightGrams")) {
+                    dataObject.optDouble("weightGrams")
+                } else if (dataObject.has("weight")) {
+                    dataObject.optDouble("weight")
+                } else {
+                    waterLevel.toDouble()
+                }
+
+                val weightStr = String.format(Locale.US, "%.1f g", weightGrams)
+                val calibStr = if (dataObject.has("isCalibrated")) {
+                    if (dataObject.optBoolean("isCalibrated")) " | Calibrated" else " | Uncalibrated"
+                } else ""
+                val rawStr = if (dataObject.has("rawCounts")) " | Raw: ${dataObject.optLong("rawCounts")}" else ""
+                val restState = if (dataObject.has("isBottleAtRest")) {
+                    dataObject.optBoolean("isBottleAtRest")
+                } else isBottleAtRest
+                val restStr = if (restState) " | At Rest" else " | Lifted"
+
+                Esp32SignalHub.logRx(
+                    "HX711",
+                    "⚖️ Scale Reading: $weightStr ($waterLevel ml)$calibStr$rawStr$restStr",
+                    rawPayload = dataObject.toString()
+                )
+                android.util.Log.i("SipSenseDashboard", "⚖️ Scale Reading: $weightStr ($waterLevel ml)")
+            }
+        }
+
         latestSensorWaterLevel = waterLevel
         currentBottleCapacity = bottleCapacity
         currentBatteryLevel = battery
