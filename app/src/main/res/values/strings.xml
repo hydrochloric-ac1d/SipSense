@@ -36,6 +36,21 @@
     <string name="nav_dashboard">Dashboard</string>
     <string name="nav_history">History</string>
     <string name="nav_devices">Devices</string>
+    <string name="nav_waterbottle">Water Bottle</string>
+    <string name="waterbottle_title">Water Bottle</string>
+    <string name="waterbottle_subtitle">Scan BLE signal and manage hardware connection</string>
+    <string name="waterbottle_scan">Scan for Waterbottle</string>
+    <string name="waterbottle_stop_scan">Stop Scanning</string>
+    <string name="waterbottle_disconnect">Disconnect Bottle</string>
+    <string name="waterbottle_connect">Connect</string>
+    <string name="waterbottle_connecting">Connecting…</string>
+    <string name="waterbottle_connected">CONNECTED</string>
+    <string name="waterbottle_disconnected">DISCONNECTED</string>
+    <string name="waterbottle_led_blinking_hint">ESP32 LED is blinking while broadcasting BLE signal</string>
+    <string name="waterbottle_led_steady_hint">ESP32 LED is steady ON when connected</string>
+    <string name="waterbottle_no_devices">No BLE signals detected yet.\nEnsure your ESP32 is powered on (LED blinking) and tap Scan.</string>
+    <string name="waterbottle_status_connected_desc">Connected via Bluetooth Low Energy (ESP32 GATT)</string>
+    <string name="waterbottle_status_disconnected_desc">Not connected. Tap Scan below to discover your ESP32 bottle.</string>
     <string name="nav_notifications">Notifications</string>
     <string name="nav_profile">Profile</string>
 

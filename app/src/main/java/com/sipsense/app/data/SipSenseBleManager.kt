@@ -20,34 +20,60 @@ import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
-import android.os.ParcelUuid
 import android.util.Log
 import androidx.core.content.ContextCompat
 import org.json.JSONObject
+import java.util.concurrent.CopyOnWriteArrayList
+
+/**
+ * Discovered BLE Device entry with signal strength RSSI.
+ */
+data class DiscoveredBleDevice(
+    val device: BluetoothDevice,
+    val name: String,
+    val address: String,
+    var rssi: Int,
+    val lastSeenMs: Long = System.currentTimeMillis()
+)
 
 /**
  * SipSenseBleManager.kt
  *
  * Manages the Bluetooth Low Energy (BLE) lifecycle for the SipSense Smart Bottle:
  * - Runtime permission validation
- * - BLE discovery and device scanning (matching SipSense-Bottle)
+ * - Manual BLE discovery and device scanning without forcing automatic connection
+ * - Manual Connect and Disconnect operations
+ * - Discovered device and live RSSI signal telemetry
  * - GATT connection and MTU negotiation (512 bytes for full telemetry JSON)
  * - Enabling live telemetry notifications via GATT CCCD descriptor
- * - Thread-safe dispatch of telemetry data and connection state to the UI thread
+ * - Multi-listener dispatch of telemetry data and connection state to the UI thread
  *
  * @project SipSense - Smart Bottle Ecosystem
  */
 class SipSenseBleManager(
     private val context: Context,
-    onConnectionStateChanged: (isConnected: Boolean, deviceName: String?) -> Unit,
-    onTelemetryReceived: (telemetryJson: JSONObject) -> Unit,
+    onConnectionStateChanged: ((isConnected: Boolean, deviceName: String?) -> Unit)? = null,
+    onTelemetryReceived: ((telemetryJson: JSONObject) -> Unit)? = null,
     onLogMessage: (message: String) -> Unit = {}
 ) {
 
-    /** Mutable listener callbacks so active fragments can rebind on resume */
+    /** Single mutable listener callbacks for backward compatibility */
     var onConnectionStateChanged: ((isConnected: Boolean, deviceName: String?) -> Unit)? = onConnectionStateChanged
     var onTelemetryReceived: ((telemetryJson: JSONObject) -> Unit)? = onTelemetryReceived
     var onLogMessage: ((message: String) -> Unit) = onLogMessage
+
+    /** Discovered device callback during active scan */
+    var onDeviceDiscovered: ((DiscoveredBleDevice) -> Unit)? = null
+
+    /** Scan state changed callback (started / stopped) */
+    var onScanStateChanged: ((isScanning: Boolean) -> Unit)? = null
+
+    /** Live RSSI update callback */
+    var onRssiUpdated: ((rssi: Int) -> Unit)? = null
+
+    /** Multi-listener lists to support concurrent fragments */
+    private val connectionListeners = CopyOnWriteArrayList<(Boolean, String?) -> Unit>()
+    private val telemetryListeners = CopyOnWriteArrayList<(JSONObject) -> Unit>()
 
     companion object {
         private const val TAG = "SipSenseBle"
@@ -88,10 +114,23 @@ class SipSenseBleManager(
 
     private var bluetoothGatt: BluetoothGatt? = null
     private var isScanning = false
-    private var connectedDeviceName: String? = null
 
-    /** Automatically keeps looking for the ESP32 bottle whenever disconnected */
-    var shouldAutoScan: Boolean = true
+    var connectedDevice: BluetoothDevice? = null
+        private set
+    var connectedDeviceName: String? = null
+        private set
+    var connectedDeviceAddress: String? = null
+        private set
+    var currentRssi: Int? = null
+        private set
+
+    /** By default, manual connection mode is active: app scans without auto-connecting */
+    var autoConnectOnScan: Boolean = false
+
+    /** Discovered devices cache */
+    private val _discoveredDevices = mutableListOf<DiscoveredBleDevice>()
+    val discoveredDevices: List<DiscoveredBleDevice>
+        get() = synchronized(_discoveredDevices) { _discoveredDevices.toList() }
 
     val isBluetoothEnabled: Boolean
         get() = bluetoothAdapter?.isEnabled == true
@@ -102,33 +141,41 @@ class SipSenseBleManager(
     val isScanningActive: Boolean
         get() = isScanning
 
-    private val scanRestartHandler = Handler(Looper.getMainLooper())
-    private val scanRestartRunnable = Runnable {
-        if (!isConnected && shouldAutoScan) {
-            Log.d(TAG, "Auto-reconnect scan cycle starting...")
-            startScan()
-        }
-    }
-
     private val scanTimeoutHandler = Handler(Looper.getMainLooper())
     private val scanTimeoutRunnable = Runnable {
         if (isScanning) {
-            Log.i(TAG, "BLE scan cycle finished without finding device. Scheduling auto-reconnect cycle...")
-            stopScan(cancelAutoRetry = false)
-            if (!isConnected && shouldAutoScan) {
-                scanRestartHandler.removeCallbacks(scanRestartRunnable)
-                scanRestartHandler.postDelayed(scanRestartRunnable, 1200L)
-            }
+            Log.i(TAG, "BLE scan timeout reached.")
+            stopScan()
         }
+    }
+
+    // ── Multi-Listener Support ───────────────────────────────────────────
+
+    fun addConnectionStateListener(listener: (Boolean, String?) -> Unit) {
+        if (!connectionListeners.contains(listener)) {
+            connectionListeners.add(listener)
+        }
+        listener.invoke(isConnected, connectedDeviceName)
+    }
+
+    fun removeConnectionStateListener(listener: (Boolean, String?) -> Unit) {
+        connectionListeners.remove(listener)
+    }
+
+    fun addTelemetryListener(listener: (JSONObject) -> Unit) {
+        if (!telemetryListeners.contains(listener)) {
+            telemetryListeners.add(listener)
+        }
+    }
+
+    fun removeTelemetryListener(listener: (JSONObject) -> Unit) {
+        telemetryListeners.remove(listener)
     }
 
     // ── Scanning ─────────────────────────────────────────────────────────
 
     @SuppressLint("MissingPermission")
     fun startScan() {
-        shouldAutoScan = true
-        scanRestartHandler.removeCallbacks(scanRestartRunnable)
-
         if (!hasPermissions(context)) {
             Log.w(TAG, "Cannot start BLE scan: permissions not granted.")
             onLogMessage("Bluetooth permissions not granted.")
@@ -152,8 +199,10 @@ class SipSenseBleManager(
             return
         }
 
-        // Open filter so advertisements are not dropped by vendor-specific filter bugs.
-        // We match explicitly in onScanResult for 100% reliable detection.
+        synchronized(_discoveredDevices) {
+            _discoveredDevices.clear()
+        }
+
         val filters = mutableListOf<ScanFilter>()
         filters.add(ScanFilter.Builder().build())
 
@@ -163,7 +212,8 @@ class SipSenseBleManager(
             .build()
 
         isScanning = true
-        onLogMessage("Scanning for ${BleConstants.DEVICE_NAME}...")
+        mainHandler.post { onScanStateChanged?.invoke(true) }
+        onLogMessage("Scanning for BLE signals...")
         Log.i(TAG, "Starting BLE scan for ${BleConstants.DEVICE_NAME}...")
         Esp32SignalHub.logTx(
             "BLE_SCAN",
@@ -171,7 +221,7 @@ class SipSenseBleManager(
         )
         Esp32SignalHub.updateDeviceInfo { it.copy(connectionState = "SCANNING") }
 
-        // Automatically cycle scan every 12 seconds so phone stays searching while bottle turns on
+        // Stop scan after 12 seconds timeout
         scanTimeoutHandler.removeCallbacks(scanTimeoutRunnable)
         scanTimeoutHandler.postDelayed(scanTimeoutRunnable, 12000L)
 
@@ -179,14 +229,11 @@ class SipSenseBleManager(
     }
 
     @SuppressLint("MissingPermission")
-    fun stopScan(cancelAutoRetry: Boolean = false) {
-        if (cancelAutoRetry) {
-            shouldAutoScan = false
-            scanRestartHandler.removeCallbacks(scanRestartRunnable)
-        }
+    fun stopScan() {
         scanTimeoutHandler.removeCallbacks(scanTimeoutRunnable)
         if (!isScanning) return
         isScanning = false
+        mainHandler.post { onScanStateChanged?.invoke(false) }
         if (hasPermissions(context)) {
             try {
                 bleScanner?.stopScan(scanCallback)
@@ -205,6 +252,12 @@ class SipSenseBleManager(
         }
     }
 
+    fun clearDiscoveredDevices() {
+        synchronized(_discoveredDevices) {
+            _discoveredDevices.clear()
+        }
+    }
+
     private val scanCallback = object : ScanCallback() {
         @SuppressLint("MissingPermission")
         override fun onScanResult(callbackType: Int, result: ScanResult?) {
@@ -213,59 +266,88 @@ class SipSenseBleManager(
             val name = scanRecord?.deviceName ?: device.name ?: ""
             val serviceUuids = scanRecord?.serviceUuids
             val hasTargetUuid = serviceUuids?.any { it.uuid == BleConstants.SERVICE_UUID } == true
-            val isTargetName = name.contains("SipSense", ignoreCase = true) || name.equals(BleConstants.DEVICE_NAME, ignoreCase = true)
+            val isTargetName = name.contains("SipSense", ignoreCase = true) ||
+                    name.contains("ESP32", ignoreCase = true) ||
+                    name.contains("Bottle", ignoreCase = true) ||
+                    name.equals(BleConstants.DEVICE_NAME, ignoreCase = true)
 
-            // If not our SipSense bottle peripheral, skip
+            // If neither matches SipSense UUID nor SipSense/ESP32 name, skip
             if (!hasTargetUuid && !isTargetName) return
 
-            scanTimeoutHandler.removeCallbacks(scanTimeoutRunnable)
-            scanRestartHandler.removeCallbacks(scanRestartRunnable)
             val rssiVal = result.rssi
-            val displayName = if (name.isNotBlank()) name else BleConstants.DEVICE_NAME
+            val displayName = when {
+                name.isNotBlank() -> name
+                hasTargetUuid -> BleConstants.DEVICE_NAME
+                else -> "ESP32 Waterbottle"
+            }
 
-            Log.i(TAG, "Discovered device: $displayName (${device.address})")
+            val discoveredItem: DiscoveredBleDevice
+            synchronized(_discoveredDevices) {
+                val existing = _discoveredDevices.find { it.address == device.address }
+                if (existing != null) {
+                    existing.rssi = rssiVal
+                    discoveredItem = existing
+                } else {
+                    discoveredItem = DiscoveredBleDevice(
+                        device = device,
+                        name = displayName,
+                        address = device.address,
+                        rssi = rssiVal
+                    )
+                    _discoveredDevices.add(discoveredItem)
+                }
+            }
+
+            Log.i(TAG, "Discovered BLE device: $displayName (${device.address}) RSSI=$rssiVal dBm")
             Esp32SignalHub.logRx(
                 "SCAN_RESULT",
                 "ADV: Discovered '$displayName' (${device.address}) RSSI=$rssiVal dBm"
             )
-            Esp32SignalHub.updateDeviceInfo { info ->
-                info.copy(
-                    deviceName = displayName,
-                    macAddress = device.address,
-                    rssi = rssiVal,
-                    connectionState = "CONNECTING"
-                )
+
+            mainHandler.post {
+                onDeviceDiscovered?.invoke(discoveredItem)
             }
 
-            // Stop scanning and connect immediately
-            stopScan(cancelAutoRetry = false)
-            connect(device)
+            // Only auto-connect if explicitly requested by autoConnectOnScan
+            if (autoConnectOnScan) {
+                scanTimeoutHandler.removeCallbacks(scanTimeoutRunnable)
+                Esp32SignalHub.updateDeviceInfo { info ->
+                    info.copy(
+                        deviceName = displayName,
+                        macAddress = device.address,
+                        rssi = rssiVal,
+                        connectionState = "CONNECTING"
+                    )
+                }
+                stopScan()
+                connect(device)
+            }
         }
 
         override fun onScanFailed(errorCode: Int) {
             isScanning = false
+            mainHandler.post { onScanStateChanged?.invoke(false) }
             Log.e(TAG, "BLE Scan failed with error code: $errorCode")
             onLogMessage("Scan failed (error $errorCode)")
             Esp32SignalHub.logError("BLE_SCAN", "ERR: Scan failed with error code $errorCode")
             Esp32SignalHub.updateDeviceInfo { it.copy(connectionState = "SCAN_FAILED") }
-
-            // Retry scan after 2 seconds if still in auto-scan mode
-            if (!isConnected && shouldAutoScan) {
-                scanRestartHandler.removeCallbacks(scanRestartRunnable)
-                scanRestartHandler.postDelayed(scanRestartRunnable, 2000L)
-            }
         }
     }
 
-    // ── Connection & GATT Callbacks ──────────────────────────────────────
+    // ── Connection Management (Manual Connect / Disconnect) ──────────────
 
     @SuppressLint("MissingPermission")
     fun connect(device: BluetoothDevice) {
         if (!hasPermissions(context)) return
 
+        stopScan()
         disconnect()
 
         val name = device.name ?: BleConstants.DEVICE_NAME
+        connectedDevice = device
+        connectedDeviceName = name
+        connectedDeviceAddress = device.address
+
         onLogMessage("Connecting to $name...")
         Log.i(TAG, "Connecting to GATT on ${device.address}...")
 
@@ -289,6 +371,13 @@ class SipSenseBleManager(
     }
 
     @SuppressLint("MissingPermission")
+    fun connect(macAddress: String) {
+        if (!hasPermissions(context) || bluetoothAdapter == null) return
+        val device = bluetoothAdapter.getRemoteDevice(macAddress) ?: return
+        connect(device)
+    }
+
+    @SuppressLint("MissingPermission")
     fun disconnect() {
         try {
             Esp32SignalHub.logTx("GATT_DISCONNECT", "CMD: gatt.disconnect() & close()")
@@ -298,15 +387,26 @@ class SipSenseBleManager(
             Log.e(TAG, "Error disconnecting GATT", e)
         } finally {
             bluetoothGatt = null
+            connectedDevice = null
             connectedDeviceName = null
+            connectedDeviceAddress = null
+            currentRssi = null
             Esp32SignalHub.updateDeviceInfo { it.copy(connectionState = "DISCONNECTED") }
             notifyConnectionState(false, null)
         }
     }
 
     /**
+     * Reads the current RSSI signal strength from the connected device.
+     */
+    @SuppressLint("MissingPermission")
+    fun readRssi(): Boolean {
+        val gatt = bluetoothGatt ?: return false
+        return gatt.readRemoteRssi()
+    }
+
+    /**
      * Issues an explicit GATT characteristic read request to the ESP32.
-     * Logs the TX request and handles the RX response in onCharacteristicRead.
      */
     @SuppressLint("MissingPermission")
     fun requestTelemetryRead(): Boolean {
@@ -334,6 +434,8 @@ class SipSenseBleManager(
         @SuppressLint("MissingPermission")
         override fun onConnectionStateChange(gatt: BluetoothGatt, status: Int, newState: Int) {
             if (newState == BluetoothProfile.STATE_CONNECTED) {
+                connectedDevice = gatt.device
+                connectedDeviceAddress = gatt.device.address
                 connectedDeviceName = gatt.device.name ?: BleConstants.DEVICE_NAME
                 Log.i(TAG, "✅ Connected to GATT server on $connectedDeviceName")
                 onLogMessage("Connected to $connectedDeviceName. Requesting MTU...")
@@ -350,7 +452,10 @@ class SipSenseBleManager(
                     )
                 }
 
-                // Request larger MTU size (512 bytes) to accommodate JSON telemetry strings
+                // Read RSSI
+                gatt.readRemoteRssi()
+
+                // Request larger MTU size (512 bytes)
                 Esp32SignalHub.logTx("GATT_MTU", "CMD: gatt.requestMtu(512)")
                 gatt.requestMtu(512)
             } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
@@ -361,15 +466,27 @@ class SipSenseBleManager(
                     "EVT: STATE_DISCONNECTED (status=$status)"
                 )
                 Esp32SignalHub.updateDeviceInfo { it.copy(connectionState = "DISCONNECTED") }
+                connectedDevice = null
+                connectedDeviceAddress = null
                 connectedDeviceName = null
-                gatt.close()
+                currentRssi = null
+                try {
+                    gatt.close()
+                } catch (e: Exception) {
+                    Log.e(TAG, "Error closing gatt", e)
+                }
                 bluetoothGatt = null
                 notifyConnectionState(false, null)
+            }
+        }
 
-                // Immediately schedule auto-reconnect scan so when ESP32 powers back on, phone connects in real time
-                if (shouldAutoScan) {
-                    scanRestartHandler.removeCallbacks(scanRestartRunnable)
-                    scanRestartHandler.postDelayed(scanRestartRunnable, 1000L)
+        @SuppressLint("MissingPermission")
+        override fun onReadRemoteRssi(gatt: BluetoothGatt, rssi: Int, status: Int) {
+            if (status == BluetoothGatt.GATT_SUCCESS) {
+                currentRssi = rssi
+                Esp32SignalHub.updateDeviceInfo { it.copy(rssi = rssi) }
+                mainHandler.post {
+                    onRssiUpdated?.invoke(rssi)
                 }
             }
         }
@@ -452,14 +569,12 @@ class SipSenseBleManager(
                 "EVT: onDescriptorWrite (UUID=${descriptor.uuid}, status=$statusStr)"
             )
             if (status == BluetoothGatt.GATT_SUCCESS) {
-                // Immediately perform a characteristic read so initial sensor telemetry updates UI without waiting for notify timer
                 mainHandler.postDelayed({
                     requestTelemetryRead()
                 }, 100L)
             }
         }
 
-        // For Android 12 and lower
         @Deprecated("Deprecated in Java")
         override fun onCharacteristicChanged(
             gatt: BluetoothGatt,
@@ -470,7 +585,6 @@ class SipSenseBleManager(
             handleIncomingBytes(data)
         }
 
-        // For Android 13+ (API 33+)
         override fun onCharacteristicChanged(
             gatt: BluetoothGatt,
             characteristic: BluetoothGattCharacteristic,
@@ -514,6 +628,9 @@ class SipSenseBleManager(
 
             mainHandler.post {
                 onTelemetryReceived?.invoke(jsonObject)
+                for (listener in telemetryListeners) {
+                    listener.invoke(jsonObject)
+                }
             }
         } catch (e: Exception) {
             Log.e(TAG, "Failed to parse incoming BLE telemetry bytes as JSON", e)
@@ -524,6 +641,9 @@ class SipSenseBleManager(
     private fun notifyConnectionState(isConnected: Boolean, deviceName: String?) {
         mainHandler.post {
             onConnectionStateChanged?.invoke(isConnected, deviceName)
+            for (listener in connectionListeners) {
+                listener.invoke(isConnected, deviceName)
+            }
         }
     }
 }

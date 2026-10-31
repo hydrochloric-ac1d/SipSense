@@ -1,0 +1,134 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    item_ble_device.xml
+
+    Layout for discovered BLE signals / ESP32 water bottles in the scan list.
+    Displays:
+    - Bottle / Bluetooth icon
+    - Device Name (e.g. SipSense-Bottle)
+    - Device MAC address
+    - Signal Strength RSSI (dBm) with qualitative label
+    - Manual "Connect" action button
+-->
+<com.google.android.material.card.MaterialCardView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginBottom="10dp"
+    app:cardCornerRadius="14dp"
+    app:cardElevation="2dp"
+    app:strokeWidth="1dp"
+    app:strokeColor="#DDE6E8"
+    app:cardBackgroundColor="@color/card_background">
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="14dp">
+
+        <!-- Device Icon Container -->
+        <FrameLayout
+            android:id="@+id/layout_device_icon_container"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:background="@drawable/bg_circle_light_teal"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent">
+
+            <ImageView
+                android:id="@+id/iv_discovered_icon"
+                android:layout_width="26dp"
+                android:layout_height="26dp"
+                android:layout_gravity="center"
+                android:src="@drawable/water_bottle"
+                app:tint="@color/teal_primary" />
+        </FrameLayout>
+
+        <!-- Device Details Column -->
+        <LinearLayout
+            android:id="@+id/layout_device_details"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:layout_marginStart="12dp"
+            android:layout_marginEnd="8dp"
+            app:layout_constraintStart_toEndOf="@id/layout_device_icon_container"
+            app:layout_constraintEnd_toStartOf="@id/btn_device_connect"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent">
+
+            <TextView
+                android:id="@+id/tv_discovered_name"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="@color/text_primary"
+                android:textSize="15sp"
+                android:textStyle="bold"
+                tools:text="SipSense-Bottle" />
+
+            <TextView
+                android:id="@+id/tv_discovered_address"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:textColor="@color/text_secondary"
+                android:textSize="12sp"
+                tools:text="24:0A:C4:00:11:22" />
+
+            <!-- Signal strength indicator row -->
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+
+                <ImageView
+                    android:id="@+id/iv_signal_icon"
+                    android:layout_width="14dp"
+                    android:layout_height="14dp"
+                    android:src="@drawable/ic_bluetooth"
+                    app:tint="@color/teal_primary" />
+
+                <TextView
+                    android:id="@+id/tv_discovered_rssi"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="4dp"
+                    android:textColor="@color/teal_primary"
+                    android:textSize="11sp"
+                    android:textStyle="bold"
+                    tools:text="-58 dBm • Strong Signal" />
+            </LinearLayout>
+
+        </LinearLayout>
+
+        <!-- Manual Connect Button -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_device_connect"
+            style="@style/Widget.MaterialComponents.Button"
+            android:layout_width="wrap_content"
+            android:layout_height="38dp"
+            android:minWidth="80dp"
+            android:paddingStart="14dp"
+            android:paddingEnd="14dp"
+            android:paddingTop="0dp"
+            android:paddingBottom="0dp"
+            android:text="@string/waterbottle_connect"
+            android:textAllCaps="false"
+            android:textColor="@color/text_white"
+            android:textSize="13sp"
+            android:textStyle="bold"
+            app:backgroundTint="@color/teal_primary"
+            app:cornerRadius="10dp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+</com.google.android.material.card.MaterialCardView>
+

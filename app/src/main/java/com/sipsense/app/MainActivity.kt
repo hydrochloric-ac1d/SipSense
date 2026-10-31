@@ -71,6 +71,19 @@ class MainActivity : AppCompatActivity() {
     /** Shared Bluetooth BLE Manager instance */
     var bleManager: com.sipsense.app.data.SipSenseBleManager? = null
 
+    fun getOrCreateBleManager(): com.sipsense.app.data.SipSenseBleManager {
+        if (bleManager == null) {
+            bleManager = com.sipsense.app.data.SipSenseBleManager(
+                context = applicationContext,
+                onConnectionStateChanged = { isConnected, _ ->
+                    updateConnectionStatus(isConnected)
+                },
+                onTelemetryReceived = { _ -> }
+            )
+        }
+        return bleManager!!
+    }
+
     /** Tap counter and timestamp for developer mode secret unlock (Samsung style: 5 taps) */
     private var logoTapCount = 0
     private var lastLogoTapTime = 0L
@@ -189,6 +202,7 @@ class MainActivity : AppCompatActivity() {
             val fragment: Fragment = when (item.itemId) {
                 R.id.nav_dashboard -> DashboardFragment()
                 R.id.nav_history   -> HistoryFragment()
+                R.id.nav_waterbottle, R.id.nav_devices -> WaterbottleFragment()
                 R.id.nav_notifications -> NotificationsFragment()
                 R.id.nav_profile   -> ProfileFragment()
                 else -> return@setOnItemSelectedListener false

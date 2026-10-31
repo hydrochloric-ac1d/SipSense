@@ -92,7 +92,10 @@ class DashboardFragment : Fragment() {
     ) { permissions ->
         val allGranted = permissions.entries.all { it.value }
         if (allGranted) {
-            bleManager?.startScan()
+        val isConn = bleManager?.isConnected == true
+        isDeviceConnected = isConn
+        updateDeviceConnectionBadge(isConn)
+        (activity as? MainActivity)?.updateWifiStatus(isConn)
         } else {
             android.util.Log.w("SipSenseDashboard", "BLE permissions denied by user.")
         }
@@ -147,8 +150,8 @@ class DashboardFragment : Fragment() {
 
         if (mainAct?.bleManager != null) {
             bleManager = mainAct.bleManager
-            bleManager?.onConnectionStateChanged = connCallback
-            bleManager?.onTelemetryReceived = telemetryCallback
+            bleManager?.addConnectionStateListener(connCallback)
+            bleManager?.addTelemetryListener(telemetryCallback)
             val isConn = bleManager?.isConnected == true
             isDeviceConnected = isConn
             updateDeviceConnectionBadge(isConn)
@@ -242,7 +245,10 @@ class DashboardFragment : Fragment() {
         initBleManager()
         val currentContext = context
         if (currentContext != null && SipSenseBleManager.hasPermissions(currentContext)) {
-            bleManager?.startScan()
+        val isConn = bleManager?.isConnected == true
+        isDeviceConnected = isConn
+        updateDeviceConnectionBadge(isConn)
+        (activity as? MainActivity)?.updateWifiStatus(isConn)
         } else {
             blePermissionsLauncher.launch(SipSenseBleManager.getRequiredPermissions())
         }
@@ -252,7 +258,7 @@ class DashboardFragment : Fragment() {
     override fun onPause() {
         super.onPause()
         isPolling = false
-        bleManager?.stopScan(cancelAutoRetry = true)
+
     }
 
     private fun setupInitialDeviceStatus() {

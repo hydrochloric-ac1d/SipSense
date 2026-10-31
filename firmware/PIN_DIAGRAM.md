@@ -8,6 +8,7 @@
 | **B** | [`SipSense_HX711_Calibration`](SipSense_HX711_Calibration/SipSense_HX711_Calibration.ino) | Interactive load-cell calibration over the Serial Monitor; saves the result to flash |
 | **C** | [`SipSense_DHT11_HX711_BLE`](SipSense_DHT11_HX711_BLE/SipSense_DHT11_HX711_BLE.ino) | Combined code with interactive Serial commands and Developer Mode Terminal output |
 | **D** | [`SipSense_Hardware_BLE`](SipSense_Hardware_BLE/SipSense_Hardware_BLE.ino) | **Pure Hardware (Zero Simulation):** Real DHT11 + Real HX711 with physical load-cell sip calculation |
+| **E** | [`SipSense_WaterBottle_BLE`](SipSense_WaterBottle_BLE/SipSense_WaterBottle_BLE.ino) | **Water Bottle BLE Firmware:** Status LED blinking while broadcasting, steady ON when connected, with graceful sensor & telemetry support |
 
 > **Wire everything once.** All sketches use the exact same pins, so you can flash any of them without rewiring.
 > The pins also match the existing [`SipSense_BLE_Simulator`](SipSense_BLE_Simulator/SipSense_BLE_Simulator.ino).
@@ -64,6 +65,7 @@
 | **D19** | GPIO 19 | DHT11 **DATA** | Bidirectional | Single-wire protocol |
 | **D21** | GPIO 21 | HX711 **DT** (DOUT) | Input to ESP32 | Serial data from the HX711 |
 | **D22** | GPIO 22 | HX711 **SCK** (PD_SCK) | Output from ESP32 | Clock |
+| **D2** | GPIO 2 | On-board Status LED | Output | **Blinking:** Broadcasting BLE / Disconnected<br>**Steady ON:** Connected to SipSense app |
 | D34 | GPIO 34 | *(reserved: battery voltage divider)* | Input only | Leave unconnected for now |
 
 **HX711 ↔ Load cell**

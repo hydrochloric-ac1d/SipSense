@@ -71,6 +71,9 @@
 #include <Preferences.h>
 
 // ── Pin Configuration ──────────────────────────────────────────────────
+#ifndef LED_PIN
+#define LED_PIN         2       // On-board Status LED (Blinking = Advertising, Steady = Connected)
+#endif
 #define DHT_PIN         19
 #define DHT_TYPE        DHT11
 
@@ -100,6 +103,7 @@ const uint8_t       READ_SAMPLES             = 3;    // Fast averaging for respo
 const long          MIN_CALIBRATION_DELTA    = 1000;
 const float         LIFT_THRESHOLD_GRAMS     = -15.0f; // Weight drops below this when lifted
 const float         SIP_MIN_THRESHOLD_GRAMS  = 5.0f;  // Minimum 5g weight drop to count as sip
+const unsigned long LED_BLINK_INTERVAL_MS    = 350;   // Status LED blinking interval while advertising
 
 // ── Globals ────────────────────────────────────────────────────────────
 DHT         dht(DHT_PIN, DHT_TYPE);
@@ -113,6 +117,24 @@ volatile bool deviceConnected    = false;
 bool          oldDeviceConnected = false;
 unsigned long connectedAtMs      = 0;
 bool          pendingFirstNotify = false;
+
+// ── Status LED State (Blinking = Advertising, Steady = Connected) ───────
+unsigned long lastLedBlinkMs     = 0;
+bool          ledBlinkState      = false;
+
+void updateLedIndicator() {
+    const unsigned long now = millis();
+
+    if (deviceConnected) {
+        digitalWrite(LED_PIN, HIGH);
+    } else {
+        if (now - lastLedBlinkMs >= LED_BLINK_INTERVAL_MS) {
+            lastLedBlinkMs = now;
+            ledBlinkState = !ledBlinkState;
+            digitalWrite(LED_PIN, ledBlinkState ? HIGH : LOW);
+        }
+    }
+}
 
 // ── Sensor State (Pure Hardware) ───────────────────────────────────────
 // DHT11
@@ -153,6 +175,7 @@ unsigned long lastCharMs    = 0;
 class HardwareServerCallbacks : public BLEServerCallbacks {
     void onConnect(BLEServer* server) override {
         deviceConnected = true;
+        digitalWrite(LED_PIN, HIGH); // Steady ON when connected
         Serial.println("\n📱 [BLE] Mobile app connected to SipSense-Bottle.");
     }
 
@@ -513,6 +536,11 @@ void setup() {
     Serial.println("  💧 SipSense | Pure Hardware BLE Firmware (NO SIM)    ");
     Serial.println("=======================================================");
 
+    // 0. Initialize Status LED (GPIO 2)
+    pinMode(LED_PIN, OUTPUT);
+    digitalWrite(LED_PIN, LOW);
+    Serial.printf("[INIT] Status LED initialized on GPIO %d (Blinking=Adv, Steady=Conn)\n", LED_PIN);
+
     // 1. Initialize DHT11
     dht.begin();
     Serial.printf("[INIT] DHT11 initialized on GPIO %d\n", DHT_PIN);
@@ -579,6 +607,9 @@ void setup() {
 // ── Loop ───────────────────────────────────────────────────────────────
 void loop() {
     const unsigned long now = millis();
+
+    // Update Status LED (Blinking while broadcasting, Steady when connected)
+    updateLedIndicator();
 
     // Connection lifecycle
     if (deviceConnected && !oldDeviceConnected) {

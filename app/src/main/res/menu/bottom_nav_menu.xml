@@ -6,7 +6,7 @@
     Each item corresponds to a top-level destination in the app:
     - Dashboard: Home screen with hydration overview
     - History: Hydration tracking history / logs
-    - Devices: Connected IoT bottle device management
+    - Water Bottle: Smart bottle BLE scan and manual connect/disconnect management
     - Notifications: Hydration reminders and device alerts
     - Profile: User account and settings
 
@@ -26,6 +26,10 @@
         android:icon="@drawable/calendar"
         android:title="@string/nav_history" />
 
+    <item
+        android:id="@+id/nav_waterbottle"
+        android:icon="@drawable/water_bottle"
+        android:title="@string/nav_waterbottle" />
 
     <item
         android:id="@+id/nav_notifications"
