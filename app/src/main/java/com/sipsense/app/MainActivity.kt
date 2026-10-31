@@ -202,7 +202,7 @@ class MainActivity : AppCompatActivity() {
             val fragment: Fragment = when (item.itemId) {
                 R.id.nav_dashboard -> DashboardFragment()
                 R.id.nav_history   -> HistoryFragment()
-                R.id.nav_waterbottle, R.id.nav_devices -> WaterbottleFragment()
+                R.id.nav_waterbottle -> WaterbottleFragment()
                 R.id.nav_notifications -> NotificationsFragment()
                 R.id.nav_profile   -> ProfileFragment()
                 else -> return@setOnItemSelectedListener false

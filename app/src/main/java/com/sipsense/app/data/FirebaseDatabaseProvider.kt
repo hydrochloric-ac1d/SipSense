@@ -8,25 +8,7 @@ import com.google.firebase.database.FirebaseDatabase
  * FirebaseDatabaseProvider.kt
  *
  * Single point at which SipSense obtains its Firebase Realtime Database reference.
- *
- * ══════════════════════════════════════════════════════════════════════════
- * WHY THIS EXISTS:
- * ──────────────────────────────────────────────────────────────────────────
- * The database URL is resolved from the `app/google-services.json` bundled at
- * build time, exactly like Firebase Authentication. Because both concerns read
- * the same configuration, a build cannot authenticate against one Firebase
- * project while reading and writing another project's database.
- *
- * ══════════════════════════════════════════════════════════════════════════
- * WHEN THE DATABASE CANNOT BE RESOLVED:
- * ──────────────────────────────────────────────────────────────────────────
- * A Firebase project only has a database URL once a Realtime Database has been
- * created in it. If the configured project has none, the SDK cannot determine a
- * URL and [reference] returns null rather than throwing, so a misconfigured
- * build degrades to a visible error instead of terminating a screen.
- *
- * Callers MUST treat null as "database unavailable" and surface their existing
- * failure message.
+ * Supports regional Realtime Database instances (e.g. asia-southeast1).
  *
  * @project SipSense - Smart Bottle Ecosystem
  * @version 1.0
@@ -34,6 +16,7 @@ import com.google.firebase.database.FirebaseDatabase
 object FirebaseDatabaseProvider {
 
     private const val TAG = "SipSenseDatabase"
+    const val DATABASE_URL = "https://sipsense-17a90-default-rtdb.asia-southeast1.firebasedatabase.app"
 
     /**
      * Returns the root reference of the Realtime Database belonging to the
@@ -46,15 +29,15 @@ object FirebaseDatabaseProvider {
         try {
             FirebaseDatabase.getInstance().reference
         } catch (e: Exception) {
-            // The configured project has no Realtime Database, so the SDK has no
-            // URL to resolve. Name the fix; never log configuration contents.
-            Log.e(
-                TAG,
-                "No Realtime Database is configured for this build. Create a Realtime " +
-                    "Database in the Firebase project used by app/google-services.json, then " +
-                    "download that file again so it includes the database URL, and rebuild.",
-                e
-            )
-            null
+            try {
+                FirebaseDatabase.getInstance(DATABASE_URL).reference
+            } catch (fallbackEx: Exception) {
+                Log.e(
+                    TAG,
+                    "No Realtime Database is configured for this build. Attempted $DATABASE_URL",
+                    fallbackEx
+                )
+                null
+            }
         }
 }

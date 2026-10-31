@@ -1,8 +1,6 @@
 package com.sipsense.app
 
 import android.os.Bundle
-import android.os.Handler
-import android.os.Looper
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -28,25 +26,24 @@ import java.util.Locale
 /**
  * WaterbottleFragment.kt
  *
- * Dedicated Water Bottle Tab in the SipSense ecosystem:
- * - Scans nearby BLE signals from the ESP32 smart water bottle without auto-connecting
- * - Allows the user to manually select and connect to discovered ESP32 signals
- * - Provides an explicit Disconnect option
- * - Displays ESP32 Hardware Status LED State (Blinking = Advertising, Steady = Connected)
- * - Streams live telemetry (Water Level in Liters/ml, Battery %, Ambient Temperature, RSSI)
+ * Bottle Tab in the SipSense ecosystem:
+ * - Unified card displaying connection state, live telemetries, and bottle scanner
+ * - Allows user to manually find and connect to smart water bottles (1 bottle per mobile)
+ * - Scanner button shows "Disconnect" once connected, and reverts to "Find Bottle" on disconnect
+ * - Discovered bottles section is hidden while connected
+ * - Streams live telemetry (Water Level in Liters/ml, Battery %, Ambient Temperature)
  *
  * @project SipSense - Smart Bottle Ecosystem
  */
 open class WaterbottleFragment : Fragment() {
 
-    // ── View References: Active Bottle Card ──────────────────────────────
+    // ── View References: Active Bottle Header & Status ───────────────────
     private lateinit var ivActiveBottleIcon: ImageView
     private lateinit var tvActiveBottleName: TextView
-    private lateinit var tvActiveBottleAddress: TextView
     private lateinit var vConnectionDot: View
     private lateinit var tvConnectionBadgeText: TextView
-    private lateinit var tvEsp32LedStatus: TextView
 
+    // ── View References: Telemetry Metrics ───────────────────────────────
     private lateinit var ivMetricWater: ImageView
     private lateinit var tvBottleWaterLiters: TextView
     private lateinit var tvBottleWaterMl: TextView
@@ -59,13 +56,10 @@ open class WaterbottleFragment : Fragment() {
     private lateinit var tvBottleAmbientTemp: TextView
     private lateinit var tvBottleTempStatus: TextView
 
-    private lateinit var layoutConnectedSignal: LinearLayout
-    private lateinit var tvConnectedRssi: TextView
-    private lateinit var btnDisconnectBottle: MaterialButton
-
-    // ── View References: Scanner Card ────────────────────────────────────
+    // ── View References: Scanner & Discovered Bottles Section ────────────
     private lateinit var pbScanning: ProgressBar
     private lateinit var btnScanBle: MaterialButton
+    private lateinit var layoutDiscoveredSection: LinearLayout
     private lateinit var tvDiscoveredHeader: TextView
     private lateinit var layoutEmptyDevices: LinearLayout
     private lateinit var tvEmptyDevicesText: TextView
@@ -76,9 +70,6 @@ open class WaterbottleFragment : Fragment() {
 
     private val firebaseAuth = FirebaseAuth.getInstance()
     private val database = FirebaseDatabaseProvider.reference()
-
-    private val mainHandler = Handler(Looper.getMainLooper())
-    private var rssiPollRunnable: Runnable? = null
 
     // ── BLE Permission Launcher ──────────────────────────────────────────
     private val blePermissionsLauncher = registerForActivityResult(
@@ -103,14 +94,13 @@ open class WaterbottleFragment : Fragment() {
     ): View? {
         val view = inflater.inflate(R.layout.fragment_waterbottle, container, false)
 
-        // Bind Active Bottle Card
+        // Bind Active Bottle Header
         ivActiveBottleIcon = view.findViewById(R.id.iv_active_bottle_icon)
         tvActiveBottleName = view.findViewById(R.id.tv_active_bottle_name)
-        tvActiveBottleAddress = view.findViewById(R.id.tv_active_bottle_address)
         vConnectionDot = view.findViewById(R.id.v_connection_dot)
         tvConnectionBadgeText = view.findViewById(R.id.tv_connection_badge_text)
-        tvEsp32LedStatus = view.findViewById(R.id.tv_esp32_led_status)
 
+        // Bind Telemetry Metrics
         ivMetricWater = view.findViewById(R.id.iv_metric_water)
         tvBottleWaterLiters = view.findViewById(R.id.tv_bottle_water_liters)
         tvBottleWaterMl = view.findViewById(R.id.tv_bottle_water_ml)
@@ -123,13 +113,10 @@ open class WaterbottleFragment : Fragment() {
         tvBottleAmbientTemp = view.findViewById(R.id.tv_bottle_ambient_temp)
         tvBottleTempStatus = view.findViewById(R.id.tv_bottle_temp_status)
 
-        layoutConnectedSignal = view.findViewById(R.id.layout_connected_signal)
-        tvConnectedRssi = view.findViewById(R.id.tv_connected_rssi)
-        btnDisconnectBottle = view.findViewById(R.id.btn_disconnect_bottle)
-
-        // Bind Scanner Card
+        // Bind Scanner & Discovered Section
         pbScanning = view.findViewById(R.id.pb_scanning)
         btnScanBle = view.findViewById(R.id.btn_scan_ble)
+        layoutDiscoveredSection = view.findViewById(R.id.layout_discovered_section)
         tvDiscoveredHeader = view.findViewById(R.id.tv_discovered_header)
         layoutEmptyDevices = view.findViewById(R.id.layout_empty_devices)
         tvEmptyDevicesText = view.findViewById(R.id.tv_empty_devices_text)
@@ -148,6 +135,10 @@ open class WaterbottleFragment : Fragment() {
 
     private fun setupRecyclerView() {
         deviceAdapter = BleDeviceAdapter { selectedDevice ->
+            if (bleManager?.isConnected == true) {
+                Toast.makeText(requireContext(), "Only 1 bottle can be connected at a time.", Toast.LENGTH_SHORT).show()
+                return@BleDeviceAdapter
+            }
             connectToDiscoveredDevice(selectedDevice)
         }
         rvDiscoveredDevices.layoutManager = LinearLayoutManager(requireContext())
@@ -155,24 +146,19 @@ open class WaterbottleFragment : Fragment() {
     }
 
     private fun setupListeners() {
-        // Scan Button: Starts or stops BLE scanning
+        // Find Bottle / Stop Scan / Disconnect Button
         btnScanBle.setOnClickListener {
             val manager = bleManager ?: return@setOnClickListener
+            if (manager.isConnected) {
+                val name = manager.connectedDeviceName ?: "Bottle"
+                manager.disconnect()
+                Toast.makeText(requireContext(), "Disconnected from $name", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
             if (manager.isScanningActive) {
                 manager.stopScan()
             } else {
                 checkPermissionsAndScan()
-            }
-        }
-
-        // Disconnect Button: Manually disconnects the connected bottle
-        btnDisconnectBottle.setOnClickListener {
-            bleManager?.let { manager ->
-                if (manager.isConnected) {
-                    val name = manager.connectedDeviceName ?: "Device"
-                    manager.disconnect()
-                    Toast.makeText(requireContext(), "Disconnected from $name", Toast.LENGTH_SHORT).show()
-                }
             }
         }
     }
@@ -188,8 +174,10 @@ open class WaterbottleFragment : Fragment() {
         bleManager?.onDeviceDiscovered = { discovered ->
             activity?.runOnUiThread {
                 if (isAdded) {
-                    deviceAdapter.addOrUpdateDevice(discovered)
-                    updateDevicesListVisibility()
+                    if (bleManager?.isConnected != true) {
+                        deviceAdapter.addOrUpdateDevice(discovered)
+                        updateDevicesListVisibility()
+                    }
                 }
             }
         }
@@ -202,22 +190,14 @@ open class WaterbottleFragment : Fragment() {
             }
         }
 
-        bleManager?.onRssiUpdated = { rssi ->
-            activity?.runOnUiThread {
-                if (isAdded && bleManager?.isConnected == true) {
-                    updateSignalIndicator(rssi)
-                }
-            }
-        }
-
         // Initialize UI with existing state
         val isConn = bleManager?.isConnected == true
         updateConnectionStateUi(isConn, bleManager?.connectedDeviceName)
         updateScanUiState(bleManager?.isScanningActive == true)
 
-        // If devices were already found, populate adapter
+        // If devices were already found and not connected, populate adapter
         val existing = bleManager?.discoveredDevices.orEmpty()
-        if (existing.isNotEmpty()) {
+        if (existing.isNotEmpty() && !isConn) {
             deviceAdapter.setDevices(existing)
             updateDevicesListVisibility()
         }
@@ -230,10 +210,11 @@ open class WaterbottleFragment : Fragment() {
                 (activity as? MainActivity)?.updateConnectionStatus(isConnected)
                 if (isConnected) {
                     deviceAdapter.setConnectingAddress(null)
-                    startRssiPolling()
-                } else {
-                    stopRssiPolling()
+                    bleManager?.stopScan()
+                    deviceAdapter.clearDevices()
+                    updateDevicesListVisibility()
                 }
+                updateScanUiState(bleManager?.isScanningActive == true)
             }
         }
     }
@@ -258,6 +239,14 @@ open class WaterbottleFragment : Fragment() {
 
     private fun startDeviceScan() {
         val manager = bleManager ?: return
+        if (manager.isConnected) {
+            Toast.makeText(
+                requireContext(),
+                "Already connected to a bottle. Disconnect to scan again.",
+                Toast.LENGTH_SHORT
+            ).show()
+            return
+        }
         if (!manager.isBluetoothEnabled) {
             Toast.makeText(
                 requireContext(),
@@ -270,23 +259,33 @@ open class WaterbottleFragment : Fragment() {
         deviceAdapter.clearDevices()
         updateDevicesListVisibility()
         manager.startScan()
-        Toast.makeText(requireContext(), "Scanning for nearby ESP32 water bottles...", Toast.LENGTH_SHORT).show()
+        Toast.makeText(requireContext(), "Searching for nearby bottles...", Toast.LENGTH_SHORT).show()
     }
 
     private fun connectToDiscoveredDevice(device: DiscoveredBleDevice) {
         val manager = bleManager ?: return
+        if (manager.isConnected) {
+            Toast.makeText(requireContext(), "Only 1 bottle can be connected at a time.", Toast.LENGTH_SHORT).show()
+            return
+        }
         deviceAdapter.setConnectingAddress(device.address)
         Toast.makeText(requireContext(), "Connecting to ${device.name}...", Toast.LENGTH_SHORT).show()
         manager.connect(device.device)
     }
 
     private fun updateScanUiState(isScanning: Boolean) {
-        if (isScanning) {
+        val isConnected = bleManager?.isConnected == true
+        if (isConnected) {
+            pbScanning.visibility = View.GONE
+            btnScanBle.text = getString(R.string.waterbottle_disconnect)
+            btnScanBle.icon = null
+            btnScanBle.backgroundTintList = ContextCompat.getColorStateList(requireContext(), R.color.strength_weak)
+        } else if (isScanning) {
             pbScanning.visibility = View.VISIBLE
             btnScanBle.text = getString(R.string.waterbottle_stop_scan)
             btnScanBle.setIconResource(R.drawable.ic_error)
             btnScanBle.backgroundTintList = ContextCompat.getColorStateList(requireContext(), R.color.strength_fair)
-            tvEmptyDevicesText.text = "Scanning nearby BLE signals...\nESP32 built-in LED blinks while broadcasting."
+            tvEmptyDevicesText.text = "Searching for nearby bottles..."
         } else {
             pbScanning.visibility = View.GONE
             btnScanBle.text = getString(R.string.waterbottle_scan)
@@ -302,48 +301,38 @@ open class WaterbottleFragment : Fragment() {
         if (deviceAdapter.itemCount > 0) {
             layoutEmptyDevices.visibility = View.GONE
             rvDiscoveredDevices.visibility = View.VISIBLE
-            tvDiscoveredHeader.text = "Discovered ESP32 Signals (${deviceAdapter.itemCount})"
+            tvDiscoveredHeader.text = "Discovered Bottles (${deviceAdapter.itemCount})"
         } else {
             layoutEmptyDevices.visibility = View.VISIBLE
             rvDiscoveredDevices.visibility = View.GONE
-            tvDiscoveredHeader.text = "Discovered ESP32 Signals"
+            tvDiscoveredHeader.text = "Discovered Bottles"
         }
     }
 
     private fun updateConnectionStateUi(isConnected: Boolean, deviceName: String?) {
         if (isConnected) {
             val name = if (!deviceName.isNullOrBlank()) deviceName else getString(R.string.label_device_name)
-            val address = bleManager?.connectedDeviceAddress ?: "ESP32 DevKit"
-
             tvActiveBottleName.text = name
-            tvActiveBottleAddress.text = "Model SB-01 • $address"
 
             vConnectionDot.setBackgroundResource(R.drawable.bg_circle_green)
             tvConnectionBadgeText.text = getString(R.string.waterbottle_connected)
             tvConnectionBadgeText.setTextColor(ContextCompat.getColor(requireContext(), R.color.teal_primary))
 
-            // ESP32 LED Status Indicator: Steady ON when connected
-            tvEsp32LedStatus.text = getString(R.string.waterbottle_led_steady_hint)
-
             ivActiveBottleIcon.imageTintList = ContextCompat.getColorStateList(requireContext(), R.color.teal_primary)
-            btnDisconnectBottle.visibility = View.VISIBLE
 
-            // Request initial RSSI
-            bleManager?.readRssi()
+            // Hide Discovered Bottles section once connected
+            layoutDiscoveredSection.visibility = View.GONE
         } else {
             tvActiveBottleName.text = getString(R.string.label_device_name)
-            tvActiveBottleAddress.text = "ESP32 IoT Bottle • Disconnected"
 
             vConnectionDot.setBackgroundResource(R.drawable.bg_circle_inactive)
             tvConnectionBadgeText.text = getString(R.string.waterbottle_disconnected)
             tvConnectionBadgeText.setTextColor(ContextCompat.getColor(requireContext(), R.color.text_secondary))
 
-            // ESP32 LED Status Indicator: Blinking while broadcasting
-            tvEsp32LedStatus.text = getString(R.string.waterbottle_led_blinking_hint)
-
             ivActiveBottleIcon.imageTintList = ContextCompat.getColorStateList(requireContext(), R.color.text_secondary)
-            layoutConnectedSignal.visibility = View.GONE
-            btnDisconnectBottle.visibility = View.GONE
+
+            // Show Discovered Bottles section when disconnected
+            layoutDiscoveredSection.visibility = View.VISIBLE
 
             // Reset metric tiles to standby
             ivMetricWater.imageTintList = ContextCompat.getColorStateList(requireContext(), R.color.text_secondary)
@@ -361,6 +350,7 @@ open class WaterbottleFragment : Fragment() {
             tvBottleAmbientTemp.setTextColor(ContextCompat.getColor(requireContext(), R.color.text_secondary))
             tvBottleTempStatus.text = getString(R.string.ambient_temp_status_waiting)
         }
+        updateScanUiState(bleManager?.isScanningActive == true)
     }
 
     private fun displayTelemetry(json: JSONObject) {
@@ -404,35 +394,6 @@ open class WaterbottleFragment : Fragment() {
         }
     }
 
-    private fun updateSignalIndicator(rssi: Int) {
-        layoutConnectedSignal.visibility = View.VISIBLE
-        val quality = when {
-            rssi >= -60 -> "Excellent Signal"
-            rssi >= -75 -> "Good Signal"
-            rssi >= -85 -> "Fair Signal"
-            else        -> "Weak Signal"
-        }
-        tvConnectedRssi.text = "Signal: $rssi dBm • $quality"
-    }
-
-    private fun startRssiPolling() {
-        stopRssiPolling()
-        rssiPollRunnable = object : Runnable {
-            override fun run() {
-                if (isAdded && bleManager?.isConnected == true) {
-                    bleManager?.readRssi()
-                    mainHandler.postDelayed(this, 3000L)
-                }
-            }
-        }
-        rssiPollRunnable?.let { mainHandler.postDelayed(it, 3000L) }
-    }
-
-    private fun stopRssiPolling() {
-        rssiPollRunnable?.let { mainHandler.removeCallbacks(it) }
-        rssiPollRunnable = null
-    }
-
     private fun syncTelemetryToFirebase(json: JSONObject) {
         val uid = firebaseAuth.currentUser?.uid ?: return
         val map = HashMap<String, Any>()
@@ -451,7 +412,6 @@ open class WaterbottleFragment : Fragment() {
 
     override fun onDestroyView() {
         super.onDestroyView()
-        stopRssiPolling()
         bleManager?.removeConnectionStateListener(connectionCallback)
         bleManager?.removeTelemetryListener(telemetryCallback)
     }

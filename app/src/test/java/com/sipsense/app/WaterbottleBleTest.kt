@@ -3,9 +3,10 @@ package com.sipsense.app
 import org.json.JSONObject
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
-import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
 
 /**
  * WaterbottleBleTest.kt
@@ -19,6 +20,7 @@ import org.junit.Test
  *
  * @project SipSense - Smart Bottle Ecosystem
  */
+@RunWith(RobolectricTestRunner::class)
 class WaterbottleBleTest {
 
     // ── 1. RSSI Signal Quality Classification ───────────────────────────
@@ -153,4 +155,3 @@ class WaterbottleBleTest {
         assertEquals("Steady", json.getString("ledStatus"))
     }
 }
-

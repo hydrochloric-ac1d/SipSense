@@ -3,9 +3,7 @@ package com.sipsense.app.adapter
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.ImageView
 import android.widget.TextView
-import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.button.MaterialButton
 import com.sipsense.app.R
@@ -14,8 +12,8 @@ import com.sipsense.app.data.DiscoveredBleDevice
 /**
  * BleDeviceAdapter.kt
  *
- * Displays scanned BLE devices / ESP32 smart bottles with their name, MAC address,
- * RSSI signal strength in dBm, and a manual "Connect" action button.
+ * Displays scanned BLE devices / smart bottles with their name
+ * and a manual "Connect" action button.
  *
  * @project SipSense - Smart Bottle Ecosystem
  */
@@ -68,27 +66,11 @@ class BleDeviceAdapter(
 
     inner class DeviceViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         private val tvName: TextView = itemView.findViewById(R.id.tv_discovered_name)
-        private val tvAddress: TextView = itemView.findViewById(R.id.tv_discovered_address)
-        private val tvRssi: TextView = itemView.findViewById(R.id.tv_discovered_rssi)
-        private val ivSignalIcon: ImageView = itemView.findViewById(R.id.iv_signal_icon)
         private val btnConnect: MaterialButton = itemView.findViewById(R.id.btn_device_connect)
 
         fun bind(device: DiscoveredBleDevice, isConnecting: Boolean) {
             val context = itemView.context
-            tvName.text = if (device.name.isNotBlank()) device.name else "ESP32 Waterbottle"
-            tvAddress.text = device.address
-
-            val (qualityLabel, signalColorRes) = when {
-                device.rssi >= -60 -> Pair("Excellent", R.color.strength_strong)
-                device.rssi >= -75 -> Pair("Good", R.color.teal_primary)
-                device.rssi >= -85 -> Pair("Fair", R.color.strength_fair)
-                else               -> Pair("Weak", R.color.strength_weak)
-            }
-
-            tvRssi.text = "${device.rssi} dBm • $qualityLabel"
-            val color = ContextCompat.getColor(context, signalColorRes)
-            tvRssi.setTextColor(color)
-            ivSignalIcon.setColorFilter(color)
+            tvName.text = if (device.name.isNotBlank()) device.name else "SipSense Bottle"
 
             if (isConnecting) {
                 btnConnect.text = context.getString(R.string.waterbottle_connecting)
@@ -105,4 +87,3 @@ class BleDeviceAdapter(
         }
     }
 }
-

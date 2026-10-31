@@ -2,13 +2,14 @@
 <!--
     fragment_waterbottle.xml
 
-    Water Bottle BLE Hardware & Navigation screen.
+    Bottle BLE Hardware & Navigation screen.
     Features:
-    - Active device connection overview with live telemetry (Water, Battery, Temp, RSSI)
-    - ESP32 Status LED indicator state (Blinking = Advertising, Steady = Connected)
-    - Manual Disconnect button
-    - BLE Signal Scanner with Scan / Stop Scan toggle
-    - Discovered ESP32 signals list with RSSI and manual Connect button
+    - Unified single card for bottle management and scanning
+    - Active bottle connection overview with live telemetry (Water Level, Battery, Temp)
+    - Equal sized telemetry tiles with icons beside titles
+    - Offline / Connected status indicator
+    - Bottle Scanner with Find Bottle / Disconnect toggle
+    - Discovered Bottles list (automatically hidden when bottle is connected)
 -->
 <androidx.core.widget.NestedScrollView
     xmlns:android="http://schemas.android.com/apk/res/android"
@@ -51,9 +52,9 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent" />
 
-        <!-- ── Active Device Status Card ── -->
+        <!-- ── Unified Main Bottle Card ── -->
         <com.google.android.material.card.MaterialCardView
-            android:id="@+id/card_active_bottle"
+            android:id="@+id/card_bottle_main"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
@@ -70,7 +71,7 @@
                 android:orientation="vertical"
                 android:padding="18dp">
 
-                <!-- Header Row: Bottle Icon, Info, Connection Badge -->
+                <!-- Header Row: Bottle Icon, Device Name, Connection Badge -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -91,31 +92,17 @@
                             app:tint="@color/teal_primary" />
                     </FrameLayout>
 
-                    <LinearLayout
+                    <TextView
+                        android:id="@+id/tv_active_bottle_name"
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
                         android:layout_marginStart="12dp"
-                        android:orientation="vertical">
-
-                        <TextView
-                            android:id="@+id/tv_active_bottle_name"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="@string/label_device_name"
-                            android:textColor="@color/text_primary"
-                            android:textSize="16sp"
-                            android:textStyle="bold" />
-
-                        <TextView
-                            android:id="@+id/tv_active_bottle_address"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="2dp"
-                            android:text="ESP32 IoT Bottle • Disconnected"
-                            android:textColor="@color/text_secondary"
-                            android:textSize="12sp" />
-                    </LinearLayout>
+                        android:layout_marginEnd="8dp"
+                        android:text="@string/label_device_name"
+                        android:textColor="@color/text_primary"
+                        android:textSize="16sp"
+                        android:textStyle="bold" />
 
                     <!-- Connection Badge -->
                     <LinearLayout
@@ -134,7 +121,7 @@
                             android:id="@+id/v_connection_dot"
                             android:layout_width="8dp"
                             android:layout_height="8dp"
-                            android:background="@drawable/bg_circle_green" />
+                            android:background="@drawable/bg_circle_inactive" />
 
                         <TextView
                             android:id="@+id/tv_connection_badge_text"
@@ -148,366 +135,307 @@
                     </LinearLayout>
                 </LinearLayout>
 
-                <!-- ESP32 Hardware LED Status Banner -->
+                <!-- Divider -->
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:layout_marginTop="14dp"
+                    android:layout_marginBottom="14dp"
+                    android:background="@color/input_background" />
+
+                <!-- Telemetry Row (Equal card sizes, icons beside titles) -->
                 <LinearLayout
-                    android:id="@+id/layout_led_status_banner"
+                    android:id="@+id/layout_telemetry_metrics"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="12dp"
-                    android:background="@drawable/bg_metric_tile"
                     android:orientation="horizontal"
-                    android:gravity="center_vertical"
-                    android:padding="10dp">
+                    android:baselineAligned="false"
+                    android:weightSum="3">
 
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="💡"
-                        android:textSize="15sp" />
-
-                    <TextView
-                        android:id="@+id/tv_esp32_led_status"
+                    <!-- Water Level Tile -->
+                    <LinearLayout
                         android:layout_width="0dp"
-                        android:layout_height="wrap_content"
+                        android:layout_height="match_parent"
                         android:layout_weight="1"
-                        android:layout_marginStart="8dp"
-                        android:text="@string/waterbottle_led_blinking_hint"
-                        android:textColor="@color/text_primary"
-                        android:textSize="12sp" />
+                        android:layout_marginEnd="4dp"
+                        android:minHeight="85dp"
+                        android:background="@drawable/bg_metric_tile"
+                        android:orientation="vertical"
+                        android:padding="10dp">
+
+                        <!-- Icon Beside Title -->
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal"
+                            android:gravity="center_vertical">
+
+                            <ImageView
+                                android:id="@+id/iv_metric_water"
+                                android:layout_width="14dp"
+                                android:layout_height="14dp"
+                                android:src="@drawable/droplet"
+                                app:tint="@color/text_secondary" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginStart="4dp"
+                                android:text="@string/label_water_level"
+                                android:textColor="@color/text_secondary"
+                                android:textSize="11sp"
+                                android:singleLine="true"
+                                android:ellipsize="end" />
+                        </LinearLayout>
+
+                        <TextView
+                            android:id="@+id/tv_bottle_water_liters"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="6dp"
+                            android:text="--"
+                            android:textColor="@color/text_secondary"
+                            android:textSize="15sp"
+                            android:textStyle="bold"
+                            android:singleLine="true" />
+
+                        <TextView
+                            android:id="@+id/tv_bottle_water_ml"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:text="--"
+                            android:textColor="@color/text_hint"
+                            android:textSize="10sp"
+                            android:singleLine="true"
+                            android:ellipsize="end" />
+                    </LinearLayout>
+
+                    <!-- Battery Tile -->
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="match_parent"
+                        android:layout_weight="1"
+                        android:layout_marginHorizontal="2dp"
+                        android:minHeight="85dp"
+                        android:background="@drawable/bg_metric_tile"
+                        android:orientation="vertical"
+                        android:padding="10dp">
+
+                        <!-- Icon Beside Title -->
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal"
+                            android:gravity="center_vertical">
+
+                            <ImageView
+                                android:id="@+id/iv_metric_battery"
+                                android:layout_width="14dp"
+                                android:layout_height="14dp"
+                                android:src="@drawable/ic_battery"
+                                app:tint="@color/text_secondary" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginStart="4dp"
+                                android:text="@string/label_battery"
+                                android:textColor="@color/text_secondary"
+                                android:textSize="11sp"
+                                android:singleLine="true"
+                                android:ellipsize="end" />
+                        </LinearLayout>
+
+                        <TextView
+                            android:id="@+id/tv_bottle_battery"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="6dp"
+                            android:text="--"
+                            android:textColor="@color/text_secondary"
+                            android:textSize="15sp"
+                            android:textStyle="bold"
+                            android:singleLine="true" />
+
+                        <TextView
+                            android:id="@+id/tv_bottle_battery_status"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:text="@string/ambient_temp_status_waiting"
+                            android:textColor="@color/text_hint"
+                            android:textSize="10sp"
+                            android:singleLine="true"
+                            android:ellipsize="end" />
+                    </LinearLayout>
+
+                    <!-- Ambient Temperature Tile -->
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="match_parent"
+                        android:layout_weight="1"
+                        android:layout_marginStart="4dp"
+                        android:minHeight="85dp"
+                        android:background="@drawable/bg_metric_tile"
+                        android:orientation="vertical"
+                        android:padding="10dp">
+
+                        <!-- Icon Beside Title -->
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal"
+                            android:gravity="center_vertical">
+
+                            <ImageView
+                                android:id="@+id/iv_metric_temp"
+                                android:layout_width="14dp"
+                                android:layout_height="14dp"
+                                android:src="@drawable/ic_temperature"
+                                app:tint="@color/text_secondary" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginStart="4dp"
+                                android:text="@string/label_ambient_temp"
+                                android:textColor="@color/text_secondary"
+                                android:textSize="11sp"
+                                android:singleLine="true"
+                                android:ellipsize="end" />
+                        </LinearLayout>
+
+                        <TextView
+                            android:id="@+id/tv_bottle_ambient_temp"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="6dp"
+                            android:text="--"
+                            android:textColor="@color/text_secondary"
+                            android:textSize="15sp"
+                            android:textStyle="bold"
+                            android:singleLine="true" />
+
+                        <TextView
+                            android:id="@+id/tv_bottle_temp_status"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:text="@string/ambient_temp_status_waiting"
+                            android:textColor="@color/text_hint"
+                            android:textSize="10sp"
+                            android:singleLine="true"
+                            android:ellipsize="end" />
+                    </LinearLayout>
                 </LinearLayout>
 
                 <!-- Divider -->
                 <View
                     android:layout_width="match_parent"
                     android:layout_height="1dp"
-                    android:layout_marginTop="12dp"
-                    android:layout_marginBottom="12dp"
+                    android:layout_marginTop="16dp"
+                    android:layout_marginBottom="14dp"
                     android:background="@color/input_background" />
 
-                <!-- Telemetry Row (Water In Liters, Battery, Temperature) -->
-                <LinearLayout
-                    android:id="@+id/layout_telemetry_metrics"
+                <!-- Action Button Row: Find Bottle / Stop Scanning / Disconnect -->
+                <FrameLayout
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:baselineAligned="false">
+                    android:layout_height="wrap_content">
 
-                    <!-- Water Level Tile -->
-                    <LinearLayout
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:layout_marginEnd="4dp"
-                        android:background="@drawable/bg_metric_tile"
-                        android:orientation="vertical"
-                        android:padding="10dp">
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btn_scan_ble"
+                        style="@style/Widget.MaterialComponents.Button"
+                        android:layout_width="match_parent"
+                        android:layout_height="48dp"
+                        android:text="@string/waterbottle_scan"
+                        android:textAllCaps="false"
+                        android:textColor="@color/text_white"
+                        android:textSize="14sp"
+                        android:textStyle="bold"
+                        app:backgroundTint="@color/teal_primary"
+                        app:cornerRadius="12dp"
+                        app:icon="@drawable/ic_bluetooth"
+                        app:iconGravity="textStart"
+                        app:iconTint="@color/text_white" />
 
-                        <ImageView
-                            android:id="@+id/iv_metric_water"
-                            android:layout_width="16dp"
-                            android:layout_height="16dp"
-                            android:src="@drawable/droplet"
-                            app:tint="@color/text_secondary" />
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="6dp"
-                            android:text="@string/label_water_level"
-                            android:textColor="@color/text_secondary"
-                            android:textSize="11sp" />
-
-                        <TextView
-                            android:id="@+id/tv_bottle_water_liters"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="2dp"
-                            android:text="--"
-                            android:textColor="@color/text_secondary"
-                            android:textSize="15sp"
-                            android:textStyle="bold" />
-
-                        <TextView
-                            android:id="@+id/tv_bottle_water_ml"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="--"
-                            android:textColor="@color/text_hint"
-                            android:textSize="10sp" />
-                    </LinearLayout>
-
-                    <!-- Battery Tile -->
-                    <LinearLayout
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:layout_marginHorizontal="2dp"
-                        android:background="@drawable/bg_metric_tile"
-                        android:orientation="vertical"
-                        android:padding="10dp">
-
-                        <ImageView
-                            android:id="@+id/iv_metric_battery"
-                            android:layout_width="16dp"
-                            android:layout_height="16dp"
-                            android:src="@drawable/ic_battery"
-                            app:tint="@color/text_secondary" />
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="6dp"
-                            android:text="@string/label_battery"
-                            android:textColor="@color/text_secondary"
-                            android:textSize="11sp" />
-
-                        <TextView
-                            android:id="@+id/tv_bottle_battery"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="2dp"
-                            android:text="--"
-                            android:textColor="@color/text_secondary"
-                            android:textSize="15sp"
-                            android:textStyle="bold" />
-
-                        <TextView
-                            android:id="@+id/tv_bottle_battery_status"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="@string/ambient_temp_status_waiting"
-                            android:textColor="@color/text_hint"
-                            android:textSize="10sp" />
-                    </LinearLayout>
-
-                    <!-- Ambient Temperature Tile -->
-                    <LinearLayout
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:layout_marginStart="4dp"
-                        android:background="@drawable/bg_metric_tile"
-                        android:orientation="vertical"
-                        android:padding="10dp">
-
-                        <ImageView
-                            android:id="@+id/iv_metric_temp"
-                            android:layout_width="16dp"
-                            android:layout_height="16dp"
-                            android:src="@drawable/ic_temperature"
-                            app:tint="@color/text_secondary" />
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="6dp"
-                            android:text="@string/label_ambient_temp"
-                            android:textColor="@color/text_secondary"
-                            android:textSize="11sp" />
-
-                        <TextView
-                            android:id="@+id/tv_bottle_ambient_temp"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="2dp"
-                            android:text="--"
-                            android:textColor="@color/text_secondary"
-                            android:textSize="15sp"
-                            android:textStyle="bold" />
-
-                        <TextView
-                            android:id="@+id/tv_bottle_temp_status"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="@string/ambient_temp_status_waiting"
-                            android:textColor="@color/text_hint"
-                            android:textSize="10sp" />
-                    </LinearLayout>
-                </LinearLayout>
-
-                <!-- Signal Strength Bar (When connected) -->
-                <LinearLayout
-                    android:id="@+id/layout_connected_signal"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="10dp"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical"
-                    android:visibility="gone"
-                    tools:visibility="visible">
-
-                    <ImageView
-                        android:layout_width="14dp"
-                        android:layout_height="14dp"
-                        android:src="@drawable/ic_bluetooth"
-                        app:tint="@color/teal_primary" />
-
-                    <TextView
-                        android:id="@+id/tv_connected_rssi"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginStart="6dp"
-                        android:text="Signal: -60 dBm • Good"
-                        android:textColor="@color/teal_primary"
-                        android:textSize="12sp"
-                        android:textStyle="bold" />
-                </LinearLayout>
-
-                <!-- Manual Disconnect Button -->
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btn_disconnect_bottle"
-                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-                    android:layout_width="match_parent"
-                    android:layout_height="44dp"
-                    android:layout_marginTop="14dp"
-                    android:text="@string/waterbottle_disconnect"
-                    android:textAllCaps="false"
-                    android:textColor="@color/strength_weak"
-                    android:textSize="13sp"
-                    android:textStyle="bold"
-                    app:strokeColor="@color/strength_weak"
-                    app:strokeWidth="1dp"
-                    app:cornerRadius="12dp"
-                    android:visibility="gone"
-                    tools:visibility="visible" />
-
-            </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
-
-        <!-- ── BLE Signal Scanner Card ── -->
-        <com.google.android.material.card.MaterialCardView
-            android:id="@+id/card_scanner"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            app:cardCornerRadius="20dp"
-            app:cardElevation="4dp"
-            app:cardBackgroundColor="@color/card_background"
-            app:layout_constraintTop_toBottomOf="@id/card_active_bottle"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintEnd_toEndOf="parent">
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:padding="18dp">
-
-                <!-- Scanner Header & Description -->
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical">
-
-                    <LinearLayout
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:orientation="vertical">
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="BLE Signal Scanner"
-                            android:textColor="@color/text_primary"
-                            android:textSize="16sp"
-                            android:textStyle="bold" />
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="2dp"
-                            android:text="Scan nearby ESP32 water bottles and connect manually"
-                            android:textColor="@color/text_secondary"
-                            android:textSize="12sp" />
-                    </LinearLayout>
-
-                    <!-- Scanning Progress Spinner -->
+                    <!-- Scanning Progress Spinner inside the button row -->
                     <ProgressBar
                         android:id="@+id/pb_scanning"
                         android:layout_width="22dp"
                         android:layout_height="22dp"
+                        android:layout_gravity="end|center_vertical"
+                        android:layout_marginEnd="16dp"
+                        android:elevation="4dp"
                         android:indeterminate="true"
-                        android:indeterminateTint="@color/teal_primary"
+                        android:indeterminateTint="@color/text_white"
                         android:visibility="gone"
                         tools:visibility="visible" />
-                </LinearLayout>
+                </FrameLayout>
 
-                <!-- Scan / Stop Scan Action Button -->
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btn_scan_ble"
-                    style="@style/Widget.MaterialComponents.Button"
-                    android:layout_width="match_parent"
-                    android:layout_height="48dp"
-                    android:layout_marginTop="14dp"
-                    android:text="@string/waterbottle_scan"
-                    android:textAllCaps="false"
-                    android:textColor="@color/text_white"
-                    android:textSize="14sp"
-                    android:textStyle="bold"
-                    app:backgroundTint="@color/teal_primary"
-                    app:cornerRadius="12dp"
-                    app:icon="@drawable/ic_bluetooth"
-                    app:iconGravity="textStart"
-                    app:iconTint="@color/text_white" />
-
-                <!-- Discovered Signals Header -->
-                <TextView
-                    android:id="@+id/tv_discovered_header"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="16dp"
-                    android:layout_marginBottom="8dp"
-                    android:text="Discovered ESP32 Signals"
-                    android:textColor="@color/text_primary"
-                    android:textSize="14sp"
-                    android:textStyle="bold" />
-
-                <!-- Empty State View -->
+                <!-- Discovered Bottles Section (Hidden when bottle is connected) -->
                 <LinearLayout
-                    android:id="@+id/layout_empty_devices"
+                    android:id="@+id/layout_discovered_section"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:gravity="center"
-                    android:paddingTop="20dp"
-                    android:paddingBottom="20dp"
-                    android:background="@drawable/bg_metric_tile">
+                    android:orientation="vertical">
 
-                    <ImageView
-                        android:layout_width="36dp"
-                        android:layout_height="36dp"
-                        android:src="@drawable/ic_bluetooth"
-                        app:tint="@color/text_hint" />
-
+                    <!-- Discovered Bottles Header -->
                     <TextView
-                        android:id="@+id/tv_empty_devices_text"
+                        android:id="@+id/tv_discovered_header"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp"
-                        android:gravity="center"
-                        android:paddingStart="16dp"
-                        android:paddingEnd="16dp"
-                        android:text="@string/waterbottle_no_devices"
-                        android:textColor="@color/text_secondary"
-                        android:textSize="12sp" />
-                </LinearLayout>
+                        android:layout_marginTop="16dp"
+                        android:layout_marginBottom="8dp"
+                        android:text="Discovered Bottles"
+                        android:textColor="@color/text_primary"
+                        android:textSize="14sp"
+                        android:textStyle="bold" />
 
-                <!-- Discovered Devices RecyclerView -->
-                <androidx.recyclerview.widget.RecyclerView
-                    android:id="@+id/rv_discovered_devices"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:nestedScrollingEnabled="false"
-                    android:overScrollMode="never"
-                    android:visibility="gone"
-                    tools:visibility="visible"
-                    tools:listitem="@layout/item_ble_device" />
+                    <!-- Empty State View -->
+                    <LinearLayout
+                        android:id="@+id/layout_empty_devices"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:gravity="center"
+                        android:paddingTop="20dp"
+                        android:paddingBottom="20dp"
+                        android:background="@drawable/bg_metric_tile">
+
+                        <ImageView
+                            android:layout_width="36dp"
+                            android:layout_height="36dp"
+                            android:src="@drawable/ic_bluetooth"
+                            app:tint="@color/text_hint" />
+
+                        <TextView
+                            android:id="@+id/tv_empty_devices_text"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="8dp"
+                            android:gravity="center"
+                            android:paddingStart="16dp"
+                            android:paddingEnd="16dp"
+                            android:text="@string/waterbottle_no_devices"
+                            android:textColor="@color/text_secondary"
+                            android:textSize="12sp" />
+                    </LinearLayout>
+
+                    <!-- Discovered Devices RecyclerView -->
+                    <androidx.recyclerview.widget.RecyclerView
+                        android:id="@+id/rv_discovered_devices"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:nestedScrollingEnabled="false"
+                        android:overScrollMode="never"
+                        android:visibility="gone"
+                        tools:visibility="visible"
+                        tools:listitem="@layout/item_ble_device" />
+                </LinearLayout>
 
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 </androidx.core.widget.NestedScrollView>
-

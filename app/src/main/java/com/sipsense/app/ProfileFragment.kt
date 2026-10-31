@@ -211,7 +211,17 @@ class ProfileFragment : Fragment() {
                     // Fragment may have been detached while the read was in flight
                     if (!isAdded) return
 
-                    val profile = snapshot.getValue(UserProfile::class.java) ?: return
+                    val profile = snapshot.getValue(UserProfile::class.java)
+                    if (profile == null) {
+                        val newProfile = UserProfile(
+                            fullName = authName,
+                            email = authEmail,
+                            hydrationTarget = 2000,
+                            createdAt = System.currentTimeMillis()
+                        )
+                        database.child("users").child(uid).setValue(newProfile)
+                        return
+                    }
 
                     // Handle cases where the DB record is partially created
                     profile.fullName.takeIf { it.isNotBlank() }?.let { tvProfileName.text = it }

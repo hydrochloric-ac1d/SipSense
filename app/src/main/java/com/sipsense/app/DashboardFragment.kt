@@ -684,10 +684,31 @@ class DashboardFragment : Fragment() {
             ?: user.email?.substringBefore('@').orEmpty().ifBlank { "User" }
         val firstName = authName.substringBefore(" ").replaceFirstChar { it.uppercase() }
         setupGreeting(firstName)
+        progressHydration.max = currentHydrationTarget
+        tvProgressMax.text = getString(R.string.progress_max_format_ml, currentHydrationTarget)
+        updateProgressUI(currentDailyTotal)
+
+
 
         profileListener = object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
-                val profile = snapshot.getValue(UserProfile::class.java) ?: return
+                val profile = snapshot.getValue(UserProfile::class.java)
+                if (profile == null) {
+                    val defaultProfile = UserProfile(
+                        fullName = authName,
+                        email = user.email.orEmpty(),
+                        hydrationTarget = currentHydrationTarget,
+                        createdAt = System.currentTimeMillis()
+                    )
+                    database?.child("users")?.child(uid)?.setValue(defaultProfile)
+                    activity?.runOnUiThread {
+                        if (isAdded) {
+                            setupGreeting(firstName)
+                            updateProgressUI(currentDailyTotal)
+                        }
+                    }
+                    return
+                }
                 
                 val name = profile.fullName.takeIf { it.isNotBlank() } ?: firstName
                 val shortName = name.substringBefore(" ").replaceFirstChar { it.uppercase() }
@@ -707,7 +728,12 @@ class DashboardFragment : Fragment() {
             override fun onCancelled(error: DatabaseError) {
                 activity?.runOnUiThread {
                     if (isAdded) {
-                        Toast.makeText(context, "Failed to load profile", Toast.LENGTH_SHORT).show()
+                        android.util.Log.e("SipSenseDashboard", "Database cancelled: ${error.message} (code ${error.code})")
+                        if (error.code == com.google.firebase.database.DatabaseError.PERMISSION_DENIED) {
+                            Toast.makeText(context, "Firebase Permission Denied: Update rules in Firebase Console", Toast.LENGTH_LONG).show()
+                        } else {
+                            Toast.makeText(context, "Failed to load profile: ${error.message}", Toast.LENGTH_SHORT).show()
+                        }
                     }
                 }
             }
