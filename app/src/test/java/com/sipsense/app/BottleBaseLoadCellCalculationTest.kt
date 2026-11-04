@@ -6,85 +6,153 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Unit tests validating the Load Cell and HX711 amplifier bottle base rest logic:
- * "The system shall calculate fluid volume in real-time by subtracting the updated
- * bottle weight from the prior full reference weight using the Load Cell and HX711
- * amplifier whenever the bottle rests on the base."
+ * Unit tests for HX711 Load Cell bottle-at-rest state, fixed 500ml bottle capacity,
+ * and automatic Daily Goal drinking water calculation when water volume is deducted.
  */
 class BottleBaseLoadCellCalculationTest {
 
-    @Test
-    fun `fluid volume calculation subtracts updated weight from prior reference weight`() {
-        val priorReferenceWeightMl = 650
-        val updatedWeightMl = 615
-        
-        // System calculates fluid volume difference on resting
-        val sipVolumeCalculated = (priorReferenceWeightMl - updatedWeightMl).coerceAtLeast(0)
-        val remainingWaterLevel = updatedWeightMl
+    /**
+     * Helper class mirroring the DashboardFragment & MainActivity HX711 bottle-at-rest
+     * state machine and 500ml water volume deduction logic.
+     */
+    class BottleRestStateMachine(
+        initialWaterLevel: Int = MainActivity.DEFAULT_BOTTLE_CAPACITY_ML,
+        val bottleCapacity: Int = MainActivity.DEFAULT_BOTTLE_CAPACITY_ML,
+        initialAtRest: Boolean = true
+    ) {
+        var isBottleAtRest: Boolean = initialAtRest
+            private set
 
-        assertEquals(35, sipVolumeCalculated)
-        assertEquals(615, remainingWaterLevel)
+        var displayedWaterLevel: Int = initialWaterLevel.coerceIn(0, bottleCapacity)
+            private set
+
+        var latestSensorWaterLevel: Int = initialWaterLevel.coerceIn(0, bottleCapacity)
+            private set
+
+        var totalConsumedToday: Int = 0
+            private set
+
+        var lastRecordedSip: Int = 0
+            private set
+
+        /**
+         * Receives new sensor telemetry from ESP32 / Firebase.
+         * Every time the water volume decreases while at rest, the deducted ml is
+         * automatically counted as drinking water towards the Daily Goal.
+         */
+        fun onSensorTelemetryReceived(sensorWaterLevel: Int, sensorReportsAtRest: Boolean? = null) {
+            val clampedSensor = sensorWaterLevel.coerceIn(0, bottleCapacity)
+            latestSensorWaterLevel = clampedSensor
+            if (sensorReportsAtRest != null) {
+                isBottleAtRest = sensorReportsAtRest
+            }
+            if (isBottleAtRest) {
+                if (clampedSensor < displayedWaterLevel) {
+                    val deductedMl = displayedWaterLevel - clampedSensor
+                    lastRecordedSip = deductedMl
+                    totalConsumedToday += deductedMl
+                } else {
+                    lastRecordedSip = 0
+                }
+                displayedWaterLevel = clampedSensor
+            }
+        }
+
+        /**
+         * User or hardware toggles bottle rest state (lift off base vs place on base).
+         */
+        fun toggleBottleRestState() {
+            isBottleAtRest = !isBottleAtRest
+            if (isBottleAtRest) {
+                if (latestSensorWaterLevel != displayedWaterLevel) {
+                    val sipConsumed = (displayedWaterLevel - latestSensorWaterLevel).coerceAtLeast(0)
+                    displayedWaterLevel = latestSensorWaterLevel
+                    if (sipConsumed > 0) {
+                        lastRecordedSip = sipConsumed
+                        totalConsumedToday += sipConsumed
+                    }
+                } else {
+                    lastRecordedSip = 0
+                }
+            }
+        }
     }
 
     @Test
-    fun `water level display freezes while bottle is lifted and updates upon resting`() {
-        var isBottleAtRest = true
-        var displayedWaterLevel = 650
-        var latestSensorWaterLevel = 650
-
-        // 1. Initial state: resting on base
-        assertTrue(isBottleAtRest)
-        assertEquals(650, displayedWaterLevel)
-
-        // 2. User lifts bottle to take a sip
-        isBottleAtRest = false
-        assertFalse(isBottleAtRest)
-
-        // Sensor / simulator reports water level has decreased to 590 ml while lifted
-        val incomingSensorWaterLevel = 590
-        latestSensorWaterLevel = incomingSensorWaterLevel
-
-        // Display must ONLY update if bottle is at rest on base
-        if (isBottleAtRest) {
-            displayedWaterLevel = latestSensorWaterLevel
-        }
-        // Displayed level remains frozen at 650 ml while bottle is off base!
-        assertEquals(650, displayedWaterLevel)
-
-        // 3. User places bottle back on base
-        isBottleAtRest = true
-        assertTrue(isBottleAtRest)
-
-        // Once returned to rest, water level display updates to latest sensor level
-        if (isBottleAtRest) {
-            displayedWaterLevel = latestSensorWaterLevel
-        }
-        assertEquals(590, displayedWaterLevel)
+    fun `default bottle capacity and full water level is fixed at 500ml`() {
+        val stateMachine = BottleRestStateMachine()
+        assertEquals(500, MainActivity.DEFAULT_BOTTLE_CAPACITY_ML)
+        assertEquals(500, stateMachine.bottleCapacity)
+        assertEquals(500, stateMachine.displayedWaterLevel)
     }
 
     @Test
-    fun `toggle base status does not add water unless sensor weight changed`() {
-        var isBottleAtRest = true
-        var displayedWaterLevel = 650
-        var latestSensorWaterLevel = 650
-        var totalConsumedToday = 0
+    fun `every water volume deduction while at rest counts towards Daily Goal`() {
+        val stateMachine = BottleRestStateMachine(initialWaterLevel = 500, initialAtRest = true)
 
-        // User taps indicator to lift bottle
-        isBottleAtRest = !isBottleAtRest
-        assertFalse(isBottleAtRest)
+        // First drink: 500 ml -> 420 ml (80 ml deducted)
+        stateMachine.onSensorTelemetryReceived(420)
+        assertEquals(420, stateMachine.displayedWaterLevel)
+        assertEquals(80, stateMachine.lastRecordedSip)
+        assertEquals(80, stateMachine.totalConsumedToday)
 
-        // User taps indicator again to place back on base without drinking (no sensor level change)
-        isBottleAtRest = !isBottleAtRest
-        assertTrue(isBottleAtRest)
+        // Second drink: 420 ml -> 300 ml (120 ml deducted)
+        stateMachine.onSensorTelemetryReceived(300)
+        assertEquals(300, stateMachine.displayedWaterLevel)
+        assertEquals(120, stateMachine.lastRecordedSip)
+        assertEquals(200, stateMachine.totalConsumedToday)
+    }
 
-        // Only calculate sip if sensor telemetry reported a difference
-        if (latestSensorWaterLevel != displayedWaterLevel) {
-            val sip = (displayedWaterLevel - latestSensorWaterLevel).coerceAtLeast(0)
-            totalConsumedToday += sip
-            displayedWaterLevel = latestSensorWaterLevel
-        }
+    @Test
+    fun `when bottle is lifted off base, water level display is held steady and does not change`() {
+        val stateMachine = BottleRestStateMachine(initialWaterLevel = 500, initialAtRest = true)
 
-        assertEquals(650, displayedWaterLevel)
-        assertEquals(0, totalConsumedToday)
+        // Lift bottle off base
+        stateMachine.toggleBottleRestState()
+        assertFalse(stateMachine.isBottleAtRest)
+        assertEquals(500, stateMachine.displayedWaterLevel)
+
+        // Even if load cell reads 0ml while bottle is in the air, displayed level stays 500ml
+        stateMachine.onSensorTelemetryReceived(0)
+        assertEquals("Displayed water level must not change while lifted", 500, stateMachine.displayedWaterLevel)
+        assertEquals(0, stateMachine.totalConsumedToday)
+    }
+
+    @Test
+    fun `toggling lift and place back on base without sensor change does not fabricate sips`() {
+        val stateMachine = BottleRestStateMachine(initialWaterLevel = 500, initialAtRest = true)
+
+        // Lift bottle
+        stateMachine.toggleBottleRestState()
+        assertFalse(stateMachine.isBottleAtRest)
+        assertEquals(500, stateMachine.displayedWaterLevel)
+
+        // Place bottle back on base without any sensor change
+        stateMachine.toggleBottleRestState()
+        assertTrue(stateMachine.isBottleAtRest)
+        assertEquals(500, stateMachine.displayedWaterLevel)
+        assertEquals(0, stateMachine.lastRecordedSip)
+        assertEquals(0, stateMachine.totalConsumedToday)
+    }
+
+    @Test
+    fun `when bottle returns to rest after drinking, deducted volume is calculated accurately`() {
+        val stateMachine = BottleRestStateMachine(initialWaterLevel = 500, initialAtRest = true)
+
+        // 1. Lift bottle to drink
+        stateMachine.toggleBottleRestState()
+        assertFalse(stateMachine.isBottleAtRest)
+
+        // 2. User drinks 150ml; sensor measures 350ml just as bottle is placed back on base
+        stateMachine.onSensorTelemetryReceived(350)
+        // Still lifted until rest state is confirmed
+        assertEquals(500, stateMachine.displayedWaterLevel)
+
+        // 3. Bottle is now at rest on the base
+        stateMachine.toggleBottleRestState()
+        assertTrue(stateMachine.isBottleAtRest)
+        assertEquals(350, stateMachine.displayedWaterLevel)
+        assertEquals(150, stateMachine.lastRecordedSip)
+        assertEquals(150, stateMachine.totalConsumedToday)
     }
 }

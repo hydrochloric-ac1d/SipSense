@@ -1,54 +1,68 @@
 /*
  * SipSense_WaterBottle_BLE.ino
  *
- * ESP32 Smart Water Bottle Firmware (Physical DHT11 + Physical HX711)
+ * ESP32 Smart Water Bottle Firmware (Physical DHT11 + HX711 + BLE Status LED)
+ * Fixed 500 ml Bottle Capacity & Automatic Water Volume Deduction Tracking
  *
  * ═══════════════════════════════════════════════════════════════════════════
- *  REQUIRED ARDUINO LIBRARIES:
+ *  REQUIRED ARDUINO IDE LIBRARIES (Sketch -> Include Library -> Manage Libraries):
  * ───────────────────────────────────────────────────────────────────────────
- *  Install both libraries in Arduino IDE (Tools -> Manage Libraries...):
- *    1. "DHT sensor library" by Adafruit  (Click "Install All" for unified sensor)
- *    2. "HX711 Arduino Library" by Bogdan Necula (bogde)
+ *  1. "DHT sensor library" by Adafruit        (search: DHT sensor library)
+ *  2. "Adafruit Unified Sensor" by Adafruit   (installed automatically with DHT)
+ *  3. "HX711 Arduino Library" by Bogdan Necula (search: HX711 Arduino Library)
+ *  *  BLE libraries (BLEDevice.h, BLEServer.h, BLEUtils.h, BLE2902.h) and
+ *     Preferences.h are built-in with the ESP32 Board Package by Espressif.
  *
  * ═══════════════════════════════════════════════════════════════════════════
- *  STATUS LED BEHAVIOR:
+ *  BLE BROADCAST & STATUS LED BEHAVIOR (GPIO 2):
  * ───────────────────────────────────────────────────────────────────────────
  *  - BROADCASTING / ADVERTISING (DISCONNECTED):
- *      The on-board LED (GPIO 2) BLINKS repeatedly (350ms ON / 350ms OFF)
- *      to indicate that the water bottle is actively broadcasting its BLE signal
- *      and ready for the SipSense mobile app to discover and connect.
+ *      The on-board LED (GPIO 2) BLINKS continuously (350ms ON / 350ms OFF)
+ *      while broadcasting the BLE signal ("SipSense-Bottle").
  *
  *  - CONNECTED TO SIPSENSE MOBILE APP:
- *      The LED switches to STEADY ON (solid high) as soon as the GATT connection
- *      is established.
+ *      Once the user manually connects from the Water Bottle tab in the
+ *      SipSense Android app, the LED turns STEADY ON (solid HIGH).
  *
  *  - DISCONNECTED:
- *      When the mobile app disconnects, the ESP32 restarts BLE advertising
- *      immediately and the LED switches back to BLINKING.
+ *      When the user manually disconnects from the app, BLE advertising
+ *      restarts immediately and the LED returns to BLINKING.
  *
  * ═══════════════════════════════════════════════════════════════════════════
- *  HARDWARE PIN CONNECTIONS (ESP32 DevKit V1 - USB-C Powered):
+ *  500 ML WATER BOTTLE & DAILY GOAL DEDUCTION LOGIC:
  * ───────────────────────────────────────────────────────────────────────────
- *  - GPIO 2  : On-board Blue LED (Status Indicator: Blinking=Adv, Steady=Conn)
- *  - GPIO 19 : DHT11 DATA (Ambient Temperature & Humidity)
- *  - GPIO 21 : HX711 DT / DOUT (Load Cell Data Out)
- *  - GPIO 22 : HX711 SCK / PD_SCK (Load Cell Clock)
- *  - 3V3     : Sensor VCC rails (DHT11 + HX711)
- *  - GND     : Sensor GND rails
- *
- *  HX711 to 4-Wire Load Cell:
- *    E+ -> Red | E- -> Black | A- -> White | A+ -> Green
+ *  - Bottle Capacity is fixed at 500 ml (initial full water level = 500 ml).
+ *  - Every time the water volume decreases (is deducted), the deducted ml
+ *    amount is automatically counted as drinking water towards the Daily Goal.
+ *  - Lifting the bottle off the base pauses measurement (holds currentWaterLevel)
+ *    so lifting never drops the displayed water level to 0 ml.
  *
  * ═══════════════════════════════════════════════════════════════════════════
- *  SERIAL COMMANDS (115200 baud, newline enabled):
+ *  PHYSICAL HARDWARE WIRING (ESP32 DevKit V1):
  * ───────────────────────────────────────────────────────────────────────────
- *  - 't' -> Tare / zero the scale platform
- *  - 'c' -> Run 3-step interactive calibration with a known weight
- *  - 's' -> Save calibration to Flash NVS
- *  - 'l' -> Reload calibration from Flash NVS
- *  - 'x' -> Erase saved calibration
- *  - 'i' -> Print live hardware sensor readings
- *  - 'h' -> Show help menu
+ *  1. Status LED:
+ *     - GPIO 2  --> On-board Blue LED (Blinking = Broadcasting, Steady = Connected)
+ *
+ *  2. Physical DHT11 Sensor (Ambient Temperature & Humidity):
+ *     - VCC / + --> ESP32 3V3
+ *     - DATA/OUT--> ESP32 GPIO 19
+ *     - GND / - --> ESP32 GND
+ *
+ *  3. Physical HX711 Load Cell Amplifier (Water Weight / Sip Detection):
+ *     - VCC     --> ESP32 3V3
+ *     - GND     --> ESP32 GND
+ *     - DT / DO --> ESP32 GPIO 21
+ *     - SCK/CLK --> ESP32 GPIO 22
+ *
+ * ═══════════════════════════════════════════════════════════════════════════
+ *  SERIAL MONITOR COMMANDS (115200 baud):
+ * ───────────────────────────────────────────────────────────────────────────
+ *  - 't'       : Tare / Zero the scale (set current weight as 0g)
+ *  - 'c <wt>'  : Calibrate with a known weight in grams (e.g., "c 500")
+ *  - 's'       : Deduct 50 ml from water level (test Daily Goal drinking water)
+ *  - 'r'       : Refill / reset water bottle level back to 500 ml
+ *  - 'i'       : Print current calibration & live sensor status
+ *  - 'h'       : Print help menu
  *
  * @project SipSense - Smart Bottle Ecosystem
  */
@@ -60,39 +74,45 @@
 #include <DHT.h>
 #include <HX711.h>
 #include <Preferences.h>
+#include <math.h>
 
-// ── Pin Configuration ──────────────────────────────────────────────────────
-#define LED_PIN         2       // On-board LED on ESP32 DevKit (GPIO 2)
-#define DHT_PIN         19      // DHT11 Data pin (GPIO 19)
-#define DHT_TYPE        DHT11   // Sensor type: DHT11
+// ── Pin Definitions ────────────────────────────────────────────────────────
+#ifndef LED_PIN
+#define LED_PIN         2       // On-board Status LED (GPIO 2)
+#endif
 
-#define HX711_DT_PIN    21      // HX711 DT (Data Out)
-#define HX711_SCK_PIN   22      // HX711 SCK (Clock)
+#define DHT_PIN         19      // Physical DHT11 DATA pin (GPIO 19)
+#define DHT_TYPE        DHT11   // DHT11 sensor type
 
-// ── BLE Identifiers (Must match BleConstants.kt in SipSense Android App) ──
+#define HX711_DT_PIN    21      // Physical HX711 DT / DOUT pin (GPIO 21)
+#define HX711_SCK_PIN   22      // Physical HX711 SCK / CLK pin (GPIO 22)
+
+// ── Bottle Constants ───────────────────────────────────────────────────────
+#define BOTTLE_CAPACITY_ML  500 // Fixed 500 ml Smart Water Bottle capacity
+
+// ── BLE UUIDs (Must match BleConstants.kt in SipSense Android App) ─────────
 #define DEVICE_NAME         "SipSense-Bottle"
 #define SERVICE_UUID        "4fafc201-1fb5-459e-8fcc-c5c9c331914b"
 #define CHARACTERISTIC_UUID "beb5483e-36e1-4688-b7f5-ea07361b26a8"
 
-// ── Flash NVS Storage Keys ────────────────────────────────────────────────
+// ── Flash NVS Keys for Saving HX711 Calibration ────────────────────────────
 #define PREFS_NAMESPACE     "sipsense"
 #define KEY_FACTOR          "hx_factor"
 #define KEY_OFFSET          "hx_offset"
 #define KEY_CALIBRATED      "hx_calib"
 
-// ── Timing Parameters (Milliseconds) ───────────────────────────────────────
-const unsigned long LED_BLINK_INTERVAL_MS    = 350;  // LED blink speed while advertising
-const unsigned long NOTIFY_INTERVAL_MS       = 2000; // Periodic BLE telemetry push (2s)
-const unsigned long DHT_SAMPLE_INTERVAL_MS   = 2000; // DHT11 sample interval (2s)
-const unsigned long SCALE_SAMPLE_INTERVAL_MS = 300;  // HX711 sample rate (300ms)
-const unsigned long FIRST_NOTIFY_DELAY_MS    = 250;  // Delay after connection for CCCD
-const unsigned long HX711_TIMEOUT_MS         = 100;  // Non-blocking timeout
-const uint8_t       TARE_SAMPLES             = 15;
-const uint8_t       READ_SAMPLES             = 3;    // Fast averaging for responsive sip detection
-const float         LIFT_THRESHOLD_GRAMS     = -15.0f; // Weight drop threshold indicating bottle is lifted
-const float         SIP_MIN_THRESHOLD_GRAMS  = 5.0f;   // Minimum 5g drop to record a valid sip
+// ── Timing & Threshold Constants ───────────────────────────────────────────
+const unsigned long LED_BLINK_INTERVAL_MS    = 350;   // Blink speed while advertising (350ms)
+const unsigned long NOTIFY_INTERVAL_MS       = 2000;  // Periodic BLE notify interval (2s)
+const unsigned long DHT_SAMPLE_INTERVAL_MS   = 2000;  // DHT11 minimum sampling period (2s)
+const unsigned long SCALE_SAMPLE_INTERVAL_MS = 250;   // HX711 sampling period (250ms)
+const unsigned long FIRST_NOTIFY_DELAY_MS    = 350;   // Delay after connect for CCCD setup
 
-// ── Global Objects ─────────────────────────────────────────────────────────
+const float SIP_THRESHOLD_GRAMS              = 5.0f;  // Minimum weight decrease to count as deduction (5g = 5ml)
+const float MIN_BOTTLE_ON_BASE_GRAMS         = 25.0f; // Weight threshold to detect bottle resting on base
+const float LIFT_NEGATIVE_THRESHOLD_GRAMS    = -15.0f;// Threshold when tared with bottle already on base
+
+// ── Global Hardware Instances ──────────────────────────────────────────────
 DHT         dht(DHT_PIN, DHT_TYPE);
 HX711       scale;
 Preferences prefs;
@@ -100,7 +120,7 @@ Preferences prefs;
 BLEServer*         pServer                  = nullptr;
 BLECharacteristic* pTelemetryCharacteristic = nullptr;
 
-// ── Connection & LED State ─────────────────────────────────────────────────
+// ── BLE Connection & LED State ─────────────────────────────────────────────
 volatile bool deviceConnected     = false;
 bool          oldDeviceConnected  = false;
 unsigned long connectedAtMs       = 0;
@@ -109,78 +129,83 @@ bool          pendingFirstNotify  = false;
 unsigned long lastLedBlinkMs      = 0;
 bool          ledBlinkState       = false;
 
-// ── Sensor State (Physical DHT11 + Physical HX711) ─────────────────────────
-// DHT11
-float         lastTemperatureC    = 24.0f;
-float         lastHumidity        = 50.0f;
-bool          isDhtValid          = false;
-uint8_t       dhtFailureCount     = 0;
+// ── Physical DHT11 State ───────────────────────────────────────────────────
+float         currentTempC        = 24.0f;
+float         currentHumidity     = 55.0f;
+bool          isDhtReadFailed     = false;
+int           dhtFailStreak       = 0;
+const int     MAX_DHT_FAIL_STREAK = 3;
 
-// HX711 & Weight
+// ── Physical HX711 Load Cell State (Fixed 500 ml Bottle) ───────────────────
 float         calibrationFactor   = 1.0f;
 long          zeroOffset          = 0;
 bool          isCalibrated        = false;
-float         lastWeightGrams     = 0.0f;
-long          lastRawCounts       = 0;
-bool          isHx711Valid        = false;
-uint8_t       hx711FailureCount   = 0;
+bool          isHx711ReadFailed   = false;
+long          latestRawCounts     = 0;
+float         latestWeightGrams   = 500.0f;
+float         containerTareGrams  = 0.0f;
+bool          hasBottleBeenPlaced = false;
 
-// Water Level & Real Sip Tracking
-int           currentWaterLevel   = 0;     // Current water in bottle (ml, 1g water = 1ml)
-int           bottleCapacity      = 1000;  // Bottle capacity in ml
-bool          isBottleAtRest      = true;  // Resting on base platform vs lifted
-float         weightBeforeLift    = 0.0f;  // Reference weight before user lifted the bottle
-int           lastSipAmount       = 0;     // Last measured sip volume in ml
-int           totalConsumedToday  = 0;     // Cumulative water consumed in ml
-int           batteryLevel        = 100;   // 100% on USB-C power
+int           currentWaterLevel   = BOTTLE_CAPACITY_ML; // Starts at 500 ml
+int           bottleCapacity      = BOTTLE_CAPACITY_ML; // Fixed 500 ml
+bool          isBottleAtRest      = true;
+int           lastSipAmount       = 0;
+int           totalConsumedToday  = 0;
+int           batteryLevel        = 95;
 
-// Timers
-unsigned long lastDhtMs           = 0;
-unsigned long lastScaleMs         = 0;
-unsigned long lastNotifyMs        = 0;
+// ── Loop Timers ────────────────────────────────────────────────────────────
+unsigned long lastDhtReadMs       = 0;
+unsigned long lastScaleReadMs     = 0;
+unsigned long lastTelemetryPushMs = 0;
 
 // Forward Declarations
-void publishTelemetry(bool forceImmediate = false);
 void updateLedIndicator();
+void readDht11Sensor();
+void readScaleSensor();
+void publishTelemetry(bool forceImmediate = false);
 void handleSerialCommands();
 void tareScale();
-void runGuidedCalibration();
+void calibrateScale(float knownWeightGrams);
 bool loadCalibration();
-void saveCalibration();
-void printInfo();
+void saveCalibration(float factor, long offset);
+void printDeviceStatus();
 void printHelp();
 
-// ── BLE Server Callbacks ───────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════
+//  BLE SERVER CONNECTION CALLBACKS
+// ═══════════════════════════════════════════════════════════════════════════
 class BottleServerCallbacks : public BLEServerCallbacks {
     void onConnect(BLEServer* server) override {
         deviceConnected = true;
-        digitalWrite(LED_PIN, HIGH); // Immediate steady LED
+        digitalWrite(LED_PIN, HIGH); // Immediately turn LED STEADY ON when connected
         Serial.println("\n╔══════════════════════════════════════════════════════════╗");
-        Serial.println("║  📱 [BLE] Mobile App CONNECTED!                          ║");
-        Serial.println("║  💡 [LED] Status changed to: STEADY ON                   ║");
+        Serial.println("║  [BLE] Mobile App CONNECTED!                             ║");
+        Serial.println("║  [LED] GPIO 2 changed to: STEADY ON                      ║");
         Serial.println("╚══════════════════════════════════════════════════════════╝");
     }
 
     void onDisconnect(BLEServer* server) override {
         deviceConnected = false;
         Serial.println("\n╔══════════════════════════════════════════════════════════╗");
-        Serial.println("║  ❌ [BLE] Mobile App DISCONNECTED!                       ║");
-        Serial.println("║  💡 [LED] Status changed to: BLINKING (Broadcasting)     ║");
+        Serial.println("║  [BLE] Mobile App DISCONNECTED!                          ║");
+        Serial.println("║  [LED] GPIO 2 changed to: BLINKING (Broadcasting BLE)    ║");
         Serial.println("╚══════════════════════════════════════════════════════════╝");
-        // Immediately restart BLE advertising
+        // Immediately restart BLE advertising so the app can scan & reconnect
         server->startAdvertising();
     }
 };
 
-// ── LED Status Controller (Non-Blocking) ───────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════
+//  STATUS LED CONTROLLER (Blinking when Advertising, Steady ON when Connected)
+// ═══════════════════════════════════════════════════════════════════════════
 void updateLedIndicator() {
     const unsigned long now = millis();
 
     if (deviceConnected) {
-        // STATE 1: Connected -> Steady ON
+        // Connected -> LED is solid ON
         digitalWrite(LED_PIN, HIGH);
     } else {
-        // STATE 2: Broadcasting / Advertising -> Blinking
+        // Broadcasting BLE -> Blink LED every 350ms
         if (now - lastLedBlinkMs >= LED_BLINK_INTERVAL_MS) {
             lastLedBlinkMs = now;
             ledBlinkState = !ledBlinkState;
@@ -189,14 +214,9 @@ void updateLedIndicator() {
     }
 }
 
-// ── Flash Calibration Management ───────────────────────────────────────────
-void applyCalibration(float factor, long offset) {
-    calibrationFactor = factor;
-    zeroOffset = offset;
-    scale.set_scale(factor);
-    scale.set_offset(offset);
-}
-
+// ═══════════════════════════════════════════════════════════════════════════
+//  NVS FLASH CALIBRATION STORAGE
+// ═══════════════════════════════════════════════════════════════════════════
 bool loadCalibration() {
     prefs.begin(PREFS_NAMESPACE, true);
     bool saved   = prefs.getBool(KEY_CALIBRATED, false);
@@ -204,396 +224,473 @@ bool loadCalibration() {
     long offset  = prefs.getLong(KEY_OFFSET, 0);
     prefs.end();
 
-    if (!saved || factor == 0.0f) {
-        Serial.println("[FLASH] No saved calibration found. Scale running uncalibrated (factor=1.0).");
-        isCalibrated = false;
-        return false;
+    if (saved && fabs(factor) > 0.0001f) {
+        calibrationFactor = factor;
+        zeroOffset        = offset;
+        isCalibrated      = true;
+        return true;
     }
-
-    applyCalibration(factor, offset);
-    isCalibrated = true;
-    Serial.printf("[FLASH] Restored calibration -> Factor: %.4f | Zero Offset: %ld\n", factor, offset);
-    return true;
+    return false;
 }
 
-void saveCalibration() {
+void saveCalibration(float factor, long offset) {
     prefs.begin(PREFS_NAMESPACE, false);
-    prefs.putFloat(KEY_FACTOR, calibrationFactor);
-    prefs.putLong(KEY_OFFSET, (int32_t) scale.get_offset());
-    prefs.putBool(KEY_CALIBRATED, isCalibrated);
+    prefs.putBool(KEY_CALIBRATED, true);
+    prefs.putFloat(KEY_FACTOR, factor);
+    prefs.putLong(KEY_OFFSET, offset);
     prefs.end();
-    Serial.printf("[FLASH] Calibration saved -> Factor: %.4f | Offset: %ld\n",
-                  calibrationFactor, scale.get_offset());
+
+    calibrationFactor = factor;
+    zeroOffset        = offset;
+    isCalibrated      = true;
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+//  HX711 TARE & CALIBRATION ROUTINES
+// ═══════════════════════════════════════════════════════════════════════════
 void tareScale() {
+    Serial.println("\n⚖️  [HX711] Taring scale... Keep platform still.");
     if (!scale.wait_ready_timeout(1000)) {
-        Serial.println("[TARE] ⚠️ HX711 not responding! Check DT (GPIO 21) & SCK (GPIO 22) wiring.");
+        Serial.println("❌ [HX711] Not responding! Check DT=GPIO21, SCK=GPIO22, VCC=3V3, GND.");
+        isHx711ReadFailed = true;
         return;
     }
-    Serial.println("[TARE] Zeroing scale platform... keep platform still.");
-    scale.tare(TARE_SAMPLES);
+
+    scale.set_scale();
+    scale.tare(20);
     zeroOffset = scale.get_offset();
-    Serial.printf("[TARE] Complete. Zero offset = %ld\n", zeroOffset);
-}
-
-// ── Real Physical Sensor Reads: DHT11 ──────────────────────────────────────
-void readDhtSensor() {
-    float h = dht.readHumidity();
-    float t = dht.readTemperature();
-
-    if (isnan(h) || isnan(t)) {
-        dhtFailureCount++;
-        isDhtValid = false;
-        if (dhtFailureCount >= 3) {
-            Serial.printf("[DHT11] ⚠️ Read failed. Check wiring: VCC->3V3, GND->GND, DATA->GPIO %d\n", DHT_PIN);
-        }
-        return;
-    }
-
-    dhtFailureCount  = 0;
-    isDhtValid       = true;
-    lastTemperatureC = t;
-    lastHumidity     = h;
-}
-
-// ── Real Physical Sensor Reads: HX711 & Real Sip Calculation ───────────────
-void readScaleSensor() {
-    if (!scale.wait_ready_timeout(HX711_TIMEOUT_MS)) {
-        hx711FailureCount++;
-        if (hx711FailureCount >= 5) {
-            isHx711Valid = false;
-        }
-        return;
-    }
-
-    hx711FailureCount = 0;
-    isHx711Valid      = true;
-
-    // Actual raw ADC counts from load cell
-    lastRawCounts = scale.get_value(1);
 
     if (isCalibrated) {
-        // Actual weight in grams
-        float weight = scale.get_units(READ_SAMPLES);
-
-        // Detect bottle lifted vs resting on base platform
-        if (weight < LIFT_THRESHOLD_GRAMS) {
-            // Bottle is off the base
-            if (isBottleAtRest) {
-                // Transition: Bottle just lifted!
-                isBottleAtRest = false;
-                weightBeforeLift = (lastWeightGrams > 0.0f) ? lastWeightGrams : 0.0f;
-                Serial.printf("\n[BASE] 🚀 Bottle lifted! Storing reference weight: %.1f g\n", weightBeforeLift);
-                publishTelemetry(true);
-            }
-        } else {
-            // Bottle is placed on the base
-            float safeWeight = (weight < 0.0f) ? 0.0f : weight;
-            lastWeightGrams = safeWeight;
-            currentWaterLevel = constrain((int) lroundf(safeWeight), 0, bottleCapacity);
-
-            if (!isBottleAtRest) {
-                // Transition: Bottle returned to rest on base platform!
-                isBottleAtRest = true;
-                float weightDelta = weightBeforeLift - safeWeight;
-
-                if (weightDelta >= SIP_MIN_THRESHOLD_GRAMS) {
-                    // REAL PHYSICAL SIP MEASURED!
-                    int sipConsumed = (int) lroundf(weightDelta);
-                    lastSipAmount = sipConsumed;
-                    totalConsumedToday += sipConsumed;
-                    Serial.printf("\n🥤 [REAL SIP MEASURED] Consumed %d ml! Today's total: %d ml\n",
-                                  sipConsumed, totalConsumedToday);
-                }
-                publishTelemetry(true);
-            }
-        }
+        scale.set_scale(calibrationFactor);
+        saveCalibration(calibrationFactor, zeroOffset);
     }
+
+    containerTareGrams  = 0.0f;
+    hasBottleBeenPlaced = false;
+    currentWaterLevel   = BOTTLE_CAPACITY_ML;
+    latestWeightGrams   = (float)BOTTLE_CAPACITY_ML;
+    isHx711ReadFailed   = false;
+
+    Serial.printf("✅ [HX711] Tare complete! Zero offset = %ld | Bottle reset to %d ml\n", zeroOffset, currentWaterLevel);
+    publishTelemetry(true);
 }
 
-// ── Publish JSON Telemetry over BLE ─────────────────────────────────────────
-void publishTelemetry(bool forceImmediate) {
-    if (!deviceConnected && !forceImmediate) return;
-    if (pTelemetryCharacteristic == nullptr) return;
-
-    char buffer[256];
-    snprintf(buffer, sizeof(buffer),
-        "{\"waterLevel\":%d,\"bottleCapacity\":%d,\"batteryLevel\":%d,"
-        "\"ambientTemperature\":%.1f,\"temperature\":%.1f,\"humidity\":%.0f,"
-        "\"isBottleAtRest\":%s,\"lastSipAmount\":%d,\"totalConsumedToday\":%d,"
-        "\"deviceStatus\":\"%s\",\"ledStatus\":\"%s\"}",
-        currentWaterLevel,
-        bottleCapacity,
-        batteryLevel,
-        lastTemperatureC,
-        lastTemperatureC,
-        lastHumidity,
-        isBottleAtRest ? "true" : "false",
-        lastSipAmount,
-        totalConsumedToday,
-        deviceConnected ? "Connected" : "Broadcasting",
-        deviceConnected ? "Steady" : "Blinking"
-    );
-
-    pTelemetryCharacteristic->setValue(buffer);
-    if (deviceConnected) {
-        pTelemetryCharacteristic->notify();
-        Serial.printf("[BLE TX] Telemetry -> %s\n", buffer);
-    }
-}
-
-// ── Guided 3-Step Calibration via Serial Monitor ───────────────────────────
-String readLineBlocking() {
-    while (Serial.available()) Serial.read(); // Clear buffer
-    while (!Serial.available()) {
-        updateLedIndicator();
-        delay(10);
-    }
-    String line = Serial.readStringUntil('\n');
-    line.trim();
-    return line;
-}
-
-void runGuidedCalibration() {
-    Serial.println("\n╔══════════════════════════════════════════════════════════╗");
-    Serial.println("║       GUIDED 3-STEP LOAD CELL CALIBRATION                ║");
-    Serial.println("╚══════════════════════════════════════════════════════════╝");
-    Serial.println("Type 'q' at any prompt to cancel.\n");
-
-    // Step 1: Tare
-    Serial.println("STEP 1/3: Remove EVERYTHING from the scale platform.");
-    Serial.println("          Type 'y' and press Enter when empty:");
-    String ans = readLineBlocking();
-    if (ans.equalsIgnoreCase("q")) { Serial.println("Calibration cancelled."); return; }
-
-    scale.set_scale(1.0f);
-    tareScale();
-
-    // Step 2: Known weight
-    Serial.println("\nSTEP 2/3: Place a KNOWN weight on the platform (e.g. 500g bottle).");
-    Serial.println("          Enter weight in GRAMS (e.g. 500) and press Enter:");
-    float knownGrams = 0.0f;
-    while (true) {
-        ans = readLineBlocking();
-        if (ans.equalsIgnoreCase("q")) {
-            Serial.println("Calibration cancelled.");
-            scale.set_scale(calibrationFactor);
-            return;
-        }
-        knownGrams = ans.toFloat();
-        if (knownGrams > 0.0f) break;
-        Serial.println("          Please enter a valid positive number in grams (e.g. 500):");
+void calibrateScale(float knownWeightGrams) {
+    if (knownWeightGrams <= 0.0f) {
+        Serial.println("⚠️  [HX711] Known weight must be > 0 grams (e.g. 'c 500').");
+        return;
     }
 
-    Serial.printf("          Measuring %.1f g reference weight... keep platform steady.\n", knownGrams);
-    delay(1500);
-
+    Serial.printf("\n⚖️  [HX711] Calibrating with %.1f g... Hold weight steady.\n", knownWeightGrams);
     if (!scale.wait_ready_timeout(1000)) {
-        Serial.println("[ERROR] HX711 not responding during measurement.");
-        scale.set_scale(calibrationFactor);
+        Serial.println("❌ [HX711] Timeout waiting for HX711 during calibration.");
+        isHx711ReadFailed = true;
         return;
     }
 
-    double rawDelta = scale.get_value(20);
-    if (fabs(rawDelta) < 500) {
-        Serial.printf("[ERROR] Raw counts change too small (%.0f counts). Check wiring/mounting.\n", rawDelta);
-        scale.set_scale(calibrationFactor);
+    long rawAvg = scale.read_average(20);
+    long netCounts = rawAvg - zeroOffset;
+
+    if (abs(netCounts) < 100) {
+        Serial.println("⚠️  [HX711] Weight change too small! Run 't' with empty scale first, then place weight and run 'c <grams>'.");
         return;
     }
 
-    // Step 3: Compute & save factor
-    calibrationFactor = (float) (rawDelta / knownGrams);
-    isCalibrated = true;
-    scale.set_scale(calibrationFactor);
+    float newFactor = (float)netCounts / knownWeightGrams;
+    scale.set_scale(newFactor);
+    scale.set_offset(zeroOffset);
+    saveCalibration(newFactor, zeroOffset);
 
-    Serial.println("\nSTEP 3/3: Calibration successful!");
-    Serial.printf("          Raw Delta : %.0f counts\n", rawDelta);
-    Serial.printf("          Factor    : %.4f counts/gram\n", calibrationFactor);
-    Serial.printf("          Offset    : %ld\n", scale.get_offset());
+    float verifiedGrams = scale.get_units(10);
+    latestWeightGrams   = max(0.0f, verifiedGrams);
+    hasBottleBeenPlaced = true;
+    if (latestWeightGrams > (float)BOTTLE_CAPACITY_ML) {
+        containerTareGrams = latestWeightGrams - (float)BOTTLE_CAPACITY_ML;
+    } else {
+        containerTareGrams = 0.0f;
+    }
+    currentWaterLevel = constrain((int)lroundf(latestWeightGrams - containerTareGrams), 0, BOTTLE_CAPACITY_ML);
+    isHx711ReadFailed = false;
 
-    saveCalibration();
-    Serial.println("          Saved to flash memory! Scale is active and calibrated.\n");
+    Serial.println("╔══════════════════════════════════════════════════════════╗");
+    Serial.printf("║  ✅ CALIBRATION SAVED TO FLASH!                          ║\n");
+    Serial.printf("║  • Factor         : %-12.4f                         ║\n", calibrationFactor);
+    Serial.printf("║  • Zero Offset    : %-12ld                         ║\n", zeroOffset);
+    Serial.printf("║  • Verified Read  : %-8.1f g (%4d / %4d ml)          ║\n", verifiedGrams, currentWaterLevel, bottleCapacity);
+    Serial.println("╚══════════════════════════════════════════════════════════╝");
+
+    publishTelemetry(true);
 }
 
-// ── Interactive Serial Command Interface ───────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════
+//  PHYSICAL SENSOR READERS (DHT11 & HX711 WITH 500ML DEDUCTION LOGIC)
+// ═══════════════════════════════════════════════════════════════════════════
+void readDht11Sensor() {
+    float h = dht.readHumidity();
+    float t = dht.readTemperature(); // Celsius
+
+    if (isnan(h) || isnan(t)) {
+        dhtFailStreak++;
+        Serial.printf("⚠️  [DHT11] Read failed on GPIO %d (streak %d/%d)\n",
+                      DHT_PIN, dhtFailStreak, MAX_DHT_FAIL_STREAK);
+        if (dhtFailStreak >= MAX_DHT_FAIL_STREAK) {
+            isDhtReadFailed = true;
+        }
+    } else {
+        dhtFailStreak   = 0;
+        isDhtReadFailed = false;
+        currentTempC    = t;
+        currentHumidity = h;
+        Serial.printf("🌡️  [DHT11] Ambient Temp: %.1f°C | Humidity: %.0f%%\n",
+                      currentTempC, currentHumidity);
+    }
+}
+
+void readScaleSensor() {
+    if (!scale.wait_ready_timeout(200)) {
+        isHx711ReadFailed = true;
+        Serial.println("⚠️  [HX711] Sensor not ready (check DT=GPIO21, SCK=GPIO22).");
+        return;
+    }
+
+    isHx711ReadFailed = false;
+    latestRawCounts   = scale.read_average(5);
+
+    if (!isCalibrated) {
+        // Uncalibrated: keep bottle level at 500 ml (or simulated level) until calibrated
+        return;
+    }
+
+    float weight = scale.get_units(5);
+    if (fabs(weight) < 2.0f) {
+        weight = 0.0f;
+    }
+
+    // Detect if the bottle is lifted off the base:
+    // Case A: Scale was tared with bottle on it -> lifting produces negative weight (< -15g)
+    // Case B: Scale was tared empty -> after bottle is placed (>= 25g), lifting drops weight back near 0g (< 25g)
+    bool liftedNow = (weight < LIFT_NEGATIVE_THRESHOLD_GRAMS) ||
+                     (hasBottleBeenPlaced && weight < MIN_BOTTLE_ON_BASE_GRAMS);
+
+    if (liftedNow) {
+        if (isBottleAtRest) {
+            isBottleAtRest = false;
+            Serial.printf("🥤 [SCALE] Bottle LIFTED from base! Holding water level at %d ml / %d ml\n",
+                          currentWaterLevel, bottleCapacity);
+            publishTelemetry(true);
+        }
+        return;
+    }
+
+    // If weight is below minimum placement threshold and no bottle has been placed yet,
+    // keep the default 500 ml full level ready until the bottle is placed on the scale.
+    if (!hasBottleBeenPlaced && weight < MIN_BOTTLE_ON_BASE_GRAMS) {
+        return;
+    }
+
+    // Bottle is resting on the base with valid weight (>= 25g)
+    bool justPlacedOnBase = !hasBottleBeenPlaced || !isBottleAtRest;
+    hasBottleBeenPlaced = true;
+    isBottleAtRest      = true;
+    latestWeightGrams   = max(0.0f, weight);
+
+    // If total weight exceeds 500g (due to physical bottle container tare weight) or is a refill,
+    // adjust containerTareGrams so a full bottle reads 500 ml.
+    float waterGrams = latestWeightGrams - containerTareGrams;
+    if (waterGrams > (float)BOTTLE_CAPACITY_ML) {
+        containerTareGrams = latestWeightGrams - (float)BOTTLE_CAPACITY_ML;
+        waterGrams = (float)BOTTLE_CAPACITY_ML;
+    }
+
+    int measuredWaterMl = constrain((int)lroundf(waterGrams), 0, BOTTLE_CAPACITY_ML);
+    int levelDifference = currentWaterLevel - measuredWaterMl;
+
+    // 1. Water Volume Deducted -> Count as Drinking Water towards Daily Goal!
+    if (levelDifference >= (int)SIP_THRESHOLD_GRAMS) {
+        lastSipAmount       = levelDifference;
+        totalConsumedToday += lastSipAmount;
+        currentWaterLevel   = measuredWaterMl;
+
+        Serial.printf("💧 [DRINK DETECTED] Deducted: -%d ml | Bottle Level: %d / %d ml | Daily Total: %d ml\n",
+                      lastSipAmount, currentWaterLevel, bottleCapacity, totalConsumedToday);
+        publishTelemetry(true);
+    }
+    // 2. Water Refilled -> Increase water level (up to 500 ml) without adding a sip
+    else if (measuredWaterMl - currentWaterLevel >= (int)SIP_THRESHOLD_GRAMS) {
+        currentWaterLevel = measuredWaterMl;
+        Serial.printf("🚰 [REFILL DETECTED] Bottle Level updated to: %d / %d ml\n",
+                      currentWaterLevel, bottleCapacity);
+        publishTelemetry(true);
+    }
+    // 3. Bottle returned to base without volume change -> Notify rest state
+    else if (justPlacedOnBase) {
+        Serial.printf("⚖️  [SCALE] Bottle placed at rest on base (%d / %d ml)\n",
+                      currentWaterLevel, bottleCapacity);
+        publishTelemetry(true);
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  BLE TELEMETRY PUBLISHER
+// ═══════════════════════════════════════════════════════════════════════════
+void publishTelemetry(bool forceImmediate) {
+    if (!deviceConnected || pTelemetryCharacteristic == nullptr) {
+        return;
+    }
+
+    char payload[440];
+    int tempRounded = (int)lroundf(currentTempC);
+    int humRounded  = (int)lroundf(currentHumidity);
+
+    if (isDhtReadFailed) {
+        snprintf(
+            payload,
+            sizeof(payload),
+            "{\"waterLevel\":%d,\"bottleCapacity\":%d,\"batteryLevel\":%d,"
+            "\"status\":\"Read Failed\",\"tempSensorStatus\":\"Read Failed\",\"readFailed\":true,"
+            "\"weightGrams\":%.1f,\"rawCounts\":%ld,\"isCalibrated\":%s,"
+            "\"hx711Status\":\"%s\",\"isBottleAtRest\":%s,\"sipAmount\":%d,\"lastSipAmount\":%d,\"totalConsumedToday\":%d}",
+            currentWaterLevel,
+            bottleCapacity,
+            batteryLevel,
+            latestWeightGrams,
+            latestRawCounts,
+            isCalibrated ? "true" : "false",
+            isHx711ReadFailed ? "Read Failed" : "OK",
+            isBottleAtRest ? "true" : "false",
+            lastSipAmount,
+            lastSipAmount,
+            totalConsumedToday
+        );
+    } else {
+        snprintf(
+            payload,
+            sizeof(payload),
+            "{\"waterLevel\":%d,\"bottleCapacity\":%d,\"batteryLevel\":%d,"
+            "\"ambientTemperature\":%d,\"temperature\":%d,\"temperatureC\":%.1f,\"humidity\":%d,"
+            "\"tempSensorStatus\":\"OK\",\"readFailed\":false,"
+            "\"weightGrams\":%.1f,\"rawCounts\":%ld,\"isCalibrated\":%s,"
+            "\"hx711Status\":\"%s\",\"isBottleAtRest\":%s,\"sipAmount\":%d,\"lastSipAmount\":%d,\"totalConsumedToday\":%d}",
+            currentWaterLevel,
+            bottleCapacity,
+            batteryLevel,
+            tempRounded,
+            tempRounded,
+            currentTempC,
+            humRounded,
+            latestWeightGrams,
+            latestRawCounts,
+            isCalibrated ? "true" : "false",
+            isHx711ReadFailed ? "Read Failed" : "OK",
+            isBottleAtRest ? "true" : "false",
+            lastSipAmount,
+            lastSipAmount,
+            totalConsumedToday
+        );
+    }
+
+    pTelemetryCharacteristic->setValue((uint8_t*)payload, strlen(payload));
+    pTelemetryCharacteristic->notify();
+
+    // Clear one-shot sipAmount after transmitting so periodic notifies don't repeat it
+    lastSipAmount = 0;
+
+    if (forceImmediate) {
+        Serial.printf("📡 [BLE TX Immediate] %s\n", payload);
+    } else {
+        Serial.printf("📡 [BLE TX] Water: %d/%dml | Temp: %.1fC | Batt: %d%% | AtRest: %s\n",
+                      currentWaterLevel, bottleCapacity, currentTempC, batteryLevel,
+                      isBottleAtRest ? "YES" : "NO");
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  SERIAL MONITOR COMMAND HANDLER
+// ═══════════════════════════════════════════════════════════════════════════
+void printDeviceStatus() {
+    Serial.println("\n──────────────────── SIPSENSE STATUS ────────────────────");
+    Serial.printf("  BLE Connection    : %s\n", deviceConnected ? "CONNECTED (LED Steady ON)" : "BROADCASTING (LED Blinking)");
+    Serial.printf("  DHT11 (GPIO 19)   : %s (Temp: %.1f°C, Humidity: %.0f%%)\n",
+                  isDhtReadFailed ? "READ FAILED" : "OK", currentTempC, currentHumidity);
+    Serial.printf("  HX711 (GPIO21/22) : %s | Calibrated: %s\n",
+                  isHx711ReadFailed ? "READ FAILED" : "OK", isCalibrated ? "YES" : "NO");
+    Serial.printf("  Scale Factor/Zero : factor=%.4f, offset=%ld\n", calibrationFactor, zeroOffset);
+    Serial.printf("  Water Level       : %d ml / %d ml (%.2f L)\n",
+                  currentWaterLevel, bottleCapacity, currentWaterLevel / 1000.0f);
+    Serial.printf("  Daily Consumed    : %d ml\n", totalConsumedToday);
+    Serial.println("─────────────────────────────────────────────────────────\n");
+}
+
 void printHelp() {
-    Serial.println("\n── SipSense Hardware Serial Commands ──");
-    Serial.println("  t  -> Tare / zero the scale platform");
-    Serial.println("  c  -> Run 3-step interactive calibration");
-    Serial.println("  s  -> Save calibration to flash");
-    Serial.println("  l  -> Reload calibration from flash");
-    Serial.println("  i  -> Print live hardware sensor readings & status");
-    Serial.println("  h  -> Show this help menu\n");
-}
-
-void printInfo() {
-    Serial.println("\n═══════════ SIPSENSE REAL HARDWARE STATUS ═══════════");
-    Serial.printf("  DHT11 Temp (°C)   : %.1f C (%.1f F)\n", lastTemperatureC, (lastTemperatureC * 1.8f) + 32.0f);
-    Serial.printf("  DHT11 Humidity    : %.0f %%\n", lastHumidity);
-    Serial.printf("  DHT11 Status      : %s (GPIO %d)\n", isDhtValid ? "OK" : "READ FAILED", DHT_PIN);
-    Serial.println("  ───────────────────────────────────────────────────");
-    Serial.printf("  HX711 Weight      : %.1f g\n", lastWeightGrams);
-    Serial.printf("  Water Volume      : %d ml / %d ml\n", currentWaterLevel, bottleCapacity);
-    Serial.printf("  Last Sip Measured : %d ml\n", lastSipAmount);
-    Serial.printf("  Total Consumed    : %d ml\n", totalConsumedToday);
-    Serial.printf("  Bottle Base State : %s\n", isBottleAtRest ? "AT REST ON BASE" : "LIFTED");
-    Serial.printf("  HX711 Raw Counts  : %ld\n", lastRawCounts);
-    Serial.printf("  HX711 Calibrated  : %s (Factor: %.4f, Offset: %ld)\n",
-                  isCalibrated ? "YES" : "NO", calibrationFactor, scale.get_offset());
-    Serial.printf("  HX711 Status      : %s (DT=%d, SCK=%d)\n", isHx711Valid ? "OK" : "NOT READY", HX711_DT_PIN, HX711_SCK_PIN);
-    Serial.println("  ───────────────────────────────────────────────────");
-    Serial.printf("  Status LED        : %s (GPIO %d)\n", deviceConnected ? "STEADY ON" : "BLINKING", LED_PIN);
-    Serial.printf("  BLE App State     : %s\n", deviceConnected ? "CONNECTED" : "BROADCASTING");
-    Serial.println("═════════════════════════════════════════════════════\n");
+    Serial.println("\n══════════ SERIAL MONITOR COMMANDS (115200 baud) ══════════");
+    Serial.println("  t         -> Tare / Zero the scale (empty platform)");
+    Serial.println("  c <grams> -> Calibrate scale with known weight (e.g. c 500)");
+    Serial.println("  s         -> Deduct 50 ml from water level (test Daily Goal)");
+    Serial.println("  r         -> Refill / reset water bottle level to 500 ml");
+    Serial.println("  i         -> Print live sensor & BLE status");
+    Serial.println("  h         -> Show this help menu");
+    Serial.println("═══════════════════════════════════════════════════════════\n");
 }
 
 void handleSerialCommands() {
-    if (Serial.available()) {
-        char cmd = (char) Serial.read();
-        while (Serial.available()) Serial.read(); // Clear rest of line
+    if (!Serial.available()) return;
 
-        switch (tolower(cmd)) {
-            case 't': tareScale(); break;
-            case 'c': runGuidedCalibration(); break;
-            case 's': saveCalibration(); break;
-            case 'l': loadCalibration(); break;
-            case 'i': printInfo(); break;
-            case 'h': printHelp(); break;
-            default:
-                break;
+    String line = Serial.readStringUntil('\n');
+    line.trim();
+    if (line.length() == 0) return;
+
+    char cmd = tolower(line.charAt(0));
+    if (cmd == 't') {
+        tareScale();
+    } else if (cmd == 'c') {
+        String arg = line.substring(1);
+        arg.trim();
+        float knownGrams = arg.toFloat();
+        calibrateScale(knownGrams);
+    } else if (cmd == 's') {
+        int deductMl = min(50, currentWaterLevel);
+        if (deductMl > 0) {
+            currentWaterLevel  -= deductMl;
+            latestWeightGrams   = (float)currentWaterLevel + containerTareGrams;
+            lastSipAmount       = deductMl;
+            totalConsumedToday += deductMl;
+            isBottleAtRest      = true;
+            Serial.printf("💧 [TEST DEDUCTION] Deducted -%d ml | Bottle Level: %d / %d ml | Daily Total: %d ml\n",
+                          deductMl, currentWaterLevel, bottleCapacity, totalConsumedToday);
+            publishTelemetry(true);
+        } else {
+            Serial.println("🚰 Bottle is empty (0 ml)! Send 'r' to refill to 500 ml.");
         }
+    } else if (cmd == 'r') {
+        currentWaterLevel = BOTTLE_CAPACITY_ML;
+        latestWeightGrams = (float)BOTTLE_CAPACITY_ML + containerTareGrams;
+        isBottleAtRest    = true;
+        Serial.printf("🚰 [REFILL] Bottle water level reset to %d / %d ml (0.50 L)\n",
+                      currentWaterLevel, bottleCapacity);
+        publishTelemetry(true);
+    } else if (cmd == 'i') {
+        printDeviceStatus();
+    } else if (cmd == 'h' || cmd == '?') {
+        printHelp();
     }
 }
 
-// ── Setup ──────────────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════
+//  ARDUINO SETUP
+// ═══════════════════════════════════════════════════════════════════════════
 void setup() {
     Serial.begin(115200);
-    delay(500);
+    delay(200);
 
-    Serial.println("\n╔══════════════════════════════════════════════════════════╗");
-    Serial.println("║   💧 SipSense Smart Water Bottle - Real Hardware BLE     ║");
-    Serial.println("║   DHT11 (Temp/Hum) + HX711 (Load Cell Weight)            ║");
-    Serial.println("║   Status LED: Blinking = Advertising | Steady = Connected║");
-    Serial.println("╚══════════════════════════════════════════════════════════╝");
-
-    // 1. Initialize Status LED (GPIO 2)
+    // 1. Configure Status LED on GPIO 2
     pinMode(LED_PIN, OUTPUT);
     digitalWrite(LED_PIN, LOW);
-    Serial.printf("[INIT] Status LED configured on GPIO %d\n", LED_PIN);
 
-    // 2. Initialize DHT11 Sensor (GPIO 19)
+    Serial.println("\n╔══════════════════════════════════════════════════════════╗");
+    Serial.println("║     SipSense Smart Water Bottle - ESP32 BLE Firmware     ║");
+    Serial.println("║     500 ml Capacity + DHT11 (GPIO19) + HX711 (GPIO21/22) ║");
+    Serial.println("╚══════════════════════════════════════════════════════════╝");
+
+    // 2. Initialize Physical DHT11 Sensor
     dht.begin();
-    Serial.printf("[INIT] DHT11 initialized on GPIO %d\n", DHT_PIN);
+    Serial.printf("✅ [DHT11] Initialized on GPIO %d\n", DHT_PIN);
 
-    // 3. Initialize HX711 Load Cell (DT=GPIO 21, SCK=GPIO 22)
+    // 3. Initialize Physical HX711 Load Cell Amplifier
     scale.begin(HX711_DT_PIN, HX711_SCK_PIN);
-    Serial.printf("[INIT] HX711 initialized (DT=GPIO %d, SCK=GPIO %d)\n", HX711_DT_PIN, HX711_SCK_PIN);
-    if (!loadCalibration()) {
-        tareScale();
+    if (loadCalibration()) {
+        scale.set_scale(calibrationFactor);
+        scale.set_offset(zeroOffset);
+        Serial.printf("✅ [HX711] Loaded saved calibration (factor=%.4f, offset=%ld)\n",
+                      calibrationFactor, zeroOffset);
+    } else {
+        Serial.println("ℹ️  [HX711] Not calibrated yet. Bottle starts at 500 ml / 500 ml.");
+        Serial.println("ℹ️  Send 't' to tare, 'c 500' to calibrate, or 's' to test 50ml deduction.");
+        if (scale.wait_ready_timeout(800)) {
+            scale.set_scale();
+            scale.tare(10);
+            zeroOffset = scale.get_offset();
+        }
     }
 
-    // 4. Initialize BLE Stack
+    // 4. Initialize BLE Server & Advertising
     BLEDevice::init(DEVICE_NAME);
-    BLEDevice::setMTU(512);
-
     pServer = BLEDevice::createServer();
     pServer->setCallbacks(new BottleServerCallbacks());
 
-    // 5. Create GATT Service & Characteristic
     BLEService* pService = pServer->createService(SERVICE_UUID);
 
     pTelemetryCharacteristic = pService->createCharacteristic(
         CHARACTERISTIC_UUID,
-        BLECharacteristic::PROPERTY_READ | BLECharacteristic::PROPERTY_NOTIFY
+        BLECharacteristic::PROPERTY_READ |
+        BLECharacteristic::PROPERTY_WRITE |
+        BLECharacteristic::PROPERTY_NOTIFY
     );
-    pTelemetryCharacteristic->addDescriptor(new BLE2902());
-    pTelemetryCharacteristic->setValue("{\"status\":\"Standby\",\"device\":\"SipSense-Bottle\"}");
+
+    BLE2902* p2902 = new BLE2902();
+    p2902->setNotifications(true);
+    pTelemetryCharacteristic->addDescriptor(p2902);
 
     pService->start();
 
-    // 6. Configure and Start BLE Advertising
     BLEAdvertising* pAdvertising = BLEDevice::getAdvertising();
     pAdvertising->addServiceUUID(SERVICE_UUID);
     pAdvertising->setScanResponse(true);
-
-    BLEAdvertisementData advData;
-    advData.setName(DEVICE_NAME);
-    advData.setCompleteServices(BLEUUID(SERVICE_UUID));
-    pAdvertising->setAdvertisementData(advData);
-
-    BLEAdvertisementData scanData;
-    scanData.setName(DEVICE_NAME);
-    pAdvertising->setScanResponseData(scanData);
-
     pAdvertising->setMinPreferred(0x06);
     pAdvertising->setMinPreferred(0x12);
     BLEDevice::startAdvertising();
 
-    Serial.printf("\n📡 [BLE] Broadcasting signal as '%s'...\n", DEVICE_NAME);
-    Serial.println("💡 [LED] Status LED is now BLINKING while broadcasting.");
-    Serial.println("         Use the SipSense Waterbottle tab in the app to scan and connect!\n");
+    Serial.println("📡 [BLE] Broadcasting as 'SipSense-Bottle'...");
+    Serial.println("💡 [LED] Blinking GPIO 2 while waiting for manual connection from app.");
     printHelp();
-
-    // Initial sensor reads
-    delay(1000);
-    readDhtSensor();
-    readScaleSensor();
-    publishTelemetry(true);
-
-    lastDhtMs    = millis();
-    lastScaleMs  = millis();
-    lastNotifyMs = millis();
 }
 
-// ── Loop ───────────────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════
+//  ARDUINO MAIN LOOP
+// ═══════════════════════════════════════════════════════════════════════════
 void loop() {
     const unsigned long now = millis();
 
-    // 1. Maintain LED Status (Blinking when advertising, Steady when connected)
+    // 1. Update LED (Blinks when disconnected/advertising, Steady ON when connected)
     updateLedIndicator();
 
-    // 2. Connection Lifecycle Handling
+    // 2. Check Serial Monitor commands ('t', 'c <grams>', 's', 'r', 'i', 'h')
+    handleSerialCommands();
+
+    // 3. Handle BLE connection state transitions
     if (deviceConnected && !oldDeviceConnected) {
-        oldDeviceConnected = true;
+        oldDeviceConnected = deviceConnected;
         connectedAtMs      = now;
         pendingFirstNotify = true;
-        publishTelemetry(true);
-    }
-    if (!deviceConnected && oldDeviceConnected) {
-        oldDeviceConnected = false;
-        delay(300);
-        pServer->startAdvertising();
-        Serial.println("[BLE] Resumed advertising. LED blinking...");
     }
 
-    // 3. Periodic HX711 Load Cell Read & Sip Tracking (every 300ms)
-    if (now - lastScaleMs >= SCALE_SAMPLE_INTERVAL_MS) {
-        lastScaleMs = now;
+    if (!deviceConnected && oldDeviceConnected) {
+        oldDeviceConnected = deviceConnected;
+        pendingFirstNotify = false;
+    }
+
+    // 4. Send initial telemetry snapshot right after mobile app enables notifications
+    if (deviceConnected && pendingFirstNotify && (now - connectedAtMs >= FIRST_NOTIFY_DELAY_MS)) {
+        pendingFirstNotify = false;
+        readDht11Sensor();
+        readScaleSensor();
+        publishTelemetry(true);
+    }
+
+    // 5. Read physical HX711 load cell every 250ms
+    if (now - lastScaleReadMs >= SCALE_SAMPLE_INTERVAL_MS) {
+        lastScaleReadMs = now;
         readScaleSensor();
     }
 
-    // 4. Periodic DHT11 Temperature & Humidity Read (every 2s)
-    if (now - lastDhtMs >= DHT_SAMPLE_INTERVAL_MS) {
-        lastDhtMs = now;
-        readDhtSensor();
+    // 6. Read physical DHT11 ambient temperature & humidity every 2000ms
+    if (now - lastDhtReadMs >= DHT_SAMPLE_INTERVAL_MS) {
+        lastDhtReadMs = now;
+        readDht11Sensor();
     }
 
-    // 5. Push initial notification after connection
-    if (pendingFirstNotify && deviceConnected && now - connectedAtMs >= FIRST_NOTIFY_DELAY_MS) {
-        pendingFirstNotify = false;
-        lastNotifyMs = now;
-        publishTelemetry(true);
-    }
-
-    // 6. Periodic Telemetry Push (every 2s)
-    if (deviceConnected && (now - lastNotifyMs >= NOTIFY_INTERVAL_MS)) {
-        lastNotifyMs = now;
+    // 7. Periodically push live telemetry over BLE every 2000ms while connected
+    if (deviceConnected && (now - lastTelemetryPushMs >= NOTIFY_INTERVAL_MS)) {
+        lastTelemetryPushMs = now;
         publishTelemetry(false);
     }
-
-    // 7. Handle Interactive Serial Commands (t, c, s, l, i, h)
-    handleSerialCommands();
-
-    delay(10);
 }

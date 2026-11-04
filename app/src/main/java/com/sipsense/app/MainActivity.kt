@@ -7,37 +7,9 @@ package com.sipsense.app
  * Hosts a persistent header bar at the top, a fragment container in
  * the middle, and a bottom navigation bar at the bottom.
  *
- * ══════════════════════════════════════════════════════════════════════════
- * HEADER BAR (always visible):
- * ──────────────────────────────────────────────────────────────────────────
- * - Left side:  SipSense logo + "SipSense" title
- * - Right side: WiFi icon + "CONNECTED" / "DISCONNECTED" badge
- *
- * ══════════════════════════════════════════════════════════════════════════
- * NAVIGATION TABS (bottom):
- * ──────────────────────────────────────────────────────────────────────────
- * 1. Dashboard  (droplet icon)       – Hydration overview / home
- * 2. History    (calendar icon)      – Intake tracking logs
- * 3. Notifications (bell icon)       – Hydration reminders & alerts
- * 4. Profile    (user icon)          – Account & settings
- *
- * ══════════════════════════════════════════════════════════════════════════
- * BEHAVIOR:
- * ──────────────────────────────────────────────────────────────────────────
- * - Dashboard is the default tab shown on launch
- * - Fragments are replaced (not added) to keep memory usage low
- * - Selected tab icon/text is tinted teal; unselected tabs are grey
- * - Header and bottom nav are always visible across all fragments
- * - WiFi status defaults to "CONNECTED" and can be toggled via
- *   updateWifiStatus(isConnected: Boolean)
- *
- * ══════════════════════════════════════════════════════════════════════════
- * LAYOUT: res/layout/activity_main.xml (ConstraintLayout-based)
- * ══════════════════════════════════════════════════════════════════════════
- *
  * @project SipSense - Smart Bottle Ecosystem
  * @author SipSense Development Team
- * @version 1.1
+ * @version 1.2
  */
 
 import android.content.Intent
@@ -52,24 +24,70 @@ import com.google.firebase.auth.FirebaseAuth
 
 class MainActivity : AppCompatActivity() {
 
+    companion object {
+        /** Fixed Smart Water Bottle capacity in milliliters (500 ml) */
+        const val DEFAULT_BOTTLE_CAPACITY_ML = 500
+    }
+
     // ═══════════════════════════════════════════════════════════════════
     // VIEW REFERENCES
     // ═══════════════════════════════════════════════════════════════════
 
-    /** Bottom navigation bar with 4 tabs */
+    /** Bottom navigation bar */
     private lateinit var bottomNavigation: BottomNavigationView
 
     /** SipSense header logo icon for secret developer mode access */
     private lateinit var ivHeaderLogo: ImageView
 
-    /** WiFi status icon in the header bar */
+    /** WiFi/BLE status icon in the header bar */
     private lateinit var ivWifiIcon: ImageView
 
-    /** WiFi status text label ("CONNECTED" / "DISCONNECTED") */
+    /** Connection status text label ("CONNECTED" / "DISCONNECTED") */
     private lateinit var tvWifiStatus: TextView
 
     /** Shared Bluetooth BLE Manager instance */
     var bleManager: com.sipsense.app.data.SipSenseBleManager? = null
+
+    /**
+     * Shared 500ml water bottle state across fragments so tab switches
+     * between Dashboard and Bottle never lose or double-count water deductions.
+     */
+    var currentBottleWaterLevel: Int = DEFAULT_BOTTLE_CAPACITY_ML
+    var lastRestingWaterLevel: Int = DEFAULT_BOTTLE_CAPACITY_ML
+    var currentBottleCapacity: Int = DEFAULT_BOTTLE_CAPACITY_ML
+    var isBottleAtRest: Boolean = true
+
+    /**
+     * Evaluates a newly reported bottle water level and returns the deducted water volume (in ml)
+     * whenever the bottle is at rest and the water volume has decreased below [lastRestingWaterLevel].
+     *
+     * Every time the water volume is deducted, the returned positive volume is counted as
+     * drinking water towards the user's Daily Goal.
+     */
+    @Synchronized
+    fun evaluateWaterDeduction(
+        newWaterLevel: Int,
+        atRest: Boolean,
+        capacity: Int = DEFAULT_BOTTLE_CAPACITY_ML
+    ): Int {
+        currentBottleCapacity = if (capacity > 0) capacity else DEFAULT_BOTTLE_CAPACITY_ML
+        isBottleAtRest = atRest
+        val clampedLevel = newWaterLevel.coerceIn(0, currentBottleCapacity)
+
+        if (!atRest) {
+            return 0
+        }
+
+        val deductedMl = if (clampedLevel < lastRestingWaterLevel) {
+            lastRestingWaterLevel - clampedLevel
+        } else {
+            0
+        }
+
+        lastRestingWaterLevel = clampedLevel
+        currentBottleWaterLevel = clampedLevel
+        return deductedMl
+    }
 
     fun getOrCreateBleManager(): com.sipsense.app.data.SipSenseBleManager {
         if (bleManager == null) {
@@ -92,12 +110,6 @@ class MainActivity : AppCompatActivity() {
     // LIFECYCLE
     // ═══════════════════════════════════════════════════════════════════
 
-    /**
-     * Initializes the activity, sets up the header bar, bottom navigation,
-     * and loads the default Dashboard fragment.
-     *
-     * @param savedInstanceState Previously saved state bundle
-     */
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         if (FirebaseAuth.getInstance().currentUser == null) {
@@ -132,10 +144,6 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    /**
-     * Sets up the tap gesture listener on the header logo.
-     * Tapping 5 times activates Developer Mode, exclusively for testuser1@sipsense.com.
-     */
     private fun setupHeaderLogoDeveloperMode() {
         ivHeaderLogo.setOnClickListener {
             val currentUser = FirebaseAuth.getInstance().currentUser
@@ -173,30 +181,10 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    /**
-     * Opens the DeveloperModeFragment into the fragment container.
-     */
     fun openDeveloperMode() {
         loadFragment(DeveloperModeFragment(), addToBackStack = true)
     }
 
-    // ═══════════════════════════════════════════════════════════════════
-    // BOTTOM NAVIGATION SETUP
-    // ═══════════════════════════════════════════════════════════════════
-
-    /**
-     * Configures the BottomNavigationView item selection listener.
-     *
-     * When a tab is tapped, the corresponding fragment is loaded into
-     * the fragment container. The listener returns true to indicate
-     * the selection was handled and the tab should be visually updated.
-     *
-     * Tab-to-Fragment mapping:
-     * - nav_dashboard → DashboardFragment
-     * - nav_history   → HistoryFragment
-     * - nav_notifications → NotificationsFragment
-     * - nav_profile   → ProfileFragment
-     */
     private fun setupBottomNavigation() {
         bottomNavigation.setOnItemSelectedListener { item ->
             val fragment: Fragment = when (item.itemId) {
@@ -213,19 +201,6 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    // ═══════════════════════════════════════════════════════════════════
-    // FRAGMENT MANAGEMENT
-    // ═══════════════════════════════════════════════════════════════════
-
-    /**
-     * Replaces the current fragment in the container with the given fragment.
-     *
-     * Uses FragmentTransaction.replace() to swap the entire contents
-     * of the fragment container.
-     *
-     * @param fragment The fragment to display in the container
-     * @param addToBackStack Whether to add this transaction to the fragment back stack
-     */
     fun loadFragment(fragment: Fragment, addToBackStack: Boolean = false) {
         val transaction = supportFragmentManager.beginTransaction()
             .replace(R.id.fragment_container, fragment)
@@ -235,23 +210,6 @@ class MainActivity : AppCompatActivity() {
         transaction.commit()
     }
 
-    // ═══════════════════════════════════════════════════════════════════
-    // CONNECTION STATUS MANAGEMENT (Bluetooth / IoT Device)
-    // ═══════════════════════════════════════════════════════════════════
-
-    /**
-     * Updates the Bluetooth/IoT device connection status indicator in the header bar.
-     *
-     * When connected (BLE active or simulation live):
-     * - Displays "CONNECTED" text in white
-     * - Bluetooth icon is tinted white
-     *
-     * When disconnected:
-     * - Displays "DISCONNECTED" text in muted grey
-     * - Bluetooth icon is tinted in muted grey
-     *
-     * @param isConnected true if Bluetooth/IoT device is actively connected or simulation live
-     */
     fun updateConnectionStatus(isConnected: Boolean) {
         if (isConnected) {
             tvWifiStatus.text = getString(R.string.wifi_connected)

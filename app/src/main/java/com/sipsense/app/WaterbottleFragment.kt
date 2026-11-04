@@ -16,22 +16,29 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.button.MaterialButton
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.database.DataSnapshot
+import com.google.firebase.database.DatabaseError
+import com.google.firebase.database.ValueEventListener
 import com.sipsense.app.adapter.BleDeviceAdapter
 import com.sipsense.app.data.DiscoveredBleDevice
 import com.sipsense.app.data.FirebaseDatabaseProvider
 import com.sipsense.app.data.SipSenseBleManager
+import com.sipsense.app.model.SipRecord
 import org.json.JSONObject
+import java.text.SimpleDateFormat
+import java.util.Date
 import java.util.Locale
 
 /**
  * WaterbottleFragment.kt
  *
  * Bottle Tab in the SipSense ecosystem:
- * - Unified card displaying connection state, live telemetries, and bottle scanner
+ * - Unified card displaying connection state, live telemetries (fixed 500 ml capacity), and bottle scanner
  * - Allows user to manually find and connect to smart water bottles (1 bottle per mobile)
  * - Scanner button shows "Disconnect" once connected, and reverts to "Find Bottle" on disconnect
  * - Discovered bottles section is hidden while connected
- * - Streams live telemetry (Water Level in Liters/ml, Battery %, Ambient Temperature)
+ * - Streams live telemetry (Water Level in Liters/ml out of 500 ml, Battery %, Ambient Temperature)
+ * - Automatically counts any water volume deduction towards the user's Daily Goal even while on the Bottle tab
  *
  * @project SipSense - Smart Bottle Ecosystem
  */
@@ -354,8 +361,8 @@ open class WaterbottleFragment : Fragment() {
     }
 
     private fun displayTelemetry(json: JSONObject) {
-        val waterLevel = json.optInt("waterLevel", 750)
-        val capacity = json.optInt("bottleCapacity", 1000)
+        val capacity = MainActivity.DEFAULT_BOTTLE_CAPACITY_ML
+        val waterLevel = json.optInt("waterLevel", capacity).coerceIn(0, capacity)
         val battery = json.optInt("batteryLevel", 95)
         val temp = if (json.has("ambientTemperature")) {
             json.optDouble("ambientTemperature", 24.0)
@@ -363,7 +370,7 @@ open class WaterbottleFragment : Fragment() {
             json.optDouble("temperature", 24.0)
         }
 
-        // 1. Water metric
+        // 1. Water metric (500 ml bottle capacity)
         ivMetricWater.imageTintList = ContextCompat.getColorStateList(requireContext(), R.color.teal_primary)
         val liters = waterLevel / 1000.0
         tvBottleWaterLiters.text = String.format(Locale.US, "%.2f L", liters)
@@ -396,18 +403,46 @@ open class WaterbottleFragment : Fragment() {
 
     private fun syncTelemetryToFirebase(json: JSONObject) {
         val uid = firebaseAuth.currentUser?.uid ?: return
+        val capacity = MainActivity.DEFAULT_BOTTLE_CAPACITY_ML
+        val waterLevel = json.optInt("waterLevel", capacity).coerceIn(0, capacity)
+        val isAtRest = json.optBoolean("isBottleAtRest", true)
+        val ambientTemp = json.optInt("ambientTemperature", json.optInt("temperature", 24))
+
         val map = HashMap<String, Any>()
-        if (json.has("waterLevel")) map["waterLevel"] = json.getInt("waterLevel")
-        if (json.has("bottleCapacity")) map["bottleCapacity"] = json.getInt("bottleCapacity")
+        map["waterLevel"] = waterLevel
+        map["bottleCapacity"] = capacity
         if (json.has("batteryLevel")) map["batteryLevel"] = json.getInt("batteryLevel")
         if (json.has("ambientTemperature")) map["ambientTemperature"] = json.getDouble("ambientTemperature")
         if (json.has("temperature")) map["temperature"] = json.getDouble("temperature")
-        if (json.has("isBottleAtRest")) map["isBottleAtRest"] = json.getBoolean("isBottleAtRest")
+        map["isBottleAtRest"] = isAtRest
         if (json.has("lastSipAmount")) map["lastSipAmount"] = json.getInt("lastSipAmount")
         if (json.has("totalConsumedToday")) map["totalConsumedToday"] = json.getInt("totalConsumedToday")
         map["updatedAt"] = System.currentTimeMillis()
 
         database?.child("users")?.child(uid)?.child("device_telemetry")?.updateChildren(map)
+
+        // Evaluate whether the water volume decreased and count the deducted volume towards Daily Goal
+        val mainAct = activity as? MainActivity
+        val deductedMl = mainAct?.evaluateWaterDeduction(waterLevel, isAtRest, capacity) ?: 0
+        if (deductedMl > 0 && database != null) {
+            val now = System.currentTimeMillis()
+            val newRecord = SipRecord(
+                amount = deductedMl,
+                timestamp = now,
+                ambientTemperature = ambientTemp
+            )
+            database.child("users").child(uid).child("sip_records").push().setValue(newRecord)
+
+            val dateKey = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date(now))
+            val dailyRef = database.child("users").child(uid).child("daily_totals").child(dateKey)
+            dailyRef.addListenerForSingleValueEvent(object : ValueEventListener {
+                override fun onDataChange(snapshot: DataSnapshot) {
+                    val existing = snapshot.getValue(Int::class.java) ?: 0
+                    dailyRef.setValue(existing + deductedMl)
+                }
+                override fun onCancelled(error: DatabaseError) {}
+            })
+        }
     }
 
     override fun onDestroyView() {

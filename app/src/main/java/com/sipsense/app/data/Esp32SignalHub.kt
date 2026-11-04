@@ -73,7 +73,7 @@ object Esp32SignalHub {
         val connectionState: String = "STANDBY",
         val rssi: Int = -64,
         val hx711Status: String = "HX711 24-bit ADC (DT: GPIO 21, SCK: GPIO 22)",
-        val dht22Status: String = "DHT22 Temp & Humidity (DATA: GPIO 19)",
+        val dht22Status: String = "DHT11 Temp & Humidity (DATA: GPIO 19)",
         val batteryAdcStatus: String = "Voltage Divider ADC1_CH7 (GPIO 34)",
         val statusLedPin: String = "GPIO 2 (Blue Status LED)",
         val totalBytesTransmitted: Long = 0L,
@@ -253,10 +253,10 @@ object Esp32SignalHub {
         }, 120)
 
         mainHandler.postDelayed({
-            val telemetryJson = "{\"waterLevel\":630,\"bottleCapacity\":1000,\"batteryLevel\":87," +
-                    "\"ambientTemperature\":24,\"temperature\":24,\"humidity\":55,\"weightGrams\":630.0," +
+            val telemetryJson = "{\"waterLevel\":480,\"bottleCapacity\":500,\"batteryLevel\":87," +
+                    "\"ambientTemperature\":24,\"temperature\":24,\"humidity\":55,\"weightGrams\":480.0," +
                     "\"rawCounts\":265210,\"isCalibrated\":true,\"hx711Status\":\"OK\",\"sipAmount\":20," +
-                    "\"totalConsumedToday\":70,\"isBottleAtRest\":true}"
+                    "\"totalConsumedToday\":20,\"isBottleAtRest\":true}"
             logRx(
                 "NOTIFY_TELEMETRY",
                 "RX: Live telemetry JSON packet received (${telemetryJson.length} bytes)",
@@ -269,7 +269,7 @@ object Esp32SignalHub {
             )
             logRx(
                 "HX711",
-                "⚖️ Scale Reading: 630.0 g (630 ml) | Calibrated | Raw: 265210 | At Rest",
+                "⚖️ Scale Reading: 480.0 g (480 ml) | Calibrated | Raw: 265210 | At Rest",
                 rawPayload = telemetryJson
             )
         }, 320)
@@ -286,10 +286,10 @@ object Esp32SignalHub {
         )
 
         mainHandler.postDelayed({
-            val telemetryJson = "{\"waterLevel\":595,\"bottleCapacity\":1000,\"batteryLevel\":87," +
-                    "\"ambientTemperature\":25,\"temperature\":25,\"humidity\":54,\"weightGrams\":595.0," +
+            val telemetryJson = "{\"waterLevel\":445,\"bottleCapacity\":500,\"batteryLevel\":87," +
+                    "\"ambientTemperature\":25,\"temperature\":25,\"humidity\":54,\"weightGrams\":445.0," +
                     "\"rawCounts\":250480,\"isCalibrated\":true,\"hx711Status\":\"OK\",\"sipAmount\":$amountMl," +
-                    "\"totalConsumedToday\":105,\"isBottleAtRest\":true}"
+                    "\"totalConsumedToday\":55,\"isBottleAtRest\":true}"
             logRx(
                 "NOTIFY_TELEMETRY",
                 "RX: SIP EVENT - Dispatched $amountMl ml sip telemetry notification (${telemetryJson.length} bytes)",
@@ -297,7 +297,7 @@ object Esp32SignalHub {
             )
             logRx(
                 "HX711",
-                "⚖️ Scale Reading: 595.0 g (595 ml) | Calibrated | Sip detected: -$amountMl ml",
+                "⚖️ Scale Reading: 445.0 g (445 ml) | Calibrated | Sip detected: -$amountMl ml",
                 rawPayload = telemetryJson
             )
         }, 200)
