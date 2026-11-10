@@ -74,4 +74,17 @@
     <dimen name="card_padding_bottom">28dp</dimen>
     <dimen name="card_elevation">8dp</dimen>
 
+    <!-- ════════════════════════════════════════════════════════════════
+         BOTTOM NAVIGATION OVERRIDES
+         Balanced, eye-pleasing icon-to-label spacing and padding
+         ════════════════════════════════════════════════════════════════ -->
+    <dimen name="design_bottom_navigation_margin">4dp</dimen>
+    <dimen name="design_bottom_navigation_label_padding">6dp</dimen>
+    <dimen name="design_bottom_navigation_height">60dp</dimen>
+    <dimen name="m3_bottom_nav_min_height">60dp</dimen>
+    <dimen name="m3_comp_navigation_bar_container_height">60dp</dimen>
+    <dimen name="m3_bottom_nav_item_padding_top">14dp</dimen>
+    <dimen name="m3_bottom_nav_item_padding_bottom">6dp</dimen>
+    <dimen name="m3_navigation_item_active_indicator_label_padding">3dp</dimen>
+
 </resources>

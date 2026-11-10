@@ -39,5 +39,6 @@ data class UserProfile(
     val email: String = "",
     val hydrationTarget: Int = 2500,
     val preferredUnit: String = "ml",
+    val bottleCapacity: Int = 500,
     val createdAt: Long = System.currentTimeMillis()
 )

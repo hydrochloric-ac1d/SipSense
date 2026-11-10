@@ -1,9 +1,12 @@
 package com.sipsense.app
 
 import android.os.Bundle
+import android.text.InputType
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.EditText
+import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.ProgressBar
@@ -15,6 +18,7 @@ import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.button.MaterialButton
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
@@ -66,6 +70,10 @@ open class WaterbottleFragment : Fragment() {
     // ── View References: Scanner & Discovered Bottles Section ────────────
     private lateinit var pbScanning: ProgressBar
     private lateinit var btnScanBle: MaterialButton
+    private lateinit var layoutBottleControls: LinearLayout
+    private lateinit var btnTareScale: MaterialButton
+    private lateinit var btnSetCapacity: MaterialButton
+    private lateinit var layoutTileWater: LinearLayout
     private lateinit var layoutDiscoveredSection: LinearLayout
     private lateinit var tvDiscoveredHeader: TextView
     private lateinit var layoutEmptyDevices: LinearLayout
@@ -123,6 +131,10 @@ open class WaterbottleFragment : Fragment() {
         // Bind Scanner & Discovered Section
         pbScanning = view.findViewById(R.id.pb_scanning)
         btnScanBle = view.findViewById(R.id.btn_scan_ble)
+        layoutBottleControls = view.findViewById(R.id.layout_bottle_controls)
+        btnTareScale = view.findViewById(R.id.btn_tare_scale)
+        btnSetCapacity = view.findViewById(R.id.btn_set_capacity)
+        layoutTileWater = view.findViewById(R.id.layout_tile_water)
         layoutDiscoveredSection = view.findViewById(R.id.layout_discovered_section)
         tvDiscoveredHeader = view.findViewById(R.id.tv_discovered_header)
         layoutEmptyDevices = view.findViewById(R.id.layout_empty_devices)
@@ -167,6 +179,53 @@ open class WaterbottleFragment : Fragment() {
             } else {
                 checkPermissionsAndScan()
             }
+        }
+
+        // Tare Scale Button (zeros out the HX711 load cell)
+        btnTareScale.setOnClickListener {
+            val manager = bleManager ?: return@setOnClickListener
+            if (!manager.isConnected) {
+                Toast.makeText(requireContext(), "Connect your bottle first to tare.", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+
+            val options = arrayOf(
+                "⚖️ Zero Empty Base (Tare)\nRemove bottle first to set base to 0g",
+                "🚰 Bottle on Base (Set as Full / Refill)\nBottle is full on base -> set to 100% capacity"
+            )
+
+            MaterialAlertDialogBuilder(requireContext())
+                .setTitle("Scale Calibration & Tare")
+                .setItems(options) { _, which ->
+                    when (which) {
+                        0 -> {
+                            val success = manager.sendTareCommand()
+                            if (success) {
+                                Toast.makeText(requireContext(), "⚖️ Zeroing base... Platform set to 0g.", Toast.LENGTH_SHORT).show()
+                            } else {
+                                Toast.makeText(requireContext(), "Failed to send tare command. Ensure ESP32 is flashed & connected.", Toast.LENGTH_LONG).show()
+                            }
+                        }
+                        1 -> {
+                            val success = manager.sendCommand("r")
+                            if (success) {
+                                Toast.makeText(requireContext(), "🚰 Bottle set to full capacity!", Toast.LENGTH_SHORT).show()
+                            } else {
+                                Toast.makeText(requireContext(), "Failed to send refill command.", Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                    }
+                }
+                .setNegativeButton("Cancel", null)
+                .show()
+        }
+
+        // Set Bottle Capacity Dialog
+        btnSetCapacity.setOnClickListener {
+            showSetCapacityDialog()
+        }
+        layoutTileWater.setOnClickListener {
+            showSetCapacityDialog()
         }
     }
 
@@ -329,6 +388,13 @@ open class WaterbottleFragment : Fragment() {
 
             // Hide Discovered Bottles section once connected
             layoutDiscoveredSection.visibility = View.GONE
+
+            // Show Bottle Controls (Tare Scale & Set Capacity) when connected
+            layoutBottleControls.visibility = View.VISIBLE
+
+            // Automatically sync user's configured bottle capacity with the ESP32 on connect
+            val userCapacity = (activity as? MainActivity)?.currentBottleCapacity ?: MainActivity.DEFAULT_BOTTLE_CAPACITY_ML
+            bleManager?.sendBottleCapacity(userCapacity)
         } else {
             tvActiveBottleName.text = getString(R.string.label_device_name)
 
@@ -340,6 +406,9 @@ open class WaterbottleFragment : Fragment() {
 
             // Show Discovered Bottles section when disconnected
             layoutDiscoveredSection.visibility = View.VISIBLE
+
+            // Hide Bottle Controls when disconnected
+            layoutBottleControls.visibility = View.GONE
 
             // Reset metric tiles to standby
             ivMetricWater.imageTintList = ContextCompat.getColorStateList(requireContext(), R.color.text_secondary)
@@ -361,8 +430,14 @@ open class WaterbottleFragment : Fragment() {
     }
 
     private fun displayTelemetry(json: JSONObject) {
-        val capacity = MainActivity.DEFAULT_BOTTLE_CAPACITY_ML
+        val mainAct = activity as? MainActivity
+        val defaultCap = mainAct?.currentBottleCapacity ?: MainActivity.DEFAULT_BOTTLE_CAPACITY_ML
+        val capacity = json.optInt("bottleCapacity", defaultCap)
+        mainAct?.currentBottleCapacity = capacity
         val waterLevel = json.optInt("waterLevel", capacity).coerceIn(0, capacity)
+        val isAtRest = json.optBoolean("isBottleAtRest", false)
+        mainAct?.currentBottleWaterLevel = waterLevel
+        mainAct?.isBottleAtRest = isAtRest
         val battery = json.optInt("batteryLevel", 95)
         val temp = if (json.has("ambientTemperature")) {
             json.optDouble("ambientTemperature", 24.0)
@@ -403,7 +478,7 @@ open class WaterbottleFragment : Fragment() {
 
     private fun syncTelemetryToFirebase(json: JSONObject) {
         val uid = firebaseAuth.currentUser?.uid ?: return
-        val capacity = MainActivity.DEFAULT_BOTTLE_CAPACITY_ML
+        val capacity = json.optInt("bottleCapacity", (activity as? MainActivity)?.currentBottleCapacity ?: MainActivity.DEFAULT_BOTTLE_CAPACITY_ML)
         val waterLevel = json.optInt("waterLevel", capacity).coerceIn(0, capacity)
         val isAtRest = json.optBoolean("isBottleAtRest", true)
         val ambientTemp = json.optInt("ambientTemperature", json.optInt("temperature", 24))
@@ -443,6 +518,85 @@ open class WaterbottleFragment : Fragment() {
                 override fun onCancelled(error: DatabaseError) {}
             })
         }
+    }
+
+    /**
+     * Dialog for user to customize their water bottle's total fluid capacity.
+     */
+    private fun showSetCapacityDialog() {
+        val ctx = context ?: return
+        val currentCap = (activity as? MainActivity)?.currentBottleCapacity ?: MainActivity.DEFAULT_BOTTLE_CAPACITY_ML
+        val input = EditText(ctx).apply {
+            inputType = InputType.TYPE_CLASS_NUMBER
+            hint = "e.g. 750"
+            setText(currentCap.toString())
+            setSelection(text.length)
+        }
+
+        val container = FrameLayout(ctx).apply {
+            val padding = (24 * resources.displayMetrics.density).toInt()
+            setPadding(padding, padding / 2, padding, 0)
+            addView(input)
+        }
+
+        MaterialAlertDialogBuilder(ctx)
+            .setTitle("Set Bottle Capacity")
+            .setMessage("Enter your smart water bottle's capacity in ml:")
+            .setView(container)
+            .setPositiveButton("Save") { _, _ ->
+                val newCap = input.text.toString().trim().toIntOrNull()
+                if (newCap != null && newCap in 100..5000) {
+                    saveBottleCapacity(newCap)
+                } else {
+                    Toast.makeText(ctx, "Please enter a valid capacity between 100 and 5,000 ml", Toast.LENGTH_SHORT).show()
+                }
+            }
+            .setNeutralButton("Presets") { _, _ ->
+                showPresetCapacityDialog()
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+
+    private fun showPresetCapacityDialog() {
+        val ctx = context ?: return
+        val presets = arrayOf("500 ml (Standard)", "650 ml", "750 ml (Sports)", "1000 ml (1 Liter)", "1200 ml", "1500 ml")
+        val values = intArrayOf(500, 650, 750, 1000, 1200, 1500)
+
+        MaterialAlertDialogBuilder(ctx)
+            .setTitle("Select Bottle Capacity")
+            .setItems(presets) { _, which ->
+                saveBottleCapacity(values[which])
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+
+    private fun saveBottleCapacity(newCapacityMl: Int) {
+        val mainAct = activity as? MainActivity
+        mainAct?.currentBottleCapacity = newCapacityMl
+
+        // 1. Send capacity command to ESP32 over BLE
+        if (bleManager?.isConnected == true) {
+            bleManager?.sendBottleCapacity(newCapacityMl)
+        }
+
+        // 2. Persist to Firebase Realtime Database across all paths
+        val uid = firebaseAuth.currentUser?.uid
+        if (uid != null && database != null) {
+            val updates = mapOf<String, Any>(
+                "bottleCapacity" to newCapacityMl,
+                "device_telemetry/bottleCapacity" to newCapacityMl
+            )
+            database.child("users").child(uid).updateChildren(updates)
+        }
+
+        // 3. Update UI
+        val currentLevel = mainAct?.currentBottleWaterLevel ?: 0
+        tvBottleWaterMl.text = "$currentLevel ml / $newCapacityMl ml"
+        val liters = currentLevel / 1000.0
+        tvBottleWaterLiters.text = String.format(Locale.US, "%.2f L", liters)
+        Toast.makeText(requireContext(), "🍾 Bottle capacity set to $newCapacityMl ml!", Toast.LENGTH_SHORT).show()
     }
 
     override fun onDestroyView() {

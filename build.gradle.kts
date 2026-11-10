@@ -14,7 +14,7 @@
 // build files (e.g., app/build.gradle.kts) using the "apply false" flag.
 plugins {
     // Android Gradle Plugin – builds and packages the Android application
-    id("com.android.application") version "8.6.0" apply false
+    id("com.android.application") version "8.3.2" apply false
 
     // Kotlin Android Plugin – enables Kotlin language support for Android
     id("org.jetbrains.kotlin.android") version "2.0.20" apply false

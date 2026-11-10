@@ -430,6 +430,109 @@ class SipSenseBleManager(
         return gatt.readCharacteristic(characteristic)
     }
 
+    /**
+     * Sends a text command to the ESP32 smart bottle via GATT write.
+     */
+    @SuppressLint("MissingPermission")
+    fun sendCommand(command: String): Boolean {
+        val gatt = bluetoothGatt
+        if (gatt == null) {
+            Esp32SignalHub.logError("GATT_WRITE", "Cannot write command '$command': GATT is not connected")
+            Log.e(TAG, "Cannot write command '$command': GATT is not connected")
+            return false
+        }
+
+        var service = gatt.getService(BleConstants.SERVICE_UUID)
+        if (service == null) {
+            service = gatt.services.find { it.uuid.toString().equals(BleConstants.SERVICE_UUID.toString(), ignoreCase = true) }
+        }
+        if (service == null) {
+            Esp32SignalHub.logError("GATT_WRITE", "SipSense Service not found on peripheral (UUID=${BleConstants.SERVICE_UUID})")
+            Log.e(TAG, "SipSense Service not found. Discovered services count: ${gatt.services.size}")
+            return false
+        }
+
+        var characteristic = service.getCharacteristic(BleConstants.TELEMETRY_CHAR_UUID)
+        if (characteristic == null) {
+            characteristic = service.characteristics.find { it.uuid.toString().equals(BleConstants.TELEMETRY_CHAR_UUID.toString(), ignoreCase = true) }
+        }
+        if (characteristic == null) {
+            Esp32SignalHub.logError("GATT_WRITE", "Telemetry characteristic not found (UUID=${BleConstants.TELEMETRY_CHAR_UUID})")
+            Log.e(TAG, "Telemetry characteristic not found in service")
+            return false
+        }
+
+        Esp32SignalHub.logTx("GATT_WRITE", "CMD: writeCharacteristic '$command'")
+        val payload = command.toByteArray(Charsets.UTF_8)
+        val props = characteristic.properties
+        val supportsWriteNoResp = (props and BluetoothGattCharacteristic.PROPERTY_WRITE_NO_RESPONSE) != 0
+        val supportsWriteDefault = (props and BluetoothGattCharacteristic.PROPERTY_WRITE) != 0
+
+        val preferredWriteType = if (supportsWriteNoResp && !supportsWriteDefault) {
+            BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE
+        } else {
+            BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT
+        }
+
+        var writeSuccess = false
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            try {
+                val status = gatt.writeCharacteristic(characteristic, payload, preferredWriteType)
+                writeSuccess = (status == BluetoothGatt.GATT_SUCCESS)
+                if (!writeSuccess && supportsWriteNoResp && preferredWriteType == BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT) {
+                    val retryStatus = gatt.writeCharacteristic(characteristic, payload, BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE)
+                    writeSuccess = (retryStatus == BluetoothGatt.GATT_SUCCESS)
+                }
+            } catch (e: Exception) {
+                Log.w(TAG, "API 33+ writeCharacteristic threw exception: ${e.message}")
+            }
+        }
+
+        if (!writeSuccess) {
+            try {
+                @Suppress("DEPRECATION")
+                characteristic.value = payload
+                @Suppress("DEPRECATION")
+                characteristic.writeType = preferredWriteType
+                @Suppress("DEPRECATION")
+                writeSuccess = gatt.writeCharacteristic(characteristic)
+                if (!writeSuccess && preferredWriteType == BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT) {
+                    @Suppress("DEPRECATION")
+                    characteristic.writeType = BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE
+                    @Suppress("DEPRECATION")
+                    writeSuccess = gatt.writeCharacteristic(characteristic)
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Legacy writeCharacteristic threw exception: ${e.message}")
+            }
+        }
+
+        if (writeSuccess) {
+            Esp32SignalHub.logTx("GATT_WRITE_OK", "Successfully dispatched BLE command: '$command'")
+            Log.i(TAG, "✅ Command '$command' sent successfully to ESP32")
+        } else {
+            Esp32SignalHub.logError("GATT_WRITE_FAIL", "Failed to write command '$command' to characteristic")
+            Log.e(TAG, "❌ Failed to write command '$command' to ESP32 characteristic")
+        }
+
+        return writeSuccess
+    }
+
+    /**
+     * Issues a tare command ("t") to zero the load cell on the bottle base.
+     */
+    fun sendTareCommand(): Boolean {
+        return sendCommand("t")
+    }
+
+    /**
+     * Sends bottle capacity setting to ESP32 (e.g. "cap 750").
+     */
+    fun sendBottleCapacity(capacityMl: Int): Boolean {
+        return sendCommand("cap $capacityMl")
+    }
+
     private val gattCallback = object : BluetoothGattCallback() {
         @SuppressLint("MissingPermission")
         override fun onConnectionStateChange(gatt: BluetoothGatt, status: Int, newState: Int) {
@@ -573,6 +676,15 @@ class SipSenseBleManager(
                     requestTelemetryRead()
                 }, 100L)
             }
+        }
+
+        override fun onCharacteristicWrite(
+            gatt: BluetoothGatt,
+            characteristic: BluetoothGattCharacteristic,
+            status: Int
+        ) {
+            val statusStr = if (status == BluetoothGatt.GATT_SUCCESS) "SUCCESS" else "FAIL_$status"
+            Esp32SignalHub.logRx("GATT_WRITE", "EVT: onCharacteristicWrite status=$statusStr")
         }
 
         @Deprecated("Deprecated in Java")

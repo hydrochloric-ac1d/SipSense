@@ -12,53 +12,51 @@
     <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:padding="20dp"
-        android:paddingBottom="90dp">
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:paddingTop="2dp"
+        android:paddingBottom="12dp">
 
         <TextView
             android:id="@+id/tv_greeting"
             android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:textColor="@color/text_white"
-            android:textSize="24sp"
-            android:textStyle="bold"
+            android:layout_height="0dp"
+            android:visibility="gone"
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            tools:text="Good Morning, Alex!" />
+            app:layout_constraintEnd_toEndOf="parent" />
 
         <!-- ── Daily Hydration Progress Card ── -->
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/card_progress"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            app:cardCornerRadius="24dp"
-            app:cardElevation="4dp"
+            android:layout_marginTop="6dp"
+            app:cardCornerRadius="20dp"
+            app:cardElevation="3dp"
             app:cardBackgroundColor="@color/card_background"
-            app:layout_constraintTop_toBottomOf="@id/tv_greeting"
+            app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent">
 
             <androidx.constraintlayout.widget.ConstraintLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:padding="24dp">
+                android:padding="12dp">
 
                 <com.sipsense.app.view.WaterSphereProgressView
                     android:id="@+id/progress_hydration"
-                    android:layout_width="256dp"
-                    android:layout_height="256dp"
+                    android:layout_width="220dp"
+                    android:layout_height="220dp"
                     app:layout_constraintTop_toTopOf="parent"
-                    app:layout_constraintBottom_toBottomOf="parent"
                     app:layout_constraintStart_toStartOf="parent"
                     app:layout_constraintEnd_toEndOf="parent" />
 
                 <!-- Droplet Icon -->
                 <ImageView
                     android:id="@+id/iv_droplet"
-                    android:layout_width="20dp"
-                    android:layout_height="20dp"
+                    android:layout_width="18dp"
+                    android:layout_height="18dp"
                     android:src="@drawable/droplet"
                     app:tint="@color/teal_primary"
                     app:layout_constraintTop_toTopOf="@id/progress_hydration"
@@ -98,11 +96,12 @@
                         android:shadowDx="0"
                         android:shadowDy="1"
                         android:shadowRadius="4"
-                        android:textSize="16sp"
-                        android:layout_marginTop="2dp"
+                        android:textSize="15sp"
+                        android:layout_marginTop="1dp"
                         android:text="/ 2000 ml" />
 
                     <TextView
+                        android:id="@+id/tv_label_daily_goal"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="@string/label_daily_goal"
@@ -111,9 +110,65 @@
                         android:shadowDx="0"
                         android:shadowDy="1"
                         android:shadowRadius="4"
+                        android:textSize="12.5sp"
+                        android:textStyle="bold"
+                        android:layout_marginTop="2dp" />
+                </LinearLayout>
+
+                <!-- Quick Goal Actions Row (Edit Goal & Reset Goal) -->
+                <LinearLayout
+                    android:id="@+id/layout_goal_actions"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:layout_marginTop="10dp"
+                    app:layout_constraintTop_toBottomOf="@id/progress_hydration"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintEnd_toEndOf="parent">
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btn_edit_goal"
+                        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                        android:layout_width="wrap_content"
+                        android:layout_height="36dp"
+                        android:paddingStart="12dp"
+                        android:paddingEnd="12dp"
+                        android:text="Daily Goal: 2,000 ml ✎"
+                        android:textAllCaps="false"
+                        android:textColor="@color/teal_primary"
                         android:textSize="12sp"
                         android:textStyle="bold"
-                        android:layout_marginTop="4dp" />
+                        app:cornerRadius="18dp"
+                        app:backgroundTint="#0D2BB5B2"
+                        app:strokeColor="#332BB5B2"
+                        app:strokeWidth="1.5dp"
+                        app:icon="@drawable/ic_target"
+                        app:iconSize="14dp"
+                        app:iconTint="@color/teal_primary"
+                        app:iconGravity="textStart" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btn_reset_goal"
+                        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                        android:layout_width="wrap_content"
+                        android:layout_height="36dp"
+                        android:layout_marginStart="8dp"
+                        android:paddingStart="10dp"
+                        android:paddingEnd="10dp"
+                        android:text="Reset ⟲"
+                        android:textAllCaps="false"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="12sp"
+                        android:textStyle="bold"
+                        app:cornerRadius="18dp"
+                        app:strokeColor="#33808080"
+                        app:strokeWidth="1.5dp"
+                        app:icon="@drawable/ic_refresh"
+                        app:iconSize="13dp"
+                        app:iconTint="@color/text_secondary"
+                        app:iconGravity="textStart" />
                 </LinearLayout>
 
             </androidx.constraintlayout.widget.ConstraintLayout>
@@ -125,7 +180,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
-            android:layout_marginTop="14dp"
+            android:layout_marginTop="10dp"
             app:layout_constraintTop_toBottomOf="@id/card_progress"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
@@ -137,15 +192,15 @@
                 android:layout_width="0dp"
                 android:layout_height="match_parent"
                 android:layout_weight="1"
-                android:layout_marginEnd="6dp"
-                app:cardCornerRadius="16dp"
-                app:cardElevation="4dp"
+                android:layout_marginEnd="5dp"
+                app:cardCornerRadius="14dp"
+                app:cardElevation="3dp"
                 app:cardBackgroundColor="@color/card_background">
 
                 <androidx.constraintlayout.widget.ConstraintLayout
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
-                    android:padding="14dp">
+                    android:padding="12dp">
 
                     <TextView
                         android:id="@+id/tv_recent_sip_label"
@@ -154,7 +209,7 @@
                         android:text="@string/label_recent_sip"
                         android:textColor="@color/text_primary"
                         android:textStyle="bold"
-                        android:textSize="13sp"
+                        android:textSize="12.5sp"
                         app:layout_constraintTop_toTopOf="parent"
                         app:layout_constraintStart_toStartOf="parent" />
 
@@ -164,13 +219,13 @@
                         android:layout_height="wrap_content"
                         android:text="@string/placeholder_recent_sip_time"
                         android:textColor="@color/text_hint"
-                        android:textSize="11sp"
+                        android:textSize="10.5sp"
                         app:layout_constraintTop_toBottomOf="@id/tv_recent_sip_label"
                         app:layout_constraintStart_toStartOf="parent" />
 
                     <ImageView
-                        android:layout_width="20dp"
-                        android:layout_height="20dp"
+                        android:layout_width="18dp"
+                        android:layout_height="18dp"
                         android:src="@drawable/water_bottle"
                         app:tint="@color/teal_primary"
                         app:layout_constraintTop_toTopOf="parent"
@@ -182,9 +237,9 @@
                         android:layout_height="wrap_content"
                         android:text="@string/placeholder_recent_sip_amount"
                         android:textColor="@color/text_primary"
-                        android:textSize="18sp"
+                        android:textSize="17sp"
                         android:textStyle="bold"
-                        android:layout_marginTop="14dp"
+                        android:layout_marginTop="8dp"
                         app:layout_constraintTop_toBottomOf="@id/tv_recent_sip_time"
                         app:layout_constraintBottom_toBottomOf="parent"
                         app:layout_constraintStart_toStartOf="parent" />
@@ -197,15 +252,15 @@
                 android:layout_width="0dp"
                 android:layout_height="match_parent"
                 android:layout_weight="1"
-                android:layout_marginStart="6dp"
-                app:cardCornerRadius="16dp"
-                app:cardElevation="4dp"
+                android:layout_marginStart="5dp"
+                app:cardCornerRadius="14dp"
+                app:cardElevation="3dp"
                 app:cardBackgroundColor="@color/card_background">
 
                 <androidx.constraintlayout.widget.ConstraintLayout
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
-                    android:padding="14dp">
+                    android:padding="12dp">
 
                     <TextView
                         android:id="@+id/tv_streak_label"
@@ -214,7 +269,7 @@
                         android:text="@string/label_hydration_streak"
                         android:textColor="@color/text_primary"
                         android:textStyle="bold"
-                        android:textSize="13sp"
+                        android:textSize="12.5sp"
                         app:layout_constraintStart_toStartOf="parent"
                         app:layout_constraintTop_toTopOf="parent" />
 
@@ -224,7 +279,7 @@
                         android:layout_height="wrap_content"
                         android:text="Consistency"
                         android:textColor="@color/text_hint"
-                        android:textSize="11sp"
+                        android:textSize="10.5sp"
                         app:layout_constraintTop_toBottomOf="@id/tv_streak_label"
                         app:layout_constraintStart_toStartOf="parent" />
 
@@ -232,14 +287,14 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="🔥"
-                        android:textSize="16sp"
+                        android:textSize="14sp"
                         app:layout_constraintTop_toTopOf="parent"
                         app:layout_constraintEnd_toEndOf="parent" />
 
                     <LinearLayout
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="14dp"
+                        android:layout_marginTop="8dp"
                         android:gravity="center_vertical"
                         android:orientation="horizontal"
                         app:layout_constraintStart_toStartOf="parent"
@@ -252,7 +307,7 @@
                             android:layout_height="wrap_content"
                             android:layout_marginEnd="6dp"
                             android:text="🔥"
-                            android:textSize="18sp"
+                            android:textSize="16sp"
                             android:visibility="gone" />
 
                         <TextView
@@ -261,7 +316,7 @@
                             android:layout_height="wrap_content"
                             android:text="@string/placeholder_streak_days"
                             android:textColor="@color/text_primary"
-                            android:textSize="18sp"
+                            android:textSize="17sp"
                             android:textStyle="bold" />
                     </LinearLayout>
                 </androidx.constraintlayout.widget.ConstraintLayout>
@@ -279,9 +334,9 @@
             android:id="@+id/card_device"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginTop="14dp"
-            app:cardCornerRadius="20dp"
-            app:cardElevation="4dp"
+            android:layout_marginTop="10dp"
+            app:cardCornerRadius="16dp"
+            app:cardElevation="3dp"
             app:cardBackgroundColor="@color/card_background"
             app:layout_constraintTop_toBottomOf="@id/layout_cards"
             app:layout_constraintStart_toStartOf="parent"
@@ -291,7 +346,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:padding="16dp">
+                android:padding="12dp">
 
                 <!-- Header: Device Name & Connection Badge -->
                 <LinearLayout
@@ -303,8 +358,8 @@
                     <!-- Bottle Base Rest Status Icon Container (HX711 Load Cell Indicator) -->
                     <FrameLayout
                         android:id="@+id/layout_base_icon_container"
-                        android:layout_width="32dp"
-                        android:layout_height="32dp"
+                        android:layout_width="26dp"
+                        android:layout_height="26dp"
                         android:background="@drawable/bg_circle_light_teal"
                         android:clickable="true"
                         android:focusable="true"
@@ -312,8 +367,8 @@
 
                         <ImageView
                             android:id="@+id/iv_base_rest_icon"
-                            android:layout_width="18dp"
-                            android:layout_height="18dp"
+                            android:layout_width="14dp"
+                            android:layout_height="14dp"
                             android:layout_gravity="center"
                             android:src="@drawable/ic_base_rest"
                             app:tint="@color/teal_primary" />
@@ -327,7 +382,7 @@
                         android:layout_marginStart="8dp"
                         android:text="@string/label_device_name"
                         android:textColor="@color/text_primary"
-                        android:textSize="15sp"
+                        android:textSize="13.5sp"
                         android:textStyle="bold" />
 
                     <!-- Status Badge -->
@@ -338,25 +393,25 @@
                         android:orientation="horizontal"
                         android:gravity="center_vertical"
                         android:background="@drawable/bg_device_badge"
-                        android:paddingStart="8dp"
-                        android:paddingEnd="8dp"
-                        android:paddingTop="3dp"
-                        android:paddingBottom="3dp">
+                        android:paddingStart="7dp"
+                        android:paddingEnd="7dp"
+                        android:paddingTop="2dp"
+                        android:paddingBottom="2dp">
 
                         <View
                             android:id="@+id/v_status_dot"
-                            android:layout_width="7dp"
-                            android:layout_height="7dp"
+                            android:layout_width="6dp"
+                            android:layout_height="6dp"
                             android:background="@drawable/bg_circle_green" />
 
                         <TextView
                             android:id="@+id/tv_device_connection_status"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_marginStart="5dp"
+                            android:layout_marginStart="4dp"
                             android:text="@string/device_connected"
                             android:textColor="@color/teal_primary"
-                            android:textSize="10sp"
+                            android:textSize="9.5sp"
                             android:textStyle="bold" />
                     </LinearLayout>
                 </LinearLayout>
@@ -366,7 +421,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="horizontal"
-                    android:layout_marginTop="12dp"
+                    android:layout_marginTop="8dp"
                     android:baselineAligned="false">
 
                     <!-- 1. Water inside bottle (Liters) Tile -->
@@ -377,7 +432,7 @@
                         android:layout_marginEnd="4dp"
                         android:background="@drawable/bg_metric_tile"
                         android:orientation="vertical"
-                        android:padding="10dp">
+                        android:padding="8dp">
 
                         <LinearLayout
                             android:layout_width="wrap_content"
@@ -448,7 +503,7 @@
                         android:layout_marginEnd="4dp"
                         android:background="@drawable/bg_metric_tile"
                         android:orientation="vertical"
-                        android:padding="10dp">
+                        android:padding="8dp">
 
                         <LinearLayout
                             android:layout_width="wrap_content"
@@ -518,7 +573,7 @@
                         android:layout_marginStart="4dp"
                         android:background="@drawable/bg_metric_tile"
                         android:orientation="vertical"
-                        android:padding="10dp">
+                        android:padding="8dp">
 
                         <LinearLayout
                             android:layout_width="wrap_content"
@@ -582,6 +637,78 @@
                     </LinearLayout>
                 </LinearLayout>
 
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- ════════════════════════════════════════════════════════════════
+             HYDRATION INSIGHT / DAILY TIP CARD
+             Fills dashboard with encouraging actionable wellness insights
+             ════════════════════════════════════════════════════════════════ -->
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/card_tip"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            app:cardCornerRadius="16dp"
+            app:cardElevation="3dp"
+            app:cardBackgroundColor="@color/card_background"
+            app:layout_constraintTop_toBottomOf="@id/card_device"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="12dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="💡"
+                        android:textSize="14sp" />
+
+                    <TextView
+                        android:id="@+id/tv_tip_title"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:layout_marginStart="6dp"
+                        android:text="Hydration Insight"
+                        android:textColor="@color/text_primary"
+                        android:textSize="13sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/tv_tip_badge"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:background="@drawable/bg_device_badge"
+                        android:paddingStart="7dp"
+                        android:paddingEnd="7dp"
+                        android:paddingTop="2dp"
+                        android:paddingBottom="2dp"
+                        android:text="WELLNESS"
+                        android:textColor="@color/teal_primary"
+                        android:textSize="9.5sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+
+                <TextView
+                    android:id="@+id/tv_tip_content"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:text="Drinking small, regular sips throughout the day maintains focus and keeps your energy levels steady."
+                    android:textColor="@color/text_secondary"
+                    android:textSize="12sp"
+                    android:lineSpacingExtra="2dp" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 

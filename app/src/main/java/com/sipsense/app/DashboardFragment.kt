@@ -1,9 +1,13 @@
 package com.sipsense.app
 
+import android.graphics.Color
 import android.os.Bundle
+import android.text.InputType
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.EditText
+import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.ProgressBar
 import android.widget.TextView
@@ -11,6 +15,8 @@ import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
+import com.google.android.material.button.MaterialButton
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
@@ -33,6 +39,9 @@ class DashboardFragment : Fragment() {
     private lateinit var progressHydration: WaterSphereProgressView
     private lateinit var tvProgressCurrent: TextView
     private lateinit var tvProgressMax: TextView
+    private lateinit var tvLabelDailyGoal: TextView
+    private lateinit var btnEditGoal: MaterialButton
+    private lateinit var btnResetGoal: MaterialButton
     private lateinit var tvRecentSipTime: TextView
     private lateinit var tvRecentSipAmount: TextView
 
@@ -73,11 +82,11 @@ class DashboardFragment : Fragment() {
     private var varFirebaseDailyTotalLoaded = false
     private var isInitialTelemetrySnapshot = true
 
-    private var isBottleAtRest: Boolean = true
-    private var currentBottleWaterLevel: Int = MainActivity.DEFAULT_BOTTLE_CAPACITY_ML
-    private var latestSensorWaterLevel: Int = MainActivity.DEFAULT_BOTTLE_CAPACITY_ML
+    private var isBottleAtRest: Boolean = false
+    private var currentBottleWaterLevel: Int = 0
+    private var latestSensorWaterLevel: Int = 0
     private var currentBottleCapacity: Int = MainActivity.DEFAULT_BOTTLE_CAPACITY_ML
-    private var currentBatteryLevel: Int = 88
+    private var currentBatteryLevel: Int = 95
     private var currentAmbientTemp: Int? = null
     private var isTempReadFailed: Boolean = false
     private var isDeviceConnected: Boolean = false
@@ -189,6 +198,9 @@ class DashboardFragment : Fragment() {
         progressHydration = view.findViewById(R.id.progress_hydration)
         tvProgressCurrent = view.findViewById(R.id.tv_progress_current)
         tvProgressMax = view.findViewById(R.id.tv_progress_max)
+        tvLabelDailyGoal = view.findViewById(R.id.tv_label_daily_goal)
+        btnEditGoal = view.findViewById(R.id.btn_edit_goal)
+        btnResetGoal = view.findViewById(R.id.btn_reset_goal)
         tvRecentSipTime = view.findViewById(R.id.tv_recent_sip_time)
         tvRecentSipAmount = view.findViewById(R.id.tv_recent_sip_amount)
 
@@ -217,6 +229,16 @@ class DashboardFragment : Fragment() {
             toggleBottleRestState()
         }
 
+        btnEditGoal.setOnClickListener {
+            showChangeDailyGoalDialog()
+        }
+        btnResetGoal.setOnClickListener {
+            showResetDailyGoalOptionsDialog()
+        }
+        view.findViewById<View>(R.id.card_progress)?.setOnClickListener {
+            showChangeDailyGoalDialog()
+        }
+
         setupGreeting()
         setupRecentSipTime()
         setupInitialDeviceStatus()
@@ -226,6 +248,7 @@ class DashboardFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        setupHydrationTip()
         loadUserProfile()
         loadRecentSipFromFirebase()
         loadDeviceTelemetryFromFirebase()
@@ -251,6 +274,7 @@ class DashboardFragment : Fragment() {
     override fun onResume() {
         super.onResume()
         isPolling = true
+        setupInitialDeviceStatus()
         initBleManager()
         val currentContext = context
         if (currentContext != null && SipSenseBleManager.hasPermissions(currentContext)) {
@@ -438,7 +462,9 @@ class DashboardFragment : Fragment() {
      * and updates the UI, Firebase database, and automatic water deduction sip tracking.
      */
     private fun processTelemetryData(dataObject: JSONObject) {
-        val bottleCapacity = MainActivity.DEFAULT_BOTTLE_CAPACITY_ML
+        val bottleCapacity = dataObject.optInt("bottleCapacity", (activity as? MainActivity)?.currentBottleCapacity ?: MainActivity.DEFAULT_BOTTLE_CAPACITY_ML)
+        currentBottleCapacity = bottleCapacity
+        (activity as? MainActivity)?.currentBottleCapacity = bottleCapacity
         val waterLevel = dataObject.optInt("waterLevel", latestSensorWaterLevel)
             .coerceIn(0, bottleCapacity)
         val battery = dataObject.optInt("batteryLevel", currentBatteryLevel)
@@ -550,8 +576,9 @@ class DashboardFragment : Fragment() {
             }
         }
 
-        if (isBottleAtRest) {
+        if (isBottleAtRest || waterLevel == 0) {
             currentBottleWaterLevel = waterLevel
+            mainAct?.currentBottleWaterLevel = waterLevel
         }
 
         val uid = firebaseAuth.currentUser?.uid
@@ -707,6 +734,18 @@ class DashboardFragment : Fragment() {
         tvRecentSipTime.text = currentTime
     }
 
+    private fun setupHydrationTip() {
+        val tips = arrayOf(
+            "Drinking small, regular sips throughout the day maintains focus and keeps your energy levels steady.",
+            "A glass of water first thing in the morning kicks off metabolism and replenishes hydration after sleep.",
+            "Feeling fatigued or having a mild headache? It's often the first sign of thirst—take a refreshing sip!",
+            "Drinking water between meals aids healthy digestion, nutrient absorption, and skin radiance.",
+            "Stay consistent! Maintaining a daily streak builds lifelong healthy hydration habits."
+        )
+        val dayIndex = Calendar.getInstance().get(Calendar.DAY_OF_YEAR) % tips.size
+        view?.findViewById<TextView>(R.id.tv_tip_content)?.text = tips[dayIndex]
+    }
+
     private fun loadUserProfile() {
         val user = firebaseAuth.currentUser ?: return
         val uid = user.uid
@@ -750,6 +789,13 @@ class DashboardFragment : Fragment() {
                         currentHydrationTarget = target
                         progressHydration.max = target
                         tvProgressMax.text = getString(R.string.progress_max_format_ml, target)
+
+                        val cap = profile.bottleCapacity
+                        if (cap > 0) {
+                            currentBottleCapacity = cap
+                            (activity as? MainActivity)?.currentBottleCapacity = cap
+                        }
+
                         updateProgressUI(currentDailyTotal)
                     }
                 }
@@ -841,9 +887,14 @@ class DashboardFragment : Fragment() {
         isInitialTelemetrySnapshot = true
         telemetryListener = object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
-                val bottleCapacity = MainActivity.DEFAULT_BOTTLE_CAPACITY_ML
-                val rawWaterLevel = snapshot.child("waterLevel").getValue(Int::class.java)
+                val mainAct = activity as? MainActivity
                 val storedCapacity = snapshot.child("bottleCapacity").getValue(Int::class.java)
+                val bottleCapacity = if (storedCapacity != null && storedCapacity in 100..5000) {
+                    storedCapacity
+                } else {
+                    mainAct?.currentBottleCapacity ?: 1000
+                }
+                val rawWaterLevel = snapshot.child("waterLevel").getValue(Int::class.java)
                 val battery = snapshot.child("batteryLevel").getValue(Int::class.java) ?: currentBatteryLevel
                 val isOnline = isDeviceOnline()
                 val isFailed = snapshot.child("tempSensorStatus").getValue(String::class.java).equals("Read Failed", ignoreCase = true)
@@ -857,28 +908,9 @@ class DashboardFragment : Fragment() {
                         ?: snapshot.child("temperature").getValue(Int::class.java)
                 }
 
-                // Normalize initial bottle capacity & water level to 500 ml if unset or from old 1000ml schema
-                val waterLevel = if (isInitialTelemetrySnapshot) {
-                    isInitialTelemetrySnapshot = false
-                    val normalizedLevel = if (rawWaterLevel == null || rawWaterLevel <= 0 || rawWaterLevel > bottleCapacity || storedCapacity != bottleCapacity) {
-                        database?.child("users")?.child(uid)?.child("device_telemetry")?.updateChildren(
-                            mapOf(
-                                "waterLevel" to bottleCapacity,
-                                "bottleCapacity" to bottleCapacity
-                            )
-                        )
-                        bottleCapacity
-                    } else {
-                        rawWaterLevel
-                    }
-                    val mainAct = activity as? MainActivity
-                    mainAct?.currentBottleCapacity = bottleCapacity
-                    mainAct?.currentBottleWaterLevel = normalizedLevel
-                    mainAct?.lastRestingWaterLevel = normalizedLevel
-                    normalizedLevel
-                } else {
-                    (rawWaterLevel ?: currentBottleWaterLevel).coerceIn(0, bottleCapacity)
-                }
+                val waterLevel = (rawWaterLevel ?: currentBottleWaterLevel).coerceIn(0, bottleCapacity)
+                mainAct?.currentBottleCapacity = bottleCapacity
+                mainAct?.currentBottleWaterLevel = waterLevel
 
                 latestSensorWaterLevel = waterLevel
                 currentBottleCapacity = bottleCapacity
@@ -902,7 +934,6 @@ class DashboardFragment : Fragment() {
                 }
 
                 // Check if water volume was deducted in Firebase telemetry
-                val mainAct = activity as? MainActivity
                 val deductedMl = if (mainAct != null) {
                     mainAct.evaluateWaterDeduction(waterLevel, isBottleAtRest, bottleCapacity)
                 } else {
@@ -910,8 +941,9 @@ class DashboardFragment : Fragment() {
                     if (isBottleAtRest && waterLevel < prev) prev - waterLevel else 0
                 }
 
-                if (isBottleAtRest) {
+                if (isBottleAtRest || waterLevel == 0) {
                     currentBottleWaterLevel = waterLevel
+                    mainAct?.currentBottleWaterLevel = waterLevel
                 }
 
                 if (deductedMl > 0) {
@@ -972,17 +1004,28 @@ class DashboardFragment : Fragment() {
     private fun updateProgressUI(totalConsumed: Int) {
         progressHydration.progress = totalConsumed
 
-        if (totalConsumed >= currentHydrationTarget && currentHydrationTarget > 0) {
+        val target = if (currentHydrationTarget > 0) currentHydrationTarget else 2500
+        btnEditGoal.text = "Daily Goal: $target ml ✎"
+
+        tvProgressCurrent.text = getString(R.string.progress_format_ml, totalConsumed)
+        tvProgressMax.text = getString(R.string.progress_max_format_ml, target)
+
+        if (totalConsumed >= target) {
             progressHydration.setIndicatorColor(ContextCompat.getColor(requireContext(), R.color.strength_fair))
-            val exceededBy = totalConsumed - currentHydrationTarget
-            tvProgressCurrent.text = "+$exceededBy ml"
-            tvProgressCurrent.setTextColor(ContextCompat.getColor(requireContext(), R.color.strength_fair))
-            tvProgressMax.text = "Exceeded Daily Goal"
+            tvProgressCurrent.setTextColor(ContextCompat.getColor(requireContext(), R.color.text_white))
+            val exceededBy = totalConsumed - target
+            if (exceededBy > 0) {
+                tvLabelDailyGoal.text = "Goal Reached! (+$exceededBy ml) 🎉"
+            } else {
+                tvLabelDailyGoal.text = "Daily Goal Reached! 🎉"
+            }
+            tvLabelDailyGoal.setTextColor(ContextCompat.getColor(requireContext(), R.color.strength_fair))
         } else {
             progressHydration.setIndicatorColor(ContextCompat.getColor(requireContext(), R.color.teal_primary))
-            tvProgressCurrent.text = getString(R.string.progress_format_ml, totalConsumed)
             tvProgressCurrent.setTextColor(ContextCompat.getColor(requireContext(), R.color.text_white))
-            tvProgressMax.text = getString(R.string.progress_max_format_ml, currentHydrationTarget)
+            val percentage = if (target > 0) (totalConsumed * 100) / target else 0
+            tvLabelDailyGoal.text = "$percentage% of Daily Goal"
+            tvLabelDailyGoal.setTextColor(Color.parseColor("#CCFFFFFF"))
         }
     }
 
@@ -1050,6 +1093,8 @@ class DashboardFragment : Fragment() {
             tvDeviceWaterLiters.setTextColor(ContextCompat.getColor(requireContext(), R.color.text_primary))
             tvDeviceWaterMl.text = if (isBottleAtRest) {
                 "$safeWaterLevel ml / $safeCapacity ml"
+            } else if (safeWaterLevel == 0) {
+                "0 ml / $safeCapacity ml"
             } else {
                 "$safeWaterLevel ml (Paused)"
             }
@@ -1132,6 +1177,165 @@ class DashboardFragment : Fragment() {
 
         // ── Connection Status ──
         updateDeviceConnectionBadge(isConnected)
+    }
+
+    /**
+     * Dialog allowing user to quickly change their Daily Hydration Goal.
+     */
+    private fun showChangeDailyGoalDialog() {
+        val ctx = context ?: return
+        val input = EditText(ctx).apply {
+            inputType = InputType.TYPE_CLASS_NUMBER
+            hint = "e.g. 2500"
+            setText(currentHydrationTarget.toString())
+            setSelection(text.length)
+        }
+
+        val container = FrameLayout(ctx).apply {
+            val padding = (24 * resources.displayMetrics.density).toInt()
+            setPadding(padding, padding / 2, padding, 0)
+            addView(input)
+        }
+
+        MaterialAlertDialogBuilder(ctx)
+            .setTitle("Set Daily Hydration Goal")
+            .setMessage("Enter your target water intake in milliliters (ml):")
+            .setView(container)
+            .setPositiveButton("Save") { _, _ ->
+                val newGoal = input.text.toString().trim().toIntOrNull()
+                if (newGoal != null && newGoal in 500..10000) {
+                    saveDailyGoal(newGoal)
+                } else {
+                    Toast.makeText(ctx, "Please enter a valid goal between 500 and 10,000 ml", Toast.LENGTH_SHORT).show()
+                }
+            }
+            .setNeutralButton("Presets") { _, _ ->
+                showPresetGoalsDialog()
+            }
+            .setNegativeButton("Reset...") { _, _ ->
+                showResetDailyGoalOptionsDialog()
+            }
+            .show()
+    }
+
+    /**
+     * Dialog options to reset daily goal target or today's consumed hydration progress.
+     */
+    private fun showResetDailyGoalOptionsDialog() {
+        val ctx = context ?: return
+        val options = arrayOf(
+            "💧 Reset Today's Water Intake to 0 ml",
+            "🎯 Reset Goal Target to Default (2,000 ml)",
+            "⟲ Reset Both (0 ml Intake & 2,000 ml Target)"
+        )
+
+        MaterialAlertDialogBuilder(ctx)
+            .setTitle("Reset Daily Goal")
+            .setItems(options) { _, which ->
+                when (which) {
+                    0 -> confirmResetTodayIntake()
+                    1 -> confirmResetGoalTarget()
+                    2 -> confirmResetBoth()
+                }
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+
+    private fun confirmResetTodayIntake() {
+        val ctx = context ?: return
+        MaterialAlertDialogBuilder(ctx)
+            .setTitle("Reset Today's Water?")
+            .setMessage("Are you sure you want to reset your consumed water for today back to 0 ml?")
+            .setPositiveButton("Reset to 0 ml") { _, _ ->
+                resetTodayIntakeToZero()
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+
+    private fun resetTodayIntakeToZero() {
+        val uid = firebaseAuth.currentUser?.uid ?: return
+        val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+        val todayKey = dateFormat.format(java.util.Date())
+
+        currentDailyTotal = 0
+        updateProgressUI(0)
+
+        // 1. Reset in Firebase Realtime Database
+        database?.child("users")?.child(uid)?.child("daily_totals")?.child(todayKey)?.setValue(0)
+        database?.child("users")?.child(uid)?.child("device_telemetry")?.child("totalConsumedToday")?.setValue(0)
+        database?.child("users")?.child(uid)?.child("device_telemetry")?.child("sipAmount")?.setValue(0)
+
+        // 2. Dispatch reset command to ESP32 over BLE so its totalConsumedToday resets to 0 ml
+        if (bleManager?.isConnected == true) {
+            bleManager?.sendCommand("reset_goal")
+        }
+
+        Toast.makeText(context, "💧 Today's intake reset to 0 ml!", Toast.LENGTH_SHORT).show()
+    }
+
+    private fun confirmResetGoalTarget() {
+        val ctx = context ?: return
+        MaterialAlertDialogBuilder(ctx)
+            .setTitle("Reset Goal Target?")
+            .setMessage("Reset your daily hydration goal back to the standard recommended 2,000 ml?")
+            .setPositiveButton("Reset to 2,000 ml") { _, _ ->
+                saveDailyGoal(2000)
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+
+    private fun confirmResetBoth() {
+        val ctx = context ?: return
+        MaterialAlertDialogBuilder(ctx)
+            .setTitle("Reset Daily Goal & Intake?")
+            .setMessage("This will reset both your daily goal target to 2,000 ml and today's water intake back to 0 ml.")
+            .setPositiveButton("Reset Everything") { _, _ ->
+                saveDailyGoal(2000)
+                resetTodayIntakeToZero()
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+
+    private fun showPresetGoalsDialog() {
+        val ctx = context ?: return
+        val presets = arrayOf("1500 ml", "2000 ml", "2500 ml", "3000 ml", "3500 ml", "4000 ml")
+        val values = intArrayOf(1500, 2000, 2500, 3000, 3500, 4000)
+
+        MaterialAlertDialogBuilder(ctx)
+            .setTitle("Select Daily Hydration Goal")
+            .setItems(presets) { _, which ->
+                saveDailyGoal(values[which])
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+
+    private fun saveDailyGoal(newGoal: Int) {
+        val uid = firebaseAuth.currentUser?.uid ?: return
+        val db = database ?: run {
+            Toast.makeText(context, "Database not available", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        db.child("users").child(uid).child("hydrationTarget").setValue(newGoal)
+            .addOnSuccessListener {
+                if (isAdded) {
+                    currentHydrationTarget = newGoal
+                    progressHydration.max = newGoal
+                    tvProgressMax.text = getString(R.string.progress_max_format_ml, newGoal)
+                    updateProgressUI(currentDailyTotal)
+                    Toast.makeText(context, "🎯 Daily goal updated to $newGoal ml!", Toast.LENGTH_SHORT).show()
+                }
+            }
+            .addOnFailureListener { e ->
+                if (isAdded) {
+                    Toast.makeText(context, "Failed to save goal: ${e.message}", Toast.LENGTH_SHORT).show()
+                }
+            }
     }
 
     private fun updateDeviceConnectionBadge(isConnected: Boolean) {

@@ -258,8 +258,15 @@ class ProfileFragment : Fragment() {
         }
 
         database.child("users").child(uid).child("hydrationTarget").setValue(newTarget)
+            .addOnSuccessListener {
+                if (isAdded) {
+                    Toast.makeText(context, "🎯 Daily goal updated to $newTarget ml!", Toast.LENGTH_SHORT).show()
+                }
+            }
             .addOnFailureListener {
-                Toast.makeText(context, "Failed to update target", Toast.LENGTH_SHORT).show()
+                if (isAdded) {
+                    Toast.makeText(context, "Failed to update target", Toast.LENGTH_SHORT).show()
+                }
             }
     }
 

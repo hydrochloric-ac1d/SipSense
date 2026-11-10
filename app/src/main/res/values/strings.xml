@@ -51,7 +51,7 @@
     <string name="waterbottle_no_devices">No bottles detected yet.\nEnsure your bottle is powered on and tap Find Bottle.</string>
     <string name="waterbottle_status_connected_desc">Connected via Bluetooth Low Energy (ESP32 GATT)</string>
     <string name="waterbottle_status_disconnected_desc">Not connected. Tap Find Bottle below to discover your bottle.</string>
-    <string name="nav_notifications">Notifications</string>
+    <string name="nav_notifications">Alerts</string>
     <string name="nav_profile">Profile</string>
 
     <!-- ════════════════════════════════════════════════════════════════

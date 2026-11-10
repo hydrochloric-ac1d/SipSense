@@ -32,7 +32,7 @@ android {
     namespace = "com.sipsense.app"
 
     // SDK versions
-    compileSdk = 35  // Compile against API 35 for access to latest APIs
+    compileSdk = 34  // Compatible with AGP 8.3.2
 
     defaultConfig {
         // Unique application identifier on Google Play
@@ -42,7 +42,7 @@ android {
         minSdk = 26
 
         // Target SDK level for runtime behavior optimization
-        targetSdk = 35
+        targetSdk = 34
 
         // Internal version tracking
         versionCode = 1

@@ -25,8 +25,8 @@ import com.google.firebase.auth.FirebaseAuth
 class MainActivity : AppCompatActivity() {
 
     companion object {
-        /** Fixed Smart Water Bottle capacity in milliliters (500 ml) */
-        const val DEFAULT_BOTTLE_CAPACITY_ML = 500
+        /** Default Smart Water Bottle capacity in milliliters */
+        const val DEFAULT_BOTTLE_CAPACITY_ML = 1000
     }
 
     // ═══════════════════════════════════════════════════════════════════
@@ -49,13 +49,14 @@ class MainActivity : AppCompatActivity() {
     var bleManager: com.sipsense.app.data.SipSenseBleManager? = null
 
     /**
-     * Shared 500ml water bottle state across fragments so tab switches
+     * Shared water bottle state across fragments so tab switches
      * between Dashboard and Bottle never lose or double-count water deductions.
+     * Starts at 0 ml until the bottle is placed on the base platform.
      */
-    var currentBottleWaterLevel: Int = DEFAULT_BOTTLE_CAPACITY_ML
-    var lastRestingWaterLevel: Int = DEFAULT_BOTTLE_CAPACITY_ML
+    var currentBottleWaterLevel: Int = 0
+    var lastRestingWaterLevel: Int = 0
     var currentBottleCapacity: Int = DEFAULT_BOTTLE_CAPACITY_ML
-    var isBottleAtRest: Boolean = true
+    var isBottleAtRest: Boolean = false
 
     /**
      * Evaluates a newly reported bottle water level and returns the deducted water volume (in ml)
@@ -75,6 +76,10 @@ class MainActivity : AppCompatActivity() {
         val clampedLevel = newWaterLevel.coerceIn(0, currentBottleCapacity)
 
         if (!atRest) {
+            if (clampedLevel == 0) {
+                currentBottleWaterLevel = 0
+                lastRestingWaterLevel = 0
+            }
             return 0
         }
 
@@ -120,8 +125,8 @@ class MainActivity : AppCompatActivity() {
         }
         setContentView(R.layout.activity_main)
 
-        // Set the system navigation bar to white to match the bottom nav surface
-        window.navigationBarColor = ContextCompat.getColor(this, R.color.card_background)
+        // Set the system navigation bar to match the gradient background
+        window.navigationBarColor = ContextCompat.getColor(this, R.color.gradient_end)
 
         // ── Initialize views ──
         bottomNavigation = findViewById(R.id.bottom_navigation)
@@ -186,6 +191,10 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setupBottomNavigation() {
+        val dpDensity = resources.displayMetrics.density
+        bottomNavigation.itemPaddingTop = (14 * dpDensity).toInt()
+        bottomNavigation.itemPaddingBottom = (6 * dpDensity).toInt()
+
         bottomNavigation.setOnItemSelectedListener { item ->
             val fragment: Fragment = when (item.itemId) {
                 R.id.nav_dashboard -> DashboardFragment()

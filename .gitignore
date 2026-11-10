@@ -1,5 +1,7 @@
 # Firebase configuration file (contains API keys – do NOT commit to public repos)
+google-services.json
 app/google-services.json
+*-export.json
 
 # Built application files
 *.apk

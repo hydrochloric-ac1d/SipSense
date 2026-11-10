@@ -154,6 +154,7 @@
 
                     <!-- Water Level Tile -->
                     <LinearLayout
+                        android:id="@+id/layout_tile_water"
                         android:layout_width="0dp"
                         android:layout_height="match_parent"
                         android:layout_weight="1"
@@ -161,6 +162,8 @@
                         android:minHeight="85dp"
                         android:background="@drawable/bg_metric_tile"
                         android:orientation="vertical"
+                        android:clickable="true"
+                        android:focusable="true"
                         android:padding="10dp">
 
                         <!-- Icon Beside Title -->
@@ -372,6 +375,69 @@
                         android:visibility="gone"
                         tools:visibility="visible" />
                 </FrameLayout>
+
+                <!-- Quick Bottle Controls Row (Tare & Capacity, available when connected) -->
+                <LinearLayout
+                    android:id="@+id/layout_bottle_controls"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginTop="10dp"
+                    android:visibility="gone"
+                    tools:visibility="visible">
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btn_tare_scale"
+                        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                        android:layout_width="0dp"
+                        android:layout_height="46dp"
+                        android:layout_weight="1"
+                        android:layout_marginEnd="5dp"
+                        android:paddingStart="6dp"
+                        android:paddingEnd="6dp"
+                        android:insetTop="0dp"
+                        android:insetBottom="0dp"
+                        android:text="Tare Base"
+                        android:textAllCaps="false"
+                        android:textColor="@color/teal_primary"
+                        android:textSize="12sp"
+                        android:textStyle="bold"
+                        android:maxLines="1"
+                        app:strokeColor="@color/teal_primary"
+                        app:strokeWidth="1.5dp"
+                        app:cornerRadius="12dp"
+                        app:icon="@drawable/ic_target"
+                        app:iconSize="16dp"
+                        app:iconPadding="4dp"
+                        app:iconGravity="textStart"
+                        app:iconTint="@color/teal_primary" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btn_set_capacity"
+                        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                        android:layout_width="0dp"
+                        android:layout_height="46dp"
+                        android:layout_weight="1"
+                        android:layout_marginStart="5dp"
+                        android:paddingStart="6dp"
+                        android:paddingEnd="6dp"
+                        android:insetTop="0dp"
+                        android:insetBottom="0dp"
+                        android:text="Set Capacity"
+                        android:textAllCaps="false"
+                        android:textColor="@color/teal_primary"
+                        android:textSize="12sp"
+                        android:textStyle="bold"
+                        android:maxLines="1"
+                        app:strokeColor="@color/teal_primary"
+                        app:strokeWidth="1.5dp"
+                        app:cornerRadius="12dp"
+                        app:icon="@drawable/ic_edit"
+                        app:iconSize="16dp"
+                        app:iconPadding="4dp"
+                        app:iconGravity="textStart"
+                        app:iconTint="@color/teal_primary" />
+                </LinearLayout>
 
                 <!-- Discovered Bottles Section (Hidden when bottle is connected) -->
                 <LinearLayout

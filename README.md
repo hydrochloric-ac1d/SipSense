@@ -166,6 +166,24 @@ gutter icon next to the class or an individual test.
 
 ---
 
+## 📟 ESP32 Smart Bottle Firmware
+
+The official and primary firmware for this system is located at:
+```
+firmware/SipSense_WaterBottle_BLE/SipSense_WaterBottle_BLE.ino
+```
+
+### Key Features:
+- **Event-Based State Machine:** Implements a strict two-state machine (`STATE_IDLE` on base ➔ `STATE_LIFTED` off base ➔ `STATE_SETTLING` replaced). Drinking data is never sent while the bottle is in the air; exact consumed volume (`Weight_Start - Weight_End`) is calculated and published once the bottle is replaced and mechanically settled.
+- **Remote Tare Command via BLE:** Zero the load cell base directly from the mobile app by tapping "Tare Base" on the Bottle screen.
+- **Dynamic Bottle Capacity:** Synced over BLE (`cap <ml>`) from the app and persisted to ESP32 flash memory (NVS).
+- **Physical Sensors:** Real-time ambient temperature and humidity tracking via DHT11 (GPIO 19) and high-precision weight sensing via HX711 (DT=GPIO 21, SCK=GPIO 22).
+- **Status LED Indicator (GPIO 2):** Blinks (350ms) while advertising/broadcasting BLE; stays steady ON when connected to the SipSense Android app.
+
+For full hardware pin diagrams, wiring schematics, and flashing guides, refer to [`firmware/PIN_DIAGRAM.md`](firmware/PIN_DIAGRAM.md).
+
+---
+
 ## ✨ Recent Updates (Login & Registration Implementation)
 
 This initial commit establishes the foundational Android structure and introduces a fully designed, interactive Authentication flow.

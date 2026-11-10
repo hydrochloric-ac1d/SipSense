@@ -81,4 +81,14 @@
         <item name="android:paddingBottom">16dp</item>
     </style>
 
+    <!-- ════════════════════════════════════════════════════════════════
+         BOTTOM NAVIGATION TEXT APPEARANCE
+         Clean, elegant typography for floating bottom navigation tab labels
+         ════════════════════════════════════════════════════════════════ -->
+    <style name="SipSense.BottomNav.Text" parent="TextAppearance.MaterialComponents.Caption">
+        <item name="android:textSize">11sp</item>
+        <item name="android:fontFamily">sans-serif-medium</item>
+        <item name="android:includeFontPadding">false</item>
+    </style>
+
 </resources>
